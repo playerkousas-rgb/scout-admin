@@ -16,6 +16,17 @@ Scout Admin 是一個**靜態管理後台**，用於：
 
 **不需要伺服器、不需要資料庫。** 申請資料存在你的 Google Sheet，審核狀態存在瀏覽器 localStorage。
 
+> ⚠️ **給其他開發者 / Agent 看的重要說明**
+>
+> Scout Admin APP 是**純靜態 HTML**，部署在 Vercel 上。
+> **它沒有任何後端 API 端點**，不存在 `/api/submit`、`/api/register` 或任何伺服器路由。
+>
+> 申請表單的接收端是獨立的 **Google Apps Script Web App**，URL 已固定寫死在代碼內：
+> ```
+> https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec
+> ```
+> 這個 URL 就是唯一的接收端點，**不需要、也不應該修改**任何 `ADMIN_API_URL` 類的變數。
+
 ---
 
 ## 二、系統組成
@@ -227,6 +238,9 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 ---
 
 ## 八、Apps Script Web App 資訊
+
+> **這是申請的唯一接收端點。** Scout Admin APP 本身是純靜態網頁，沒有後端。
+> 所有申請 POST 請求都發往這個 Apps Script URL，而不是 `scout-admin-blue.vercel.app` 的任何路徑。
 
 | 項目 | 說明 |
 |------|------|
