@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Scout Admin — 旅團接入管理中心</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red:    #8B0000;
+    --red2:   #a80000;
+    --gold:   #c8992a;
+    --bg:     #f4f1ec;
+    --card:   #ffffff;
+    --border: #e2ddd5;
+    --text:   #1a1a1a;
+    --muted:  #6b6b6b;
+    --green:  #1a7a3c;
+    --orange: #c05800;
+    --blue:   #1a4a8a;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,.10);
+  }
+  body { font-family: 'Segoe UI','PingFang HK','Noto Sans HK',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  header { background:var(--red); color:#fff; padding:0 24px; height:60px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+  header .logo { font-size:1.1rem; font-weight:700; letter-spacing:.5px; }
+  header .logo span { color:var(--gold); }
+  header .hstats { font-size:.8rem; opacity:.85; }
+
+  .container { max-width:1100px; margin:0 auto; padding:24px 16px; }
+
+  .tabs { display:flex; gap:4px; background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:4px; margin-bottom:20px; box-shadow:var(--shadow); flex-wrap:wrap; }
+  .tab-btn { flex:1; min-width:80px; padding:10px 8px; border:none; background:transparent; border-radius:9px; cursor:pointer; font-size:.85rem; font-weight:600; color:var(--muted); transition:all .2s; }
+  .tab-btn.active { background:var(--red); color:#fff; box-shadow:0 2px 6px rgba(139,0,0,.35); }
+  .tab-btn:hover:not(.active) { background:var(--bg); color:var(--text); }
+
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:16px; }
+  .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+  .card-title { font-size:1rem; font-weight:700; color:var(--text); }
+
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:.75rem; font-weight:600; }
+  .badge-pending  { background:#fff3e0; color:var(--orange); border:1px solid #ffcc80; }
+  .badge-done     { background:#e8f5e9; color:var(--green);  border:1px solid #a5d6a7; }
+  .badge-rejected { background:#fce4ec; color:#c62828;       border:1px solid #ef9a9a; }
+
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  @media(max-width:640px){ .stats-row{grid-template-columns:repeat(2,1fr);} }
+  .stat-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; box-shadow:var(--shadow); }
+  .stat-num { font-size:2rem; font-weight:800; color:var(--red); }
+  .stat-lbl { font-size:.78rem; color:var(--muted); margin-top:4px; }
+
+  .app-list { display:flex; flex-direction:column; gap:12px; }
+  .app-card { border:1px solid var(--border); border-radius:10px; padding:16px; background:#fff; transition:box-shadow .2s; }
+  .app-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.12); }
+  .app-card.pending  { border-left:4px solid var(--orange); }
+  .app-card.done     { border-left:4px solid var(--green); }
+  .app-card.rejected { border-left:4px solid #c62828; opacity:.7; }
+
+  .app-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .app-meta { flex:1; min-width:200px; }
+  .app-troop { font-size:1.05rem; font-weight:700; margin-bottom:6px; }
+  .app-detail { font-size:.82rem; color:var(--muted); line-height:1.8; }
+  .app-detail strong { color:var(--text); }
+  .app-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:flex-start; }
+
+  .btn { padding:7px 13px; border:none; border-radius:8px; cursor:pointer; font-size:.8rem; font-weight:600; transition:all .2s; display:inline-flex; align-items:center; gap:4px; }
+  .btn-primary { background:var(--red);   color:#fff; }
+  .btn-primary:hover { background:var(--red2); }
+  .btn-success { background:var(--green); color:#fff; }
+  .btn-success:hover { filter:brightness(1.15); }
+  .btn-danger  { background:#c62828;      color:#fff; }
+  .btn-danger:hover  { filter:brightness(1.15); }
+  .btn-ghost   { background:var(--bg);    color:var(--text); border:1px solid var(--border); }
+  .btn-ghost:hover { background:#eae7e0; }
+  .btn-gold    { background:var(--gold);  color:#fff; }
+  .btn-gold:hover { filter:brightness(1.1); }
+
+  .json-block { background:#1a1a2e; color:#e0e0ff; border-radius:8px; padding:14px 16px; font-family:'Consolas','Monaco',monospace; font-size:.78rem; line-height:1.65; white-space:pre; overflow-x:auto; margin-top:10px; position:relative; }
+  .json-key { color:#80cbc4; }
+  .json-str { color:#a5d6a7; }
+  .json-num { color:#ffcc80; }
+  .json-copy-btn { position:absolute; top:8px; right:8px; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); color:#fff; padding:4px 10px; border-radius:6px; font-size:.72rem; cursor:pointer; }
+  .json-copy-btn:hover { background:rgba(255,255,255,.28); }
+
+  .gs-block { background:#0d1117; color:#c9d1d9; border-radius:8px; padding:14px 16px; font-family:'Consolas','Monaco',monospace; font-size:.76rem; line-height:1.65; white-space:pre; overflow-x:auto; margin-top:10px; position:relative; border:1px solid #30363d; }
+
+  .expand-toggle { background:none; border:none; cursor:pointer; font-size:.8rem; color:var(--red); font-weight:600; padding:6px 0; margin-top:8px; }
+  .expand-content { display:none; margin-top:10px; }
+  .expand-content.open { display:block; }
+
+  .filter-bar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .filter-bar input { flex:1; min-width:160px; }
+  .filter-btn { padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:#fff; font-size:.8rem; cursor:pointer; font-weight:600; color:var(--muted); transition:all .2s; }
+  .filter-btn.active { background:var(--red); color:#fff; border-color:var(--red); }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:580px){ .form-grid{grid-template-columns:1fr;} }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-group.full { grid-column:1/-1; }
+  label { font-size:.82rem; font-weight:600; color:var(--muted); }
+  input,select,textarea { padding:9px 12px; border:1px solid var(--border); border-radius:8px; font-size:.88rem; font-family:inherit; background:#fff; color:var(--text); transition:border-color .2s; }
+  input:focus,select:focus,textarea:focus { outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(139,0,0,.1); }
+  textarea { resize:vertical; min-height:70px; }
+
+  .troop-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+  .troop-table th { background:var(--red); color:#fff; padding:10px 12px; text-align:left; font-size:.76rem; font-weight:600; }
+  .troop-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  .troop-table tr:hover td { background:#faf8f5; }
+  .url-cell { font-family:monospace; font-size:.7rem; color:var(--muted); word-break:break-all; max-width:200px; }
+
+  .note { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:10px 14px; font-size:.82rem; color:#5d4037; margin-bottom:12px; }
+  .note strong { color:#bf360c; }
+
+  .divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
+
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#1a1a1a; color:#fff; padding:10px 22px; border-radius:24px; font-size:.88rem; z-index:9999; transition:transform .3s; pointer-events:none; }
+  #toast.show { transform:translateX(-50%) translateY(0); }
+
+  .section-label { font-size:.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; margin-top:16px; }
+
+  code { background:#f0ede8; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:.85em; }
+
+  .ts-block { background:#1e1e2e; color:#cdd6f4; border-radius:8px; padding:14px 16px; font-family:'Consolas','Monaco',monospace; font-size:.76rem; line-height:1.65; white-space:pre; overflow-x:auto; margin-top:10px; position:relative; border:1px solid #313244; }
+  .ts-kw   { color:#cba6f7; }
+  .ts-str  { color:#a6e3a1; }
+  .ts-cmt  { color:#6c7086; }
+  .ts-type { color:#89b4fa; }
+  .ts-val  { color:#fab387; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚜️ Scout <span>Admin</span></div>
+  <div class="hstats" id="headerStats">載入中…</div>
+</header>
+<div id="toast"></div>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('requests',this)">📥 新申請</button>
+    <button class="tab-btn" onclick="switchTab('troops',this)">📋 旅團總覽</button>
+    <button class="tab-btn" onclick="switchTab('json',this)">🔧 JSON / TS 產生器</button>
+    <button class="tab-btn" onclick="switchTab('gs',this)">📜 Apps Script</button>
+    <button class="tab-btn" onclick="switchTab('settings',this)">⚙️ 設定</button>
+  </div>
+
+  <!-- ===== TAB 1: REQUESTS ===== -->
+  <div class="section active" id="tab-requests">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="statPending">0</div><div class="stat-lbl">待處理</div></div>
+      <div class="stat-card"><div class="stat-num" id="statDone" style="color:var(--green)">0</div><div class="stat-lbl">已完成</div></div>
+      <div class="stat-card"><div class="stat-num" id="statTotal" style="color:var(--blue)">0</div><div class="stat-lbl">總申請</div></div>
+      <div class="stat-card"><div class="stat-num" id="statTroops" style="color:var(--gold)">0</div><div class="stat-lbl">已接入旅團</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📥 旅團接入申請</div>
+        <button class="btn btn-gold" onclick="showAddModal()">＋ 手動新增</button>
+      </div>
+      <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="搜尋旅團名稱、編號…" oninput="renderRequests()" />
+        <button class="filter-btn active" onclick="setFilter('all',this)">全部</button>
+        <button class="filter-btn" onclick="setFilter('pending',this)">待處理</button>
+        <button class="filter-btn" onclick="setFilter('done',this)">已完成</button>
+        <button class="filter-btn" onclick="setFilter('rejected',this)">已拒絕</button>
+      </div>
+      <div class="app-list" id="requestList"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2: TROOPS ===== -->
+  <div class="section" id="tab-troops">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 已接入旅團</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="copyText(buildFullVsbadgeJson())">📋 複製 vsbadge JSON</button>
+          <button class="btn btn-ghost" onclick="copyText(buildFullTroopsTs())">📋 複製 troops.ts</button>
+        </div>
+      </div>
+      <div class="note">已完成接入的旅團一覽。底部可複製各 APP 的完整設定檔。</div>
+      <div style="overflow-x:auto">
+        <table class="troop-table">
+          <thead><tr>
+            <th>旅團號</th><th>旅團名稱</th><th>Apps Script URL</th><th>API Key</th><th>狀態</th><th>操作</th>
+          </tr></thead>
+          <tbody id="troopTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔥 vsbadge — <code>troops.json</code>（完整，可直接替換）</div></div>
+      <div class="json-block" id="fullVsbadgeBlock">
+        <button class="json-copy-btn" onclick="copyText(buildFullVsbadgeJson())">複製</button>
+        <span id="fullVsbadgeContent"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">🏠 scoutsystem — <code>lib/troops.ts</code>（完整，可直接替換）</div></div>
+      <div class="note"><strong>⚠️ 提醒：</strong>貼入 <code>lib/troops.ts</code> 後，還需在 Vercel 設定每個旅團的環境變數 <code>TROOP_{旅團號}_APIKEY</code>。</div>
+      <div class="ts-block" id="fullTroopsTsBlock">
+        <button class="json-copy-btn" onclick="copyText(buildFullTroopsTs())">複製</button>
+        <span id="fullTroopsTsContent"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔑 Vercel 環境變數清單</div></div>
+      <div class="note">以下是所有旅團需要在 Vercel 設定的環境變數，逐一複製貼上到 Vercel Dashboard → Settings → Environment Variables。</div>
+      <div class="ts-block" id="vercelEnvBlock">
+        <button class="json-copy-btn" onclick="copyText(buildVercelEnvList())">複製全部</button>
+        <span id="vercelEnvContent"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 3: JSON / TS GENERATOR ===== -->
+  <div class="section" id="tab-json">
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔧 單一旅團 JSON / TS 產生器</div></div>
+      <div class="note">填入旅團資料，即時預覽兩個 APP 各自需要的格式，一鍵複製。</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>旅團號 (如 0082)</label>
+          <input type="text" id="g_id" placeholder="0082" oninput="generateAll()" />
+        </div>
+        <div class="form-group">
+          <label>旅團名稱</label>
+          <input type="text" id="g_name" placeholder="第 82 旅" oninput="generateAll()" />
+        </div>
+        <div class="form-group full">
+          <label>Apps Script URL</label>
+          <input type="text" id="g_url" placeholder="https://script.google.com/macros/s/…/exec" oninput="generateAll()" />
+        </div>
+        <div class="form-group full">
+          <label>API Key</label>
+          <input type="text" id="g_key" placeholder="ak_xxxxxxxx 或 vs_xxxxxxxx" oninput="generateAll()" />
+        </div>
+      </div>
+      <hr class="divider" />
+
+      <div class="section-label">🔥 vsbadge — troops.json 新增片段</div>
+      <div class="json-block">
+        <button class="json-copy-btn" onclick="copyText(document.getElementById('gen_vs').textContent)">複製</button>
+        <span id="gen_vs">— 請填入上方資料 —</span>
+      </div>
+
+      <div class="section-label" style="margin-top:18px">🏠 scoutsystem — troops.ts 新增片段</div>
+      <div class="ts-block">
+        <button class="json-copy-btn" onclick="copyText(document.getElementById('gen_ts').textContent)">複製</button>
+        <span id="gen_ts">— 請填入上方資料 —</span>
+      </div>
+
+      <div class="section-label" style="margin-top:18px">🔑 Vercel 環境變數（scoutsystem 專用）</div>
+      <div class="ts-block">
+        <button class="json-copy-btn" onclick="copyText(document.getElementById('gen_env').textContent)">複製</button>
+        <span id="gen_env">— 請填入上方資料 —</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 4: APPS SCRIPT ===== -->
+  <div class="section" id="tab-gs">
+    <div class="card">
+      <div class="card-header"><div class="card-title">📜 申請接收 Apps Script</div></div>
+      <div class="note">
+        ✅ <strong>Web App 已連接：</strong>旅團提交的申請會直接送往你的 Google Sheet 並寄 Email 通知你。
+      </div>
+      <div class="gs-block">
+        <button class="json-copy-btn" onclick="copyText(GS_CODE)">複製備份</button>
+        <span id="gsCodeSpan"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">📋 前端申請表單代碼（嵌入旅團 APP）</div></div>
+      <div class="note">複製以下代碼，貼入旅團 APP 的設定/申請頁面。Web App URL 已預先填入。</div>
+      <div class="gs-block">
+        <button class="json-copy-btn" onclick="copyText(FRONTEND_CODE)">複製</button>
+        <span id="frontendCodeSpan"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">📋 Google Sheet 欄位說明</div></div>
+      <div class="note">Script 會在<strong>第一次收到申請時自動建立工作表和標題欄</strong>，無需手動建立。</div>
+      <div style="overflow-x:auto">
+        <table class="troop-table">
+          <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
+            <tr><td>B</td><td>旅團號</td><td>如 0082</td></tr>
+            <tr><td>C</td><td>旅團名稱</td><td>如 第82旅</td></tr>
+            <tr><td>D</td><td>Apps Script URL</td><td>旅團的後端 URL</td></tr>
+            <tr><td>E</td><td>API Key</td><td>旅團的 API Key</td></tr>
+            <tr><td>F</td><td>接入 APP</td><td>vsbadge / scoutsystem / 兩者</td></tr>
+            <tr><td>G</td><td>備注</td><td>選填</td></tr>
+            <tr><td>H</td><td>狀態</td><td>自動填「待處理」</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 5: SETTINGS ===== -->
+  <div class="section" id="tab-settings">
+    <div class="card">
+      <div class="card-header"><div class="card-title">⚙️ 系統設定</div></div>
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>管理 Sheet Web App URL（部署後填入）</label>
+          <input type="text" id="cfg_url" placeholder="https://script.google.com/macros/s/…/exec" />
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 儲存</button>
+        <button class="btn btn-ghost" onclick="clearAllData()">🗑️ 清除所有本地資料</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">📤 匯出 / 匯入</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-success" onclick="exportData()">📤 匯出備份 JSON</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📥 匯入備份 JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ===== MODAL ===== -->
+<div id="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto">
+  <div style="background:#fff;max-width:560px;margin:40px auto;border-radius:14px;padding:28px;position:relative">
+    <button onclick="closeModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:20px" id="modalTitle">新增旅團申請</div>
+    <input type="hidden" id="modal_id" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label>旅團號 *</label>
+        <input type="text" id="m_id" placeholder="0082" />
+      </div>
+      <div class="form-group">
+        <label>旅團名稱 *</label>
+        <input type="text" id="m_name" placeholder="第 82 旅" />
+      </div>
+      <div class="form-group full">
+        <label>Apps Script URL</label>
+        <input type="text" id="m_url" placeholder="https://script.google.com/macros/s/…/exec" />
+      </div>
+      <div class="form-group full">
+        <label>API Key</label>
+        <input type="text" id="m_key" placeholder="ak_xxxxxxxx 或 vs_xxxxxxxx" />
+      </div>
+      <div class="form-group full">
+        <label>接入 APP（可多選）</label>
+        <div style="display:flex;gap:16px;padding:6px 0;flex-wrap:wrap">
+          <label style="font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" value="vsbadge" class="app-check" /> 🔥 vsbadge</label>
+          <label style="font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" value="scoutsystem" class="app-check" /> 🏠 scoutsystem</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>狀態</label>
+        <select id="m_status">
+          <option value="pending">待處理</option>
+          <option value="done">已完成</option>
+          <option value="rejected">已拒絕</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>備注</label>
+        <textarea id="m_note" placeholder="可選"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveModal()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// WEB APP URL（已部署）
+// ============================================================
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
+
+// ============================================================
+// 前端申請表單代碼（嵌入旅團 APP）
+// ============================================================
+const FRONTEND_CODE = `<!-- ============================================================
+  Scout Admin — 旅團接入申請表單
+  嵌入位置：旅團 APP 的設定頁面 / 首次登入引導頁
+  ============================================================ -->
+
+<div id="scoutApplyWrap" style="
+  background:#fff; border:1px solid #e2ddd5;
+  border-radius:12px; padding:24px;
+  max-width:480px; margin:0 auto;
+  font-family:'Segoe UI','PingFang HK',sans-serif;">
+
+  <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">⚜️ 申請接入童軍管理系統</h3>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">填妥以下資料，管理員審核後會為你開通。</p>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團號 *（如 0082）</label>
+      <input id="apply_troopId" placeholder="0082"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團名稱 *</label>
+      <input id="apply_troopName" placeholder="第 82 旅"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Apps Script URL *</label>
+      <input id="apply_backendUrl" placeholder="https://script.google.com/macros/s/…/exec"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.85rem;font-family:monospace" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">API Key *</label>
+      <input id="apply_apiKey" placeholder="ak_xxxxxxxx 或 vs_xxxxxxxx"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.85rem;font-family:monospace" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:6px">申請接入的系統（可多選）</label>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" value="vsbadge" class="apply-app-check" style="accent-color:#8B0000"> 🔥 深資童軍追蹤（vsbadge）
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer">
+          <input type="checkbox" value="scoutsystem" class="apply-app-check" style="accent-color:#8B0000"> 🏠 主系統（scoutsystem）
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">備注（選填）</label>
+      <textarea id="apply_note" placeholder="如有特殊情況可在此說明"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.88rem;resize:vertical;min-height:60px"></textarea>
+    </div>
+
+    <button onclick="submitScoutApply()"
+      style="background:#8B0000;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;margin-top:4px">
+      提交申請
+    </button>
+
+    <div id="apply_msg" style="font-size:.85rem;text-align:center;min-height:20px"></div>
+
+  </div>
+</div>
+
+<script>
+const _SCOUT_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
+
+async function submitScoutApply() {
+  var troopId    = document.getElementById('apply_troopId').value.trim();
+  var troopName  = document.getElementById('apply_troopName').value.trim();
+  var backendUrl = document.getElementById('apply_backendUrl').value.trim();
+  var apiKey     = document.getElementById('apply_apiKey').value.trim();
+  var note       = document.getElementById('apply_note').value.trim();
+  var apps       = [...document.querySelectorAll('.apply-app-check:checked')].map(c => c.value);
+  var msg        = document.getElementById('apply_msg');
+
+  if (!troopId || !troopName || !backendUrl || !apiKey) {
+    msg.style.color = '#c62828';
+    msg.textContent = '⚠️ 請填寫所有必填欄位（*）';
+    return;
+  }
+
+  msg.style.color = '#888';
+  msg.textContent = '提交中…';
+
+  try {
+    // 使用 no-cors fetch（Apps Script 跨域限制）
+    await fetch(_SCOUT_ADMIN_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ troopId, troopName, backendUrl, apiKey, apps, note })
+    });
+    // no-cors 無法讀回應，但只要不報錯即為成功
+    msg.style.color = '#1a7a3c';
+    msg.textContent = '✅ 申請已成功提交！管理員將盡快處理，請耐心等候。';
+    // 清空表單
+    ['apply_troopId','apply_troopName','apply_backendUrl','apply_apiKey','apply_note']
+      .forEach(id => document.getElementById(id).value = '');
+    document.querySelectorAll('.apply-app-check').forEach(c => c.checked = false);
+  } catch (err) {
+    msg.style.color = '#c62828';
+    msg.textContent = '❌ 提交失敗：' + err.message;
+  }
+}
+<\/script>`;
+
+// ============================================================
+// APPS SCRIPT CODE (帶你的 email)
+// ============================================================
+const GS_CODE = `// ============================================================
+// Scout Admin — 旅團接入申請接收系統
+// 作者：playerkousas@hotmail.com
+// 使用方式：
+//   擴充功能 → Apps Script → 貼上 → 儲存
+//   部署 → 新增部署 → 網頁應用程式
+//   執行身分：我 | 存取：所有人
+// ============================================================
+
+var ADMIN_EMAIL = "playerkousas@hotmail.com";
+var SHEET_NAME  = "申請記錄";
+
+// ---------- 接收申請 POST ----------
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+
+    var troopId    = (data.troopId    || "").toString().trim();
+    var troopName  = (data.troopName  || "").toString().trim();
+    var backendUrl = (data.backendUrl || "").toString().trim();
+    var apiKey     = (data.apiKey     || "").toString().trim();
+    var apps       = (data.apps || []).join(", ");
+    var note       = (data.note       || "").toString().trim();
+    var ts         = new Date();
+
+    if (!troopId || !troopName) {
+      return _json({ status: "error", message: "旅團號和名稱為必填" });
+    }
+
+    // 自動建立工作表（第一次執行時）
+    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_NAME);
+      var hdr = sheet.getRange("A1:H1");
+      hdr.setValues([["提交時間","旅團號","旅團名稱","Apps Script URL","API Key","接入APP","備注","狀態"]]);
+      hdr.setFontWeight("bold");
+      hdr.setBackground("#8B0000");
+      hdr.setFontColor("#ffffff");
+      sheet.setFrozenRows(1);
+    }
+
+    sheet.appendRow([ts, troopId, troopName, backendUrl, apiKey, apps, note, "待處理"]);
+
+    // Email 通知
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: "📥 [Scout Admin] 新旅團申請 — " + troopName + "（" + troopId + "）",
+      body:
+        "有新旅團提交接入申請，請到 Scout Admin APP 查看並處理。\\n\\n" +
+        "━━━━━━━━━━━━━━━━━━\\n" +
+        "旅團號：" + troopId   + "\\n" +
+        "旅團名稱：" + troopName  + "\\n" +
+        "接入 APP：" + apps      + "\\n" +
+        "Apps Script URL：" + backendUrl + "\\n" +
+        "API Key：" + apiKey    + "\\n" +
+        (note ? "備注：" + note + "\\n" : "") +
+        "提交時間：" + ts       + "\\n" +
+        "━━━━━━━━━━━━━━━━━━\\n"
+    });
+
+    return _json({ status: "success", message: "申請已成功提交！管理員將盡快處理。" });
+
+  } catch (err) {
+    return _json({ status: "error", message: err.toString() });
+  }
+}
+
+// ---------- 健康檢查 GET ----------
+function doGet(e) {
+  return _json({ status: "ok", message: "Scout Admin Web App 正常運行" });
+}
+
+// ---------- 工具 ----------
+function _json(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  requests: [],
+  filter: 'all',
+  settings: { webappUrl: '' }
+};
+
+// ============================================================
+// PERSIST
+// ============================================================
+function load() {
+  try {
+    const raw = localStorage.getItem('scoutAdmin_v2');
+    if (raw) {
+      const d = JSON.parse(raw);
+      state.requests = d.requests || [];
+      state.settings = d.settings || { webappUrl: '' };
+    }
+  } catch(e){}
+  refreshAll();
+}
+
+function save() {
+  localStorage.setItem('scoutAdmin_v2', JSON.stringify({
+    requests: state.requests,
+    settings: state.settings
+  }));
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'troops') renderTroopsTab();
+  if (id === 'gs')     renderGsTab();
+  if (id === 'settings') loadSettings();
+}
+
+// ============================================================
+// RENDER REQUESTS
+// ============================================================
+function setFilter(f, btn) {
+  state.filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRequests();
+}
+
+function renderRequests() {
+  const q    = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  let list   = state.requests.filter(r => {
+    const mf = state.filter === 'all' || r.status === state.filter;
+    const ms = !q || r.troopId.toLowerCase().includes(q) || r.troopName.toLowerCase().includes(q);
+    return mf && ms;
+  });
+  list.sort((a,b) => {
+    const o = { pending:0, done:1, rejected:2 };
+    return (o[a.status]||9)-(o[b.status]||9) || new Date(b.createdAt)-new Date(a.createdAt);
+  });
+  const el = document.getElementById('requestList');
+  el.innerHTML = list.length
+    ? list.map(buildAppCard).join('')
+    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的申請</div>';
+  updateStats();
+}
+
+function buildAppCard(r) {
+  const bmap = { pending:'badge-pending', done:'badge-done', rejected:'badge-rejected' };
+  const btxt = { pending:'待處理', done:'已完成', rejected:'已拒絕' };
+  const appsStr = (r.apps||[]).join(' · ') || '—';
+
+  const actions = r.status === 'pending'
+    ? `<button class="btn btn-success" onclick="markDone('${r.id}')">✅ 完成</button>
+       <button class="btn btn-danger"  onclick="markRejected('${r.id}')">❌ 拒絕</button>`
+    : `<button class="btn btn-ghost"   onclick="markPending('${r.id}')">↩ 重設</button>`;
+
+  // build JSON snippets inline
+  const vsSnippet  = buildSingleVsbadge(r);
+  const tsSnippet  = buildSingleTs(r);
+  const envSnippet = buildSingleEnv(r);
+
+  return `
+<div class="app-card ${r.status}" id="card_${r.id}">
+  <div class="app-card-top">
+    <div class="app-meta">
+      <div class="app-troop">⚜️ ${r.troopId} — ${r.troopName}</div>
+      <div class="app-detail">
+        <strong>申請時間：</strong>${r.createdAt}<br>
+        <strong>接入 APP：</strong>${appsStr}<br>
+        <strong>API Key：</strong><code>${r.apiKey||'—'}</code><br>
+        ${r.note?`<strong>備注：</strong>${r.note}`:''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <span class="badge ${bmap[r.status]}">${btxt[r.status]}</span>
+      <div class="app-actions">
+        ${actions}
+        <button class="btn btn-ghost" onclick="editRequest('${r.id}')">✏️</button>
+        <button class="btn btn-danger" onclick="deleteRequest('${r.id}')">🗑</button>
+      </div>
+    </div>
+  </div>
+  <button class="expand-toggle" onclick="toggleExpand('ex_${r.id}')">🔧 查看 JSON / TS 輸出 ▼</button>
+  <div class="expand-content" id="ex_${r.id}">
+    ${r.apps&&r.apps.includes('vsbadge') ? `
+    <div class="section-label">🔥 vsbadge — troops.json 片段</div>
+    <div class="json-block" style="font-size:.74rem">
+      <button class="json-copy-btn" onclick="copyText(\`${esc(vsSnippet)}\`)">複製</button>${sh(vsSnippet)}</div>` : ''}
+    ${r.apps&&r.apps.includes('scoutsystem') ? `
+    <div class="section-label" style="margin-top:12px">🏠 scoutsystem — troops.ts 片段</div>
+    <div class="ts-block" style="font-size:.74rem">
+      <button class="json-copy-btn" onclick="copyText(\`${esc(tsSnippet)}\`)">複製</button>${tsSnippet}</div>
+    <div class="section-label" style="margin-top:10px">🔑 Vercel 環境變數</div>
+    <div class="ts-block" style="font-size:.74rem">
+      <button class="json-copy-btn" onclick="copyText(\`${esc(envSnippet)}\`)">複製</button>${envSnippet}</div>` : ''}
+    ${(!r.apps||r.apps.length===0) ? `
+    <div class="section-label">🔥 vsbadge — troops.json 片段</div>
+    <div class="json-block" style="font-size:.74rem">
+      <button class="json-copy-btn" onclick="copyText(\`${esc(vsSnippet)}\`)">複製</button>${sh(vsSnippet)}</div>
+    <div class="section-label" style="margin-top:12px">🏠 scoutsystem — troops.ts 片段</div>
+    <div class="ts-block" style="font-size:.74rem">
+      <button class="json-copy-btn" onclick="copyText(\`${esc(tsSnippet)}\`)">複製</button>${tsSnippet}</div>
+    <div class="section-label" style="margin-top:10px">🔑 Vercel 環境變數</div>
+    <div class="ts-block" style="font-size:.74rem">
+      <button class="json-copy-btn" onclick="copyText(\`${esc(envSnippet)}\`)">複製</button>${envSnippet}</div>` : ''}
+  </div>
+</div>`;
+}
+
+function esc(s){ return s.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$'); }
+function toggleExpand(id){
+  const el=document.getElementById(id);
+  el.classList.toggle('open');
+  const btn=el.previousElementSibling;
+  btn.textContent=el.classList.contains('open')
+    ?'🔧 隱藏 JSON / TS ▲':'🔧 查看 JSON / TS 輸出 ▼';
+}
+
+// ============================================================
+// JSON / TS BUILDERS
+// ============================================================
+function buildSingleVsbadge(r) {
+  if (!r.troopId) return '— 請填入旅團號 —';
+  const o = {}; o[r.troopId] = { name: r.troopName, backend: r.backendUrl||'', apikey: r.apiKey||'' };
+  return JSON.stringify(o, null, 2);
+}
+
+function buildSingleTs(r) {
+  if (!r.troopId) return '— 請填入資料 —';
+  const id = r.troopId;
+  return `  {
+    key: 'troop_${id}',
+    id: '${id}',
+    name: '${r.troopName}',
+    webAppUrl: '${r.backendUrl||''}',
+    status: 'active',
+  },`;
+}
+
+function buildSingleEnv(r) {
+  if (!r.troopId) return '— 請填入資料 —';
+  return `Name:  TROOP_${r.troopId}_APIKEY\nValue: ${r.apiKey||''}`;
+}
+
+function buildFullVsbadgeJson() {
+  const troops = {};
+  state.requests.filter(r=>r.status==='done' && (!r.apps||r.apps.length===0||r.apps.includes('vsbadge'))).forEach(r=>{
+    troops[r.troopId]={ name:r.troopName, backend:r.backendUrl||'', apikey:r.apiKey||'' };
+  });
+  return JSON.stringify({ troops }, null, 2);
+}
+
+function buildFullTroopsTs() {
+  const done = state.requests.filter(r=>r.status==='done' && (!r.apps||r.apps.length===0||r.apps.includes('scoutsystem')));
+  const entries = done.map(r=>`  {
+    key: 'troop_${r.troopId}',
+    id: '${r.troopId}',
+    name: '${r.troopName}',
+    webAppUrl: '${r.backendUrl||''}',
+    // API Key → Vercel env: TROOP_${r.troopId}_APIKEY
+    status: 'active',
+  },`).join('\n');
+  return `// 2026 Scout System 已接入旅團登記表
+// 由系統管理員維護（Scout Admin 自動產生）
+// API Key 存在 Vercel 環境變數，不出現在前端 JS
+
+export type ApprovedTroop = {
+  key: string;
+  id: string;
+  name: string;
+  webAppUrl: string;
+  status: 'active' | 'testing';
+  note?: string;
+};
+
+export const APPROVED_TROOPS: ApprovedTroop[] = [
+${entries}
+];
+
+export function findTroopByKey(key: string): ApprovedTroop | null {
+  return APPROVED_TROOPS.find(t => t.key === key) || null;
+}
+
+export function activeTroops(): ApprovedTroop[] {
+  return APPROVED_TROOPS.filter(t => t.status === 'active' || t.status === 'testing');
+}`;
+}
+
+function buildVercelEnvList() {
+  const done = state.requests.filter(r=>r.status==='done' && (!r.apps||r.apps.length===0||r.apps.includes('scoutsystem')));
+  return done.map(r=>`TROOP_${r.troopId}_APIKEY=${r.apiKey||''}`).join('\n') || '— 尚無已完成的旅團 —';
+}
+
+// ============================================================
+// SYNTAX HIGHLIGHT (JSON)
+// ============================================================
+function sh(json) {
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
+      if(/^"/.test(m)&&/:$/.test(m)) return `<span class="json-key">${m}</span>`;
+      if(/^"/.test(m)) return `<span class="json-str">${m}</span>`;
+      return `<span class="json-num">${m}</span>`;
+    });
+}
+
+// ============================================================
+// TROOPS TAB
+// ============================================================
+function renderTroopsTab() {
+  const done = state.requests.filter(r=>r.status==='done');
+  const tbody = document.getElementById('troopTableBody');
+  tbody.innerHTML = done.length
+    ? done.map(r=>`<tr>
+        <td><code>${r.troopId}</code></td>
+        <td>${r.troopName}</td>
+        <td class="url-cell">${r.backendUrl||'—'}</td>
+        <td><code style="font-size:.7rem">${r.apiKey||'—'}</code></td>
+        <td><span class="badge badge-done">${(r.apps||[]).join(' · ')||'—'}</span></td>
+        <td><button class="btn btn-ghost" style="font-size:.73rem" onclick="editRequest('${r.id}')">✏️ 編輯</button></td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">尚無已完成旅團</td></tr>';
+
+  // Full JSON panels
+  const vsJson = buildFullVsbadgeJson();
+  document.getElementById('fullVsbadgeContent').innerHTML = sh(vsJson);
+  document.getElementById('fullTroopsTsContent').textContent = buildFullTroopsTs();
+  document.getElementById('vercelEnvContent').textContent   = buildVercelEnvList();
+}
+
+// ============================================================
+// GS TAB
+// ============================================================
+function renderGsTab() {
+  document.getElementById('gsCodeSpan').textContent      = GS_CODE;
+  document.getElementById('frontendCodeSpan').textContent = FRONTEND_CODE;
+}
+
+// ============================================================
+// JSON GENERATOR TAB
+// ============================================================
+function generateAll() {
+  const id   = document.getElementById('g_id').value.trim();
+  const name = document.getElementById('g_name').value.trim();
+  const url  = document.getElementById('g_url').value.trim();
+  const key  = document.getElementById('g_key').value.trim();
+  const r    = { troopId:id, troopName:name, backendUrl:url, apiKey:key };
+
+  document.getElementById('gen_vs').innerHTML  = id ? sh(buildSingleVsbadge(r)) : '— 請填入旅團號 —';
+  document.getElementById('gen_ts').textContent = id ? buildSingleTs(r)          : '— 請填入旅團號 —';
+  document.getElementById('gen_env').textContent= id ? buildSingleEnv(r)         : '— 請填入旅團號 —';
+}
+
+// ============================================================
+// CRUD
+// ============================================================
+function showAddModal() {
+  document.getElementById('modalTitle').textContent = '新增旅團申請';
+  document.getElementById('modal_id').value = '';
+  ['m_id','m_name','m_url','m_key','m_note'].forEach(i=>document.getElementById(i).value='');
+  document.querySelectorAll('.app-check').forEach(c=>c.checked=false);
+  document.getElementById('m_status').value = 'pending';
+  document.getElementById('modal').style.display='block';
+}
+function editRequest(id) {
+  const r = state.requests.find(r=>r.id===id); if(!r) return;
+  document.getElementById('modalTitle').textContent = '編輯申請';
+  document.getElementById('modal_id').value = id;
+  document.getElementById('m_id').value     = r.troopId;
+  document.getElementById('m_name').value   = r.troopName;
+  document.getElementById('m_url').value    = r.backendUrl||'';
+  document.getElementById('m_key').value    = r.apiKey||'';
+  document.getElementById('m_note').value   = r.note||'';
+  document.getElementById('m_status').value = r.status;
+  document.querySelectorAll('.app-check').forEach(c=>{ c.checked=(r.apps||[]).includes(c.value); });
+  document.getElementById('modal').style.display='block';
+}
+function closeModal() { document.getElementById('modal').style.display='none'; }
+function saveModal() {
+  const eid   = document.getElementById('modal_id').value;
+  const troopId   = document.getElementById('m_id').value.trim();
+  const troopName = document.getElementById('m_name').value.trim();
+  const backendUrl= document.getElementById('m_url').value.trim();
+  const apiKey    = document.getElementById('m_key').value.trim();
+  const note      = document.getElementById('m_note').value.trim();
+  const status    = document.getElementById('m_status').value;
+  const apps      = [...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
+  if(!troopId||!troopName){ alert('請填寫旅團號和名稱'); return; }
+  if(eid) {
+    const idx=state.requests.findIndex(r=>r.id===eid);
+    if(idx>=0) Object.assign(state.requests[idx],{troopId,troopName,backendUrl,apiKey,note,status,apps});
+  } else {
+    state.requests.unshift({
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      troopId,troopName,backendUrl,apiKey,note,status,apps,
+      createdAt: new Date().toLocaleString('zh-HK')
+    });
+  }
+  save(); closeModal(); refreshAll(); toast('✅ 已儲存');
+}
+
+function markDone(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='done';save();refreshAll();toast('✅ 已標記完成');} }
+function markRejected(id){ if(!confirm('確定拒絕？')) return; const r=state.requests.find(r=>r.id===id); if(r){r.status='rejected';save();refreshAll();toast('❌ 已拒絕');} }
+function markPending(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='pending';save();refreshAll();toast('↩ 已重設');} }
+function deleteRequest(id){ if(!confirm('確定刪除？')) return; state.requests=state.requests.filter(r=>r.id!==id); save();refreshAll();toast('🗑 已刪除'); }
+
+// ============================================================
+// STATS
+// ============================================================
+function updateStats() {
+  const pending = state.requests.filter(r=>r.status==='pending').length;
+  const done    = state.requests.filter(r=>r.status==='done').length;
+  const total   = state.requests.length;
+  const troops  = state.requests.filter(r=>r.status==='done').length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statDone').textContent    = done;
+  document.getElementById('statTotal').textContent   = total;
+  document.getElementById('statTroops').textContent  = troops;
+  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已完成 ${done} | 旅團 ${troops}`;
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function loadSettings() { document.getElementById('cfg_url').value=state.settings.webappUrl||''; }
+function saveSettings() { state.settings.webappUrl=document.getElementById('cfg_url').value.trim(); save(); toast('💾 設定已儲存'); }
+function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.settings={webappUrl:''}; refreshAll(); toast('🗑 已清除'); }
+
+// ============================================================
+// EXPORT / IMPORT
+// ============================================================
+function exportData() {
+  const blob=new Blob([JSON.stringify({requests:state.requests,settings:state.settings},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scout-admin-backup.json'; a.click();
+}
+function importData(evt) {
+  const file=evt.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const d=JSON.parse(e.target.result);
+      state.requests=d.requests||[]; state.settings=d.settings||{webappUrl:''};
+      save(); refreshAll(); toast('📥 匯入成功');
+    } catch(err){ alert('匯入失敗：'+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// COPY
+// ============================================================
+function copyText(t){ navigator.clipboard.writeText(t).then(()=>toast('📋 已複製到剪貼簿')); }
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
+
+// ============================================================
+// REFRESH ALL
+// ============================================================
+function refreshAll() { renderRequests(); }
+
+// ============================================================
+// BOOT with demo data
+// ============================================================
+window.addEventListener('DOMContentLoaded',()=>{
+  load();
+  if(!state.requests.length){
+    state.requests=[
+      {
+        id:'demo1', troopId:'0082', troopName:'第 82 旅',
+        backendUrl:'https://script.google.com/macros/s/AKfycbxqQ3JnEdSRnxlhoSEasa6-wX5F58p3dMqBiQRj1zg-SDn7YtFLBKykN5LiWcadgRdCBg/exec',
+        apiKey:'vs_181790d954f24213abe53834',
+        apps:['vsbadge','scoutsystem'], status:'done', note:'第一個接入旅團（示範）',
+        createdAt:'2026/7/7 10:00:00'
+      },
+      {
+        id:'demo2', troopId:'0123', troopName:'第 123 旅',
+        backendUrl:'', apiKey:'',
+        apps:['vsbadge'], status:'pending', note:'等待旅團完成 Apps Script 設定',
+        createdAt:'2026/7/9 09:15:00'
+      }
+    ];
+    save(); refreshAll();
+  }
+  renderGsTab();
+});
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1845ee2fdac2442',t:'MTc4MzU2OTA5MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
