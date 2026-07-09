@@ -410,7 +410,7 @@ const DOCS = {
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：1.0 | 作者：playerkousas@hotmail.com
+> 版本：1.0 | 作者：系統管理員
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -425,6 +425,13 @@ Scout Admin 是一個**靜態管理後台**，用於：
 4. 讓你一鍵複製貼入各 APP 的設定檔完成接入
 
 **不需要伺服器、不需要資料庫。** 申請資料存在你的 Google Sheet，審核狀態存在瀏覽器 localStorage。
+
+> ⚠️ **給其他開發者 / Agent 看的重要說明**
+>
+> Scout Admin APP 是**純靜態 HTML**，部署在 Vercel 上。
+> **它沒有任何後端 API 端點**，不存在 `/api/submit`、`/api/register` 或任何伺服器路由。
+>
+> 申請的唯一接收端是 **Google Apps Script Web App**（URL 已固定寫死在代碼內），並非 `scout-admin-blue.vercel.app` 的任何路徑。不需要、也不應修改任何 `ADMIN_API_URL` 類的變數。
 
 ---
 
@@ -523,7 +530,7 @@ Scout Admin 是一個**靜態管理後台**，用於：
       ▼
 Apps Script Web App
       ├─→ 寫入 Google Sheet「申請記錄」工作表
-      └─→ 寄 Email 至 playerkousas@hotmail.com
+      └─→ 寄 Email 至管理員信箱
                   │
                   ▼
       你收到 Email → 前往 Scout Admin APP → 📥 新申請
@@ -613,7 +620,7 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 |------|------|
 | 執行身分 | 管理員帳號（你） |
 | 存取權限 | 所有人 |
-| 通知 Email | playerkousas@hotmail.com |
+| 通知 Email | 見 Apps Script `ADMIN_EMAIL` 變數 |
 | Google Sheet 工作表 | 申請記錄 |
 
 **健康檢查**（應回傳 \`{"status":"ok"}\`）：
@@ -728,7 +735,7 @@ A：到 Google Sheet → 擴充功能 → Apps Script，修改 \`ADMIN_EMAIL\` �
 旅團透過 APP 內嵌的申請表單提交資料（旅團號、名稱、Apps Script URL、API Key、接入APP）。
 
 - 自動寫入管理員 Google Sheet「申請記錄」工作表
-- 自動寄 Email 通知 playerkousas@hotmail.com
+- 自動寄 Email 通知管理員
 
 #### C-2：管理員在 Scout Admin APP 處理
 
@@ -1190,7 +1197,7 @@ async function submitScoutApply() {
 // ============================================================
 const GS_CODE = `// ============================================================
 // Scout Admin — 旅團接入申請接收系統
-// 作者：playerkousas@hotmail.com
+// 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
 // 使用方式：
 //   擴充功能 → Apps Script → 貼上 → 儲存
 //   部署 → 新增部署 → 網頁應用程式
