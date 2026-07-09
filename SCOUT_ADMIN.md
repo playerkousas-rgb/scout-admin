@@ -1,6 +1,6 @@
 # Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：1.0 | 作者：playerkousas@hotmail.com
+> 版本：1.0 | 作者：Scout System
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -135,7 +135,7 @@ Apps Script Web App
 https://script.google.com/macros/s/AKfycbxj5BD.../exec
       │
       ├─→ 寫入 Google Sheet「申請記錄」工作表
-      └─→ 寄 Email 至 playerkousas@hotmail.com
+      └─→ 寄 Email 至 管理員
                   │
                   ▼
       你收到 Email 通知
@@ -247,7 +247,7 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 | URL | `https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec` |
 | 執行身分 | 你（管理員帳號） |
 | 存取權限 | 所有人 |
-| 通知 Email | playerkousas@hotmail.com |
+| 通知 Email |管理員電郵 |
 | Google Sheet 工作表 | 申請記錄 |
 
 **健康檢查**（瀏覽器開啟以下 URL，應回傳 `{"status":"ok"}`）：
