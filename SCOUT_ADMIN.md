@@ -1,7 +1,7 @@
 # Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：1.1 | 作者：系統管理員
-> 新增：🐛 問題回報、💬 意見回饋、🔄 Google Sheet 同步
+> 版本：1.2 | 作者：系統管理員
+> 變更：① 登記簡化為「API Key + 旅團名 + URL」三項，不再自動產出 JSON / TS（Vercel 環境變數由你自行加入）② 新增 📌 回饋看板
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -12,13 +12,15 @@ Scout Admin 是一個**靜態管理後台**，用於：
 
 1. 接收旅團的接入申請（透過 Apps Script Web App）
 2. 查看和審核申請
-3. 自動產生各 APP 所需的 JSON / TypeScript 設定格式
-4. 讓你一鍵複製貼入各 APP 的設定檔完成接入
-5. 收集各 APP 用戶的**問題回報**（v1.1 新增）
-6. 收集各 APP 用戶的**意見回饋**（v1.1 新增）
-7. 一鍵從 Google Sheet **同步**最新申請 / 回報 / 回饋（v1.1 新增）
+3. 記錄旅團的 **API Key、名稱與 Apps Script URL**（登記只需這三項；Vercel 環境變數由你自行加入）
+4. 收集各 APP 用戶的**問題回報**（v1.1 新增）
+5. 收集各 APP 用戶的**意見回饋**（v1.1 新增）
+6. 一鍵從 Google Sheet **同步**最新申請 / 回報 / 回饋（v1.1 新增）
+7. 📌 **回饋看板**：問題回報與意見回饋合併檢視，已閱變灰沉底、最新置頂（v1.2 新增）
 
-**不需要伺服器、不需要資料庫。** 原始資料存在你的 Google Sheet，審核 / 處理狀態存在瀏覽器 localStorage。
+**不需要伺服器、不需要資料庫。** 原始資料存在你的 Google Sheet，審核 / 處理 / 已閱狀態存在瀏覽器 localStorage。
+
+> 💡 **關於「JSON 不行了」**：v1.2 起不再自動產出 `troops.json` / `troops.ts` 或 Vercel 環境變數清單——登記只要提供 **API Key、旅團名、URL** 即可，Vercel 環境變數（如 `TROOP_0082_APIKEY`）請自行於 Vercel Dashboard → Settings → Environment Variables 加入。
 
 > ⚠️ **給其他開發者 / Agent 看的重要說明**
 >
@@ -44,7 +46,7 @@ Scout Admin 是一個**靜態管理後台**，用於：
 │              Scout Admin APP（你的後台）                   │
 │          https://scout-admin-blue.vercel.app/             │
 │                                                           │
-│  📥 新申請  🐛 問題回報  💬 意見回饋  📋 總覽  🔧 產生器     │
+│  📥 新申請  🐛 問題回報  💬 意見回饋  📌 看板  📋 總覽        │
 │                          ▲                                │
 │                     🔄 同步 Sheet                          │
 └────────────────────┬─────────────────────────────────────┘
@@ -74,6 +76,8 @@ Scout Admin 是一個**靜態管理後台**，用於：
 
 查看所有旅團的接入申請。
 
+> 💡 **v1.2 起登記只需三項**：**API Key、旅團名稱、Apps Script URL**（旅團號選填）。Vercel 環境變數（如 `TROOP_0082_APIKEY`）請自行於 Vercel Dashboard 加入，本 APP 不再自動產出 JSON / TS。
+
 | 操作 | 說明 |
 |------|------|
 | ✅ 標記完成 | 申請審核通過，移至「已完成」 |
@@ -81,7 +85,6 @@ Scout Admin 是一個**靜態管理後台**，用於：
 | ↩ 重設 | 將已完成/已拒絕的申請重設回待處理 |
 | ✏️ 編輯 | 修改申請資料（如旅團補填了漏掉的欄位） |
 | 🗑 刪除 | 永久刪除申請記錄 |
-| 🔧 查看 JSON/TS 輸出 | 展開查看該旅團的設定片段 |
 | ＋ 手動新增 | 不透過表單，直接在 Admin APP 新增申請 |
 | 🔄 同步 Sheet | 從 Google Sheet 載入各 APP 提交的申請（去重） |
 
@@ -132,27 +135,24 @@ Scout Admin 是一個**靜態管理後台**，用於：
 
 ---
 
-### 📋 旅團總覽
+### 📌 回饋看板（v1.2 新增）
 
-顯示所有**已完成接入**的旅團，並提供完整設定檔供複製。
+把 🐛 問題回報與 💬 意見回饋**合併成一個看板**，方便一眼看完所有用戶回饋。
 
-| 輸出 | 說明 |
-|------|------|
-| vsbadge `troops.json` | 完整 JSON，可直接替換 vsbadge repo 的 `troops.json` |
-| scoutsystem `lib/troops.ts` | 完整 TypeScript，可直接替換 `lib/troops.ts` |
-| Vercel 環境變數清單 | 所有旅團的 `TROOP_{ID}_APIKEY=...`，逐行列出 |
+- **最新在頂、未閱讀在上**：新提交的回饋排最上面；按「✓ 已閱」後該條**變灰字並自動沉到最底**。
+- **可匿名 / 留名**：用戶提交時聯絡方式留空即視為匿名；有填寫則顯示聯絡方式。
+- **篩選**：全部 / 🐛 問題 / 💬 回饋 / 未閱 / 已閱，並可搜尋內容、來源 APP、旅團號、聯絡。
+- 「🔎」可開啟該條的詳細編輯（狀態、備註）。
+- 「✓ 全部標為已閱」一鍵清場。
+- **已閱狀態只存在你這台瀏覽器的 localStorage**（換瀏覽器需重標）；原始回饋仍保存在 Google Sheet，按「🔄 同步」可重新載入。
 
 ---
 
-### 🔧 JSON / TS 產生器
+### 📋 旅團總覽
 
-手動輸入旅團資料，即時預覽三種格式：
+顯示所有**已登記**的旅團（旅團名稱、Apps Script URL、API Key、狀態），可按「✏️ 編輯」修改。
 
-1. **vsbadge** `troops.json` 片段
-2. **scoutsystem** `troops.ts` 片段
-3. **Vercel 環境變數**
-
-適合：需要臨時補一個旅團、或確認格式是否正確。
+> ⚠️ v1.2 起不再在此產出 `troops.json` / `troops.ts` / Vercel 環境變數清單。各旅團的 Vercel 環境變數請自行於 Vercel Dashboard → Settings → Environment Variables 加入（命名如 `TROOP_{旅團號}_APIKEY`）。
 
 ---
 
@@ -198,44 +198,19 @@ Admin → 🐛 / 💬 分頁（🔄 同步）→ 更新狀態、加備註 → �
 
 ---
 
-## 五、各 APP 設定格式
+## 五、各 APP 設定格式（Vercel 環境變數方式）
 
-### vsbadge — `troops.json`
+> v1.2 起，Scout Admin **不再自動產出** `troops.json` / `troops.ts`。旅團接入改以 **Vercel 環境變數** 為主：在對應 APP 的 Vercel 專案加入 `TROOP_{旅團號}_APIKEY` 即可。
 
-```json
-{
-  "troops": {
-    "0082": {
-      "name": "第 82 旅",
-      "backend": "https://script.google.com/macros/s/XXXXXX/exec",
-      "apikey": "vs_xxxxxxxxxxxxxxxxxxxxxxxx"
-    }
-  }
-}
-```
+### 登記時在 Scout Admin 記錄的三項
 
-貼入位置：`vsbadge` repo 根目錄的 `troops.json`
+| 欄位 | 說明 |
+|------|------|
+| 旅團名稱 | 顯示用名稱，如「第 82 旅」 |
+| Apps Script URL | 該旅團的後端 URL |
+| API Key | 該旅團的 API Key |
 
----
-
-### scoutsystem — `lib/troops.ts`
-
-```typescript
-{
-  key: 'troop_0082',
-  id: '0082',
-  name: '第82旅',
-  webAppUrl: 'https://script.google.com/macros/s/XXXXXX/exec',
-  // API Key → Vercel env: TROOP_0082_APIKEY
-  status: 'active',
-},
-```
-
-貼入位置：`scoutsystem-2.0` repo 的 `lib/troops.ts`，加入 `APPROVED_TROOPS` 陣列內
-
----
-
-### scoutsystem — Vercel 環境變數
+### scoutsystem — Vercel 環境變數（你自行加入）
 
 ```
 Name:  TROOP_0082_APIKEY
@@ -244,7 +219,7 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 
 設定位置：Vercel Dashboard → scoutsystem 專案 → Settings → Environment Variables
 
-> ⚠️ API Key **永遠不進 Git**，只存在 Vercel 環境變數。
+> ⚠️ API Key **永遠不進 Git**，只存在 Vercel 環境變數。Scout Admin 僅作為「登記與管理」後台，不再代為產出設定檔。
 
 ---
 
