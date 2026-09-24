@@ -144,15 +144,51 @@
   .ts-cmt  { color:#6c7086; }
   .ts-type { color:#89b4fa; }
   .ts-val  { color:#fab387; }
+
+  /* ===== SUPER KEY 登入門 ===== */
+  #gateOverlay { position:fixed; inset:0; background:rgba(24,12,8,.78); backdrop-filter:blur(5px); z-index:9998; display:none; align-items:center; justify-content:center; padding:16px; }
+  #gateOverlay.show { display:flex; }
+  .gate-card { background:#fff; border-radius:14px; box-shadow:0 16px 56px rgba(0,0,0,.45); max-width:380px; width:100%; padding:30px 28px 24px; text-align:center; font-family:'Segoe UI','PingFang HK','Microsoft JhengHei',sans-serif; }
+  .gate-logo { font-size:2.6rem; line-height:1; margin-bottom:6px; }
+  .gate-card h2 { font-size:1.15rem; color:#222; margin-bottom:4px; }
+  .gate-card h2 span { color:var(--red); }
+  .gate-sub { font-size:.85rem; color:#888; margin-bottom:18px; }
+  #gatePassword { width:100%; padding:11px 14px; border:1px solid #ddd; border-radius:9px; font-size:.95rem; margin-bottom:10px; }
+  #gatePassword:focus { outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(139,0,0,.12); }
+  .gate-err { color:#c62828; font-size:.82rem; min-height:18px; margin-bottom:8px; }
+  .gate-btn { width:100%; background:var(--red); color:#fff; border:none; padding:11px; border-radius:9px; font-weight:700; font-size:.95rem; cursor:pointer; }
+  .gate-btn:hover { background:var(--red2); }
+  .gate-btn:disabled { background:#bba; cursor:not-allowed; opacity:.7; }
+  .gate-hint { font-size:.72rem; color:#aaa; margin-top:14px; line-height:1.5; }
+  #gateLogout { background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.55); border-radius:8px; padding:5px 12px; font-size:.78rem; cursor:pointer; white-space:nowrap; }
+  #gateLogout:hover { background:rgba(255,255,255,.3); }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">⚜️ Scout <span>Admin</span></div>
-  <div class="hstats" id="headerStats">載入中…</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="hstats" id="headerStats">載入中…</div>
+    <button id="gateLogout" style="display:none" onclick="gateLogout()" title="清除本機 session，回到登入畫面">🚪 登出</button>
+  </div>
 </header>
 <div id="toast"></div>
+
+<!-- ===== SUPER KEY 登入門（密碼存 Vercel 環境變數 SUPER_KEY，server 端比對） ===== -->
+<div id="gateOverlay">
+  <div class="gate-card">
+    <div class="gate-logo">⚜️</div>
+    <h2>Scout <span>Admin</span> 後台</h2>
+    <p class="gate-sub">請輸入 SUPER KEY 密碼進入</p>
+    <form id="gateForm" onsubmit="return gateLogin(event)">
+      <input type="password" id="gatePassword" placeholder="SUPER KEY 密碼" autocomplete="current-password" />
+      <div class="gate-err" id="gateErr"></div>
+      <button class="gate-btn" id="gateBtn" type="submit">🔓 登入</button>
+    </form>
+    <p class="gate-hint">登入後 24 小時內免再輸入。<br>改密碼：Vercel 環境變數 <b>SUPER_KEY</b> 修改後重新部署。</p>
+  </div>
+</div>
 
 <div class="container">
 
@@ -669,9 +705,22 @@ const DOCS = {
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：2.2 | 作者：系統管理員
-> 本次大改：旅團登記簡化為「旅團名 + URL + API KEY」、問題回報／意見回饋改成 TICK 看板（已閱灰字沉底）、新增 SCOUT APP STORE「作品投稿」分頁與工作表、後台讀取加 API KEY 保護
+> 版本：2.3 | 作者：系統管理員
+> 本次大改：**後台加 SUPER KEY 密碼門**（進後台要先輸入密碼；密碼存 Vercel 環境變數 **SUPER_KEY**，server 端比對，登入後 24 小時 session）、旅團登記簡化為「旅團名 + URL + API KEY」、問題回報／意見回饋改成 TICK 看板（已閱灰字沉底）、新增 SCOUT APP STORE「作品投稿」分頁與工作表、後台讀取加 API KEY 保護
 > 部署網址：https://scout-admin-blue.vercel.app/
+
+---
+
+## 〇、SUPER KEY 密碼門（v2.3 新增）
+
+**任何人開後台網址都要先輸入密碼**（Vercel 環境變數 **SUPER_KEY** 的值）才看得到資料。
+
+- 密碼**只存在 Vercel 環境變數**，由 /api/admin 代理在 **server 端比對**，不會送進瀏覽器
+- 登入成功後拿到 24 小時的簽名 session token（存本機）；「同步」「已閱」「審核寫回」都靠它
+- 繞不開：無 token 直接打 /api/admin 讀取會被 **401** 擋掉
+- **改密碼**＝回 Vercel 改 **SUPER_KEY** 的值再部署；舊 session 全部失效，所有人重新登入
+- 用戶端（widget／回報表單／作品投稿）照舊**不用登入、不用 Key**
+- 本地開發（沒有 /api/admin 代理）不會被擋，維持直連模式
 
 ---
 
@@ -685,8 +734,9 @@ Scout Admin 是**純靜態後台**（部署在 Vercel，沒有自己的後端）
 4. TICK 可匿名，或留底姓名／聯絡方式
 5. 接收 **SCOUT APP STORE**（scoutappstore.vercel.app）送來的「作品投稿」，照抄到 Sheet「作品投稿」＋ Email 通知，不漏單
 6. 已閱／審核狀態寫回 Google Sheet，換裝置「🔄 同步」也一致
+7. **SUPER KEY 密碼門**：進後台先輸密碼（Vercel 環境變數 **SUPER_KEY**），拿 24 小時 session
 
-> ⚠️ 給其他開發者／Agent：**API KEY 保護的是後台「讀取清單」（含個人資料）**；所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key**，照常接收，確保用戶交得到。
+> ⚠️ 給其他開發者／Agent：**SUPER KEY 密碼門保護「誰能進後台」**、**API KEY 保護「後台讀取清單」（含個人資料）**；所有提交（旅團登記、問題、回饋、作品投稿）都**不需 Key、不需登入**，照常接收，確保用戶交得到。
 
 ---
 
@@ -2530,18 +2580,148 @@ function dateSortable(v) {
 }
 
 
+// ============================================================
+// SUPER KEY 登入門
+//   密碼只存在 Vercel 環境變數 SUPER_KEY，由 /api/admin 在 server 端比對；
+//   登入成功拿到 24 小時簽名 session token（存本機），之後所有代理請求都帶上。
+//   無 token 直接打 /api/admin 讀取會吃 401，繞不過前端畫面。
+// ============================================================
+const GATE_TOKEN_KEY = 'scoutAdmin_session_token';
+const GATE_EXP_KEY = 'scoutAdmin_session_exp';
+let gateAuthOn = false; // ping 結果：server 有沒有開密碼門
+
+function getScoutSession() {
+  try {
+    const t = localStorage.getItem(GATE_TOKEN_KEY);
+    const exp = parseInt(localStorage.getItem(GATE_EXP_KEY) || '0', 10);
+    if (t && exp > Date.now()) return t;
+    clearScoutSession();
+    return '';
+  } catch (e) { return ''; }
+}
+function setScoutSession(token, exp) {
+  try {
+    localStorage.setItem(GATE_TOKEN_KEY, token);
+    localStorage.setItem(GATE_EXP_KEY, String(exp || 0));
+  } catch (e) {}
+}
+function clearScoutSession() {
+  try {
+    localStorage.removeItem(GATE_TOKEN_KEY);
+    localStorage.removeItem(GATE_EXP_KEY);
+  } catch (e) {}
+}
+
+function showGate() {
+  const o = document.getElementById('gateOverlay');
+  if (o) o.classList.add('show');
+  const btn = document.getElementById('gateBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '🔓 登入'; }
+  const pw = document.getElementById('gatePassword');
+  if (pw) {
+    pw.value = '';
+    setTimeout(() => { try { pw.focus(); } catch (e) {} }, 60);
+  }
+}
+function hideGate() {
+  const o = document.getElementById('gateOverlay');
+  if (o) o.classList.remove('show');
+  document.getElementById('gateLogout').style.display = gateAuthOn ? '' : 'none';
+}
+function gateLogout() {
+  clearScoutSession();
+  showGate();
+  toast('🚪 已登出');
+}
+
+// 開頁時問 server 一次：密碼門開沒開、本機 token 有沒有效
+async function checkGate() {
+  try {
+    const res = await fetch('/api/admin?action=ping', { cache: 'no-store', headers: { 'x-scout-session': getScoutSession() } });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('json')) throw new Error('proxy unavailable');
+    const d = await res.json();
+    if (!d || d.auth !== 'on') {
+      // 代理沒部署（本地開發）或 SUPER_KEY 未設定 → 不擋，維持舊版行為
+      gateAuthOn = false;
+      hideGate();
+      if (d && d.auth === 'off') toast('⚠️ Vercel 未設 SUPER_KEY：後台目前沒有密碼保護');
+      return;
+    }
+    gateAuthOn = true;
+    if (d.session) hideGate();
+    else showGate();
+  } catch (e) {
+    gateAuthOn = false;
+    hideGate(); // 代理不可達 → 舊版直連模式
+  }
+}
+
+let _gateFails = 0;
+async function gateLogin(evt) {
+  evt.preventDefault();
+  const btn = document.getElementById('gateBtn');
+  const err = document.getElementById('gateErr');
+  const pw = document.getElementById('gatePassword').value;
+  if (!pw) { err.textContent = '請輸入密碼'; return false; }
+  btn.disabled = true; btn.textContent = '登入中…'; err.textContent = '';
+  try {
+    const res = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'login', password: pw })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok && data.token) {
+      setScoutSession(data.token, data.exp);
+      _gateFails = 0;
+      gateAuthOn = true;
+      hideGate();
+      toast('🔓 已登入');
+      syncFromSheet(); // 登入後自動同步一次
+    } else if (res.status === 429) {
+      err.textContent = data.error || '嘗試次數過多，請稍後再試';
+      btn.disabled = true;
+      setTimeout(() => { btn.disabled = false; btn.textContent = '🔓 登入'; }, 15 * 60 * 1000);
+    } else {
+      _gateFails++;
+      if (_gateFails >= 5) {
+        _gateFails = 0;
+        err.textContent = '錯誤次數過多，請 30 秒後再試';
+        btn.disabled = true;
+        setTimeout(() => { btn.disabled = false; btn.textContent = '🔓 登入'; }, 30 * 1000);
+      } else {
+        err.textContent = data.error || '密碼錯誤';
+        btn.disabled = false;
+        btn.textContent = '🔓 登入';
+      }
+    }
+  } catch (e) {
+    err.textContent = '無法連線到伺服器，請稍後再試';
+    btn.disabled = false; btn.textContent = '🔓 登入';
+  }
+  return false;
+}
+
 // 用 /api/admin 代理（Key 只在 Vercel 環境變數）。回傳 {ok, data}。
-// 失敗（未部署代理／無 JSON）時回 {ok:false}，交由呼叫端退回直連。
+// 失敗（未部署代理／無 JSON）時回 {ok:false}，交由呼叫端退回直連；
+// 401（密碼門有效但 session 失效）回 {ok:false, requireLogin:true}，呼叫端要重新登入、不可走直連後備。
 async function viaProxy(method, action, payload) {
+  const headers = { 'x-scout-session': getScoutSession() };
   try {
     const res = method === 'GET'
-      ? await fetch('/api/admin?action=' + encodeURIComponent(action), { method: 'GET', cache: 'no-store' })
+      ? await fetch('/api/admin?action=' + encodeURIComponent(action), { method: 'GET', cache: 'no-store', headers })
       : await fetch('/api/admin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...headers },
           body: JSON.stringify(payload)
         });
     const ct = res.headers.get('content-type') || '';
+    if (res.status === 401 && ct.includes('json')) {
+      const data = await res.json().catch(() => ({}));
+      if (data && data.requireLogin) clearScoutSession();
+      return { ok: false, requireLogin: true };
+    }
     if (!ct.includes('json')) return { ok: false };
     const data = await res.json();
     return { ok: true, data };
@@ -2554,8 +2734,15 @@ async function syncFromSheet() {
   let used = 'proxy', data = null;
   const proxied = await viaProxy('GET', 'list');
   if (proxied.ok) data = proxied.data;
+  else if (proxied.requireLogin) {
+    // 密碼門有效但 session 失效 → 重新要求登入（不走直連後備，避免繞過密碼門）
+    gateAuthOn = true;
+    showGate();
+    toast('⚠️ 請重新輸入 SUPER KEY 密碼');
+    return;
+  }
   else {
-    // 2) 退回本機 Key 直連
+    // 2) 退回本機 Key 直連（僅限代理不可達的本地開發情境）
     const apikey = getApiKey();
     if (!apikey) { toast('❌ 同步失敗：代理不可用，且未設本機 API KEY。請部署 /api/admin 並設 SCOUT_ADMIN_KEY，或到「⚙️ 設定」填 Key。'); return; }
     used = 'direct';
@@ -2704,7 +2891,8 @@ async function pushReqStatusRemote(id, status) {
   const proxied = await viaProxy('POST', 'markReq', payload);
   if (proxied.ok && proxied.data && proxied.data.status === 'ok') return;
   if (proxied.ok && proxied.data && proxied.data.status === 'error') { console.log('markReq 失敗', proxied.data.message); return; }
-  // 2) 退回本機 Key 直連
+  if (proxied.requireLogin) { gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼'); return; }
+  // 2) 退回本機 Key 直連（僅限代理不可達的本地開發情境）
   const apikey = getApiKey();
   if (!apikey) return;
   try {
@@ -2731,7 +2919,8 @@ async function pushMarkRead(status, id) {
     toast('⚠️ 寫回 Sheet 失敗：' + (proxied.data.message || 'API KEY 錯誤'));
     return;
   }
-  // 2) 退回本機 Key 直連
+  if (proxied.requireLogin) { gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼'); return; }
+  // 2) 退回本機 Key 直連（僅限代理不可達的本地開發情境）
   const apikey = getApiKey();
   if (!apikey) {
     toast(`⚠️ 本機已標記，但尚未寫回 Google Sheet（未設 API KEY）。`);
@@ -2924,6 +3113,7 @@ window.addEventListener('DOMContentLoaded', () => {
   bootstrapKeyFromUrl();
   renderGsTab();
   renderDoc('scout');
+  checkGate(); // SUPER KEY 密碼門：問 server 開沒開、本機 token 有沒有效
 });
 </script>
 </body>

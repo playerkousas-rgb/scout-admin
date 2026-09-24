@@ -1,7 +1,7 @@
 {
   "name": "scout-admin",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Scout Admin — 旅團登記 / TICK 看板 / 作品投稿後台（純靜態 + /api/admin 代理）",
   "scripts": {
     "test": "node test.proxy.js && node scripts/gs_harness.js && node scripts/smoketest.js"
