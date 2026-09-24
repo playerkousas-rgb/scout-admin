@@ -94,7 +94,10 @@
       '        <div><label>嚴重度</label><select id="scoutw_i_sev"><option value="低">低</option><option value="中" selected>中</option><option value="高">高</option><option value="緊急">緊急</option></select></div>' +
       '        <div><label>旅團號（選填）</label><input id="scoutw_i_troop" placeholder="0082"></div>' +
       '      </div>' +
-      '      <div><label>聯絡方式（選填）</label><input id="scoutw_i_contact" placeholder="電郵 / 電話，方便回覆你"></div>' +
+      '      <div class="scoutw-row">' +
+      '        <div><label>姓名（選填，可匿名）</label><input id="scoutw_i_name" placeholder="留空＝匿名"></div>' +
+      '        <div><label>聯絡方式（選填）</label><input id="scoutw_i_contact" placeholder="電郵 / 電話，方便回覆你"></div>' +
+      '      </div>' +
       '      <button id="scoutw_i_submit" type="button">提交問題回報</button>' +
       '    </div>' +
       // 意見回饋
@@ -108,8 +111,9 @@
       '      <div><label>內容 *</label><textarea id="scoutw_f_content" placeholder="想說什麼就寫什麼…"></textarea></div>' +
       '      <div class="scoutw-row">' +
       '        <div><label>旅團號（選填）</label><input id="scoutw_f_troop" placeholder="0082"></div>' +
-      '        <div><label>聯絡方式（選填）</label><input id="scoutw_f_contact" placeholder="電郵 / 電話"></div>' +
+      '        <div><label>姓名（選填，可匿名）</label><input id="scoutw_f_name" placeholder="留空＝匿名"></div>' +
       '      </div>' +
+      '      <div><label>聯絡方式（選填）</label><input id="scoutw_f_contact" placeholder="電郵 / 電話"></div>' +
       '      <button id="scoutw_f_submit" type="button">提交意見回饋</button>' +
       '    </div>' +
       '    <div id="scoutw-msg"></div>' +
@@ -157,11 +161,13 @@
       desc: desc,
       severity: document.getElementById('scoutw_i_sev').value,
       troopId: document.getElementById('scoutw_i_troop').value.trim(),
+      name: document.getElementById('scoutw_i_name').value.trim(),
       contact: document.getElementById('scoutw_i_contact').value.trim()
     }, [function () {
       document.getElementById('scoutw_i_title').value = '';
       document.getElementById('scoutw_i_desc').value = '';
       document.getElementById('scoutw_i_troop').value = '';
+      document.getElementById('scoutw_i_name').value = '';
       document.getElementById('scoutw_i_contact').value = '';
     }]);
   }
@@ -181,10 +187,12 @@
       fbType: typeEl ? typeEl.value : '建議',
       content: content,
       troopId: document.getElementById('scoutw_f_troop').value.trim(),
+      name: document.getElementById('scoutw_f_name').value.trim(),
       contact: document.getElementById('scoutw_f_contact').value.trim()
     }, [function () {
       document.getElementById('scoutw_f_content').value = '';
       document.getElementById('scoutw_f_troop').value = '';
+      document.getElementById('scoutw_f_name').value = '';
       document.getElementById('scoutw_f_contact').value = '';
     }]);
   }
