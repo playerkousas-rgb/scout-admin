@@ -298,8 +298,9 @@
       <div class="card-header"><div class="card-title">📜 接收 Apps Script（含旅團登記 + 問題回報 + 意見回饋）</div></div>
       <div class="note">
         ⚠️ <strong>需要你重新部署一次才生效。</strong>把下方代碼整段貼到 Google Sheet → 擴充功能 → Apps Script → 儲存 → 部署 →「管理部署」→ <strong>編輯</strong> → 版本選「<strong>新版本</strong>」→ 部署（網址不變）。<br>
-        三個資料表會<strong>自動建立／自動補欄</strong>，舊資料不受影響。前三張表的「狀態」欄可留空，唯獨 <strong>問題回報／意見回饋有「姓名」「聯絡方式」欄</strong>（list 用）。<br>
-        改動：①申請表 → 旅團號改為可選；②新增「已閱」寫回端點（POST type=markRead）；③<strong>list 讀取改為受 API KEY 保護</strong>（防 TICK 內個人資料外洩）。API KEY 設法見「⚙️ 設定」分頁。
+        <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<br>
+        核心保證：欄位對不上自動加欄、Email 附全部欄位＋原始 JSON 備份，資料不漏。<br>
+        改動：①旅團號改為可選；②<strong>已閱寫回</strong>（markRead）；③<strong>list 讀取受 API KEY 保護</strong>（防個人資料外洩）。
       </div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(GS_CODE)">複製備份</button>
@@ -421,8 +422,8 @@
     <div class="card">
       <div class="card-header"><div class="card-title">🔑 API KEY（保護後台讀取）</div></div>
       <div class="note">後台抓取 Sheet（<code>?action=list</code>）與「已閱」寫回都需要帶 API KEY，防止外人拿到 TICK 裡的姓名／聯絡方式等<strong>個人資料</strong>。<br>
-        設定法：Apps Script 編輯頁左欄「專案設定」→ 底部「腳本屬性」→ 新增屬性：<code>API_KEY</code>＝你想用的密鑰（隨機長字串，例如 <code>scout-****-****-****</code>）。下面第一欄填入<strong>同一個</strong>密鑰即可。<br>
-        未設時系統照常運作，只是讀取不設防（會顯示警告）。</div>
+        Key 由 <strong>GS 自己產生</strong>：Apps Script 貼上最新代碼後，在編輯器上方選「<code>setupApiKey</code>」→ 執行 → 授權，就會自動生一組 Key、存進腳本屬性，並 E-mail 給你（信裡有「一鍵填好」連結，點開就會自動填寫下方這欄）。<br>
+        未設 Key 時系統照常收單，只是讀取不設防。</div>
       <div class="form-grid">
         <div class="form-group full">
           <label>API KEY（儲存在本機 localStorage，不會寫進任何代碼）</label>
@@ -431,7 +432,6 @@
       </div>
       <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveSettings()">💾 儲存 API KEY</button>
-        <button class="btn btn-ghost" onclick="copyTempApikey()">✨ 產生一個隨機 KEY</button>
       </div>
     </div>
 
@@ -645,15 +645,17 @@ Scout Admin 是**純靜態後台**（部署在 Vercel，沒有自己的後端）
 
 ## 二、要先做一次（重要）
 
-把 📜 Apps Script 分頁的 **v2.0 代碼**整段貼到 Apps Script → 儲存 → 部署 → 管理部署 → 編輯 → 版本「新版本」→ 部署（網址不變）。
+把 📜 Apps Script 分頁的 **最新代碼**整段貼到 Apps Script → 儲存 → 部署 → 管理部署 → 編輯 → 版本「新版本」→ 部署（網址不變）。
 
-再設 API KEY：Apps Script 編輯頁左欄「專案設定」→ 底部「腳本屬性」→ 新增屬性 API_KEY = 你自訂密鑰；同一條密鑰填入後台「⚙️ 設定」分頁。
+API KEY 由 **GS 自己產生**：編輯器上方選函式「setupApiKey」→ 執行 → 授權，就會自動生 Key、存進腳本屬性，並 E-mail 給你；信裡有「一鍵填好」連結，點開即把 Key 帶入後台「⚙️ 設定」。Key 也可加進 Vercel 環境變數（如 SCOUT_ADMIN_KEY）留底。
 
 ---
 
 ## 三、旅團登記（簡化）
 
 旅團只要提供三項：**旅團名、URL、API KEY**（旅團號選填，有就填，用來生成 TROOP_編號_APIKEY 環境變數名）。
+
+> 欄位對不上也不怕：GS 收到「沒見過的欄位」會**自動加欄**存進 Sheet；Email 一定附上**全部欄位＋原始 JSON 備份**，確保不漏。
 
 - 登記表單貼在旅團 APP 設定頁，提交即寫入 Sheet「申請記錄」＋ Email 通知你
 - 你在後台按「🔄 同步 Sheet」載入 → 審核（✅ 接入 / ❌ 拒絕）→ 展開卡片複製對應設定
@@ -696,13 +698,13 @@ Vercel 環境變數：Name = TROOP_0082_APIKEY，Value = 旅團的 API Key（旅
 ## 七、常見問題
 
 **Q：同步失敗、提示 API KEY？**
-A：先照第二節設好 API KEY（腳本屬性＋後台設定），兩邊要同一條。
+A：先照第二節執行 setupApiKey（Apps Script），再把 E-mail 裡的 Key（或點一鍵連結）帶入後台「⚙️ 設定」。
 
 **Q：旅團號留空會怎樣？**
 A：照常登記。Vercel 環境變數名你自行命名；vsbadge JSON 以旅團名當鍵。
 
 **Q：收不到 TICK？**
-A：✅ 已重新部署 v2.0；✅ 各 APP 已貼新表單（含 SOURCE_APP）；✅ 後台按「🔄 同步」。
+A：✅ 已重新部署最新代碼；✅ 各 APP 已貼新表單（含 SOURCE_APP）；✅ 後台按「🔄 同步」。
 
 **Q：換了瀏覽器記錄不見？**
 A：原始資料都在 Sheet，重新「🔄 同步」即可；或匯出／匯入備份 JSON（API KEY 也要重填）。`
@@ -1468,251 +1470,253 @@ async function submitScoutFeedback() {
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 旅團登記 / 問題回報 / 意見回饋 接收系統（v2.0）
+// Scout Admin — 旅團登記 / 問題回報 / 意見回饋 接收系統（v2.1）
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
 //
-// 使用方式：
+// 【部署】
 //   擴充功能 → Apps Script → 貼上 → 儲存
 //   部署 → 管理部署 → 編輯 → 版本：新版本 → 部署（網址不變）
 //   （首次部署：新增部署 → 網頁應用程式，執行身分：我，存取：所有人）
 //
-// 🔑 API KEY（保護後台讀取，防個人資料外洩）：
-//   左欄「專案設定」→ 底部「腳本屬性」→ 新增屬性：
-//   屬性名 = API_KEY ，值 = 你自訂的密鑰（例 scout-xxxx）
-//   沒設也可以收單，只會影響後台讀取 list 的保護。
+// 【API KEY 一次設定（保護後台讀取）】
+//   在編輯器上方選取函式「setupApiKey」→ 按「執行」→ 授權。
+//   它會自動產生一組 KEY、存進腳本屬性，並 E-mail 到 ADMIN_EMAIL。
+//   把 E-mail 裡的 KEY（或 E-mail 附上的連結）貼到 Scout Admin「⚙️ 設定」即可。
+//
+// 【相容性／不漏資料】
+//   收到任何「沒見過的欄位」都會自動加欄存進 Sheet；
+//   Email 一定附上全部欄位＋原始 JSON 備份，確保永不漏掉。
 // ============================================================
 
-var ADMIN_EMAIL = \"playerkousas@hotmail.com\";
+var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
-// 三張工作表的名稱與標題欄（第一次收到資料時自動建立／自動補齊舊表欄位）
-// 順序 = 實際欄位 A、B、C…；舊表缺的欄會自動在右側補上
+// 三張工作表（第一次收到資料時自動建立／自動補齊缺的欄位）
 var SHEET_CFG = {
-  apply: {
-    name: \"申請記錄\",
-    headers: [\"提交時間\",\"旅團號\",\"旅團名稱\",\"URL\",\"API Key\",\"備注\",\"狀態\",\"編號\"]
-  },
-  issue: {
-    name: \"問題回報\",
-    headers: [\"提交時間\",\"來源APP\",\"旅團號\",\"標題\",\"問題詳情\",\"嚴重度\",\"聯絡方式\",\"姓名\",\"狀態\",\"編號\"]
-  },
-  feedback: {
-    name: \"意見回饋\",
-    headers: [\"提交時間\",\"來源APP\",\"旅團號\",\"類型\",\"內容\",\"聯絡方式\",\"姓名\",\"狀態\",\"編號\"]
-  }
+  apply:    { name: "申請記錄", headers: ["提交時間","旅團號","旅團名稱","URL","API Key","備注","狀態","編號"] },
+  issue:    { name: "問題回報", headers: ["提交時間","來源APP","旅團號","標題","問題詳情","嚴重度","聯絡方式","姓名","狀態","編號"] },
+  feedback: { name: "意見回饋", headers: ["提交時間","來源APP","旅團號","類型","內容","聯絡方式","姓名","狀態","編號"] }
 };
 
-// ---------- 接收 POST（依 type 分流，缺省 type=apply 相容舊表單） ----------
+// 已知欄位的中文標題 ← 可能收到的原始欄位名（欄位對不上就會自動加欄）
+var FIELD_MAP = {
+  "提交時間": ["ts"],
+  "旅團號":   ["troopId"],
+  "旅團名稱": ["troopName"],
+  "URL":      ["backendUrl","url"],
+  "API Key":  ["apiKey","apikey"],
+  "備注":     ["note"],
+  "來源APP":  ["sourceApp","source"],
+  "標題":     ["title"],
+  "問題詳情": ["desc","description"],
+  "嚴重度":   ["severity"],
+  "聯絡方式": ["contact"],
+  "姓名":     ["name"],
+  "類型":     ["fbType","kind"],
+  "內容":     ["content"]
+};
+
+// 系統欄位：不要自動加進 Sheet
+var IGNORE_KEYS = { type: 1, apikey: 1 };
+
+// ---------- POST 分流 ----------
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var type = (data.type || \"apply\").toString().trim();
-    if (type === \"issue\")       return _handleIssue(data);
-    if (type === \"feedback\")    return _handleFeedback(data);
-    if (type === \"markReq\")     return _handleMarkReq(data);
-    if (type === \"markRead\")    return _handleMarkRead(data);
-    return _handleApply(data);
+    var type = (data.type || "apply").toString().trim();
+    if (type === "issue")    return _capture("issue",    data, "未閱");
+    if (type === "feedback") return _capture("feedback", data, "未閱");
+    if (type === "markReq")  return _handleMarkReq(data);
+    if (type === "markRead") return _handleMarkRead(data);
+    return _capture("apply", data, "待處理");
   } catch (err) {
-    return _json({ status: \"error\", message: err.toString() });
+    return _json({ status: "error", message: err.toString() });
   }
 }
 
-// ---------- ① 旅團登記 ----------
-function _handleApply(data) {
-  var troopId    = (data.troopId    || \"\").toString().trim();
-  var troopName  = (data.troopName  || \"\").toString().trim();
-  var backendUrl = (data.backendUrl || \"\").toString().trim();
-  var apiKey     = (data.apiKey     || \"\").toString().trim();
-  var note       = (data.note || \"\").toString().trim();
-  var ts         = new Date();
+// ---------- 通用收集：對齊已知欄位 → 未知欄位自動加欄 → Email 全部 ----------
+function _capture(key, data, defaultStatus) {
+  var ts   = new Date();
+  var map  = {};
+  var hdrs = SHEET_CFG[key].headers;
+  for (var i = 0; i < hdrs.length; i++) map[hdrs[i]] = "";
+  map["提交時間"] = ts;
+  map["狀態"]     = defaultStatus;
 
-  if (!troopName || !backendUrl || !apiKey) {
-    return _json({ status: \"error\", message: \"旅團名稱、URL 和 API Key 為必填\" });
+  for (var i2 = 0; i2 < hdrs.length; i2++) {
+    var header = hdrs[i2];
+    if (header === "提交時間" || header === "狀態" || header === "編號") continue;
+    if (data[header] !== undefined && data[header] !== null) { map[header] = _s(data[header]); continue; }
+    var aliases = FIELD_MAP[header];
+    if (!aliases) continue;
+    for (var a = 0; a < aliases.length; a++) {
+      if (data[aliases[a]] !== undefined && data[aliases[a]] !== null) { map[header] = _s(data[aliases[a]]); break; }
+    }
   }
 
-  _appendRow(\"apply\", [ts, troopId, troopName, backendUrl, apiKey, note, \"待處理\"]);
-
-  try {
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: \"📥 [Scout Admin] 新旅團登記 — \" + troopName,
-      body:
-        \"有新旅團提交登記，請到 Scout Admin APP → 旅團登記 查看並處理。\\\\n\\\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\\\n\" +
-        \"旅團名稱：\"   + troopName  + \"\\\\n\" +
-        (troopId ? \"旅團號：\" + troopId + \"\\\\n\" : \"\") +
-        \"URL：\"        + backendUrl + \"\\\\n\" +
-        \"API Key：\"    + apiKey     + \"\\\\n\" +
-        (note ? \"備注：\" + note + \"\\\\n\" : \"\") +
-        \"提交時間：\"   + ts         + \"\\\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\\\n\"
-    });
-  } catch (mailErr) { /* Email 失敗不影響收單 */ }
-
-  return _json({ status: \"success\", message: \"登記已提交，管理員會盡快接入。\" });
-}
-
-// ---------- ② 問題回報 ----------
-function _handleIssue(data) {
-  var title     = (data.title     || \"\").toString().trim();
-  var desc      = (data.desc      || \"\").toString().trim();
-  var sourceApp = (data.sourceApp || \"\").toString().trim();
-  var troopId   = (data.troopId   || \"\").toString().trim();
-  var severity  = (data.severity  || \"中\").toString().trim();
-  var contact   = (data.contact   || \"\").toString().trim();
-  var name      = (data.name      || \"\").toString().trim();
-  var ts        = new Date();
-
-  if (!title || !desc) {
-    return _json({ status: \"error\", message: \"標題和問題詳情為必填\" });
+  // 未知欄位 → 收集進 extras（稍後自動加欄）
+  var consumed = {};
+  for (var h2 in FIELD_MAP) {
+    consumed[h2] = 1;
+    var al2 = FIELD_MAP[h2];
+    for (var x = 0; x < al2.length; x++) consumed[al2[x]] = 1;
+  }
+  var extras = {};
+  for (var k in data) {
+    if (IGNORE_KEYS[k] || consumed[k]) continue;
+    extras[k] = _s(data[k]);
   }
 
-  _appendRow(\"issue\", [ts, sourceApp, troopId, title, desc, severity, contact, name, \"未閱\"]);
+  // 完全沒資料才拒收（部分資料照樣登記＋Email，確保不漏）
+  var hasAny = false;
+  for (var h3 in map) {
+    if (h3 === "提交時間" || h3 === "狀態") continue;
+    if (_s(map[h3]) !== "") { hasAny = true; break; }
+  }
+  if (!hasAny) { for (var k2 in extras) { hasAny = true; break; } }
+  if (!hasAny) return _json({ status: "error", message: "沒有收到任何資料" });
 
-  try {
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: \"🐛 [Scout Admin] 問題回報 — \" + title,
-      body:
-        \"收到新 TICK，請到 Scout Admin APP → 🐛 問題回報 查看。\\\\n\\\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\\\n\" +
-        \"來源 APP：\" + sourceApp + \"\\\\n\" +
-        \"標題：\"     + title     + \"\\\\n\" +
-        \"嚴重度：\"   + severity  + \"\\\\n\" +
-        \"旅團號：\"   + (troopId || \"—\") + \"\\\\n\" +
-        \"問題詳情：\\\\n\" + desc + \"\\\\n\" +
-        (name ? \"姓名：\" + name + \"\\\\n\" : \"\") +
-        (contact ? \"聯絡方式：\" + contact + \"\\\\n\" : \"\") +
-        \"提交時間：\" + ts + \"\\\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\\\n\"
-    });
-  } catch (mailErr) { /* Email 失敗不影響收單 */ }
+  var sheetOk = true;
+  try { _appendRowAny(key, map, extras); } catch (e) { sheetOk = false; }
+  try { _emailAll(key, map, extras, ts, data); } catch (e) {}
 
-  return _json({ status: \"success\", message: \"問題回報已提交，多謝！管理員會盡快跟進。\" });
+  var okMsg = key === "issue"    ? "問題回報已提交，多謝！管理員會盡快跟進。"
+            : key === "feedback" ? "意見已收到，多謝你！"
+            : "登記已提交，管理員會盡快接入。";
+  return _json({ status: "success", message: sheetOk ? okMsg : (okMsg + "（寫入 Sheet 失敗，已改以 Email 通知）") });
 }
 
-// ---------- ③ 意見回饋 ----------
-function _handleFeedback(data) {
-  var content   = (data.content   || \"\").toString().trim();
-  var fbType    = (data.fbType    || \"建議\").toString().trim();
-  var sourceApp = (data.sourceApp || \"\").toString().trim();
-  var troopId   = (data.troopId   || \"\").toString().trim();
-  var contact   = (data.contact   || \"\").toString().trim();
-  var name      = (data.name      || \"\").toString().trim();
-  var ts        = new Date();
+// ---------- 新增一列（欄位名 → 位置；缺欄自動補；沒見過的欄位自動加欄） ----------
+function _appendRowAny(key, map, extras) {
+  var cfg   = SHEET_CFG[key];
+  var sheet = _sheet(key);
+  var head  = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
 
-  if (!content) {
-    return _json({ status: \"error\", message: \"回饋內容為必填\" });
+  var toAdd = [];
+  for (var k in extras) { if (head.indexOf(k) === -1) toAdd.push(k); }
+  if (toAdd.length) {
+    sheet.getRange(1, head.length + 1, 1, toAdd.length).setValues([toAdd]);
+    head = head.concat(toAdd);
   }
 
-  _appendRow(\"feedback\", [ts, sourceApp, troopId, fbType, content, contact, name, \"未閱\"]);
-
-  try {
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: \"💬 [Scout Admin] 意見回饋（\" + fbType + \"）\",
-      body:
-        \"收到新意見回饋，請到 Scout Admin APP → 💬 意見回饋 查看。\\\\n\\\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\\\n\" +
-        \"來源 APP：\" + sourceApp + \"\\\\n\" +
-        \"類型：\"     + fbType    + \"\\\\n\" +
-        \"旅團號：\"   + (troopId || \"—\") + \"\\\\n\" +
-        \"內容：\\\\n\" + content + \"\\\\n\" +
-        (name ? \"姓名：\" + name + \"\\\\n\" : \"\") +
-        (contact ? \"聯絡方式：\" + contact + \"\\\\n\" : \"\") +
-        \"提交時間：\" + ts + \"\\\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\\\n\"
-    });
-  } catch (mailErr) { /* Email 失敗不影響收單 */ }
-
-  return _json({ status: \"success\", message: \"意見已收到，多謝你！\" });
+  var idHdr = cfg.headers[cfg.headers.length - 1];
+  var row = [];
+  for (var c = 0; c < head.length; c++) {
+    var h = head[c];
+    if (h === idHdr) { row.push(Utilities.getUuid()); continue; }
+    row.push((map[h] !== undefined && map[h] !== null) ? map[h] : (extras[h] !== undefined ? extras[h] : ""));
+  }
+  sheet.appendRow(row);
 }
 
-// ---------- ④ 標已閱 / 未閱（有 API KEY 才寫，選錯表沒關係會自動判別） ----------
+// ---------- Email：全部欄位＋原始 JSON 備份 ----------
+function _emailAll(key, map, extras, ts, rawData) {
+  var cfg  = SHEET_CFG[key];
+  var subject =
+    key === "issue"    ? "🐛 [Scout Admin] 問題回報 — " + _s(map["標題"])
+  : key === "feedback" ? "💬 [Scout Admin] 意見回饋（" + _s(map["類型"]) + "）"
+  : "📥 [Scout Admin] 新旅團登記 — " + _s(map["旅團名稱"]);
+
+  var body = "請到 Scout Admin APP 查看並處理（資料已同步登記到 Google Sheet）。\\n\\n━━━━━━━━━━━━━━━━━━\\n";
+  for (var i = 0; i < cfg.headers.length; i++) {
+    var h = cfg.headers[i];
+    if (h === "編號" || h === "狀態") continue;
+    var v = _s(map[h]);
+    if (v !== "") body += h + "：" + v + "\\n";
+  }
+  for (var k in extras) {
+    if (_s(extras[k]) !== "") body += k + "：" + _s(extras[k]) + "\\n";
+  }
+  body += "━━━━━━━━━━━━━━━━━━\\n\\n（原始資料備份，確保不漏）\\n" + JSON.stringify(rawData);
+
+  MailApp.sendEmail({ to: ADMIN_EMAIL, subject: subject, body: body });
+}
+
+// ---------- 已閱 / 未閱 寫回 ----------
 function _handleMarkRead(data) {
-  if (!_checkKey(data)) return _json({ status: \"error\", message: \"API KEY 錯誤\" });
-  var rowId = (data.id || \"\").toString().trim();
-  var put   = data.status === \"read\" ? \"已閱\" : \"未閱\";
-  if (!rowId) return _json({ status: \"error\", message: \"缺少編號\" });
-
-  var done = _writeStatusById(\"issue\", rowId, \"狀態\", put);
-  if (!done) done = _writeStatusById(\"feedback\", rowId, \"狀態\", put);
-  return _json({ status: done ? \"ok\" : \"error\", message: done ? \"已更新\" : \"找不到這條編號\" });
+  if (!_checkKey(data)) return _json({ status: "error", message: "API KEY 錯誤" });
+  var rowId = (data.id || "").toString().trim();
+  var put   = data.status === "read" ? "已閱" : "未閱";
+  if (!rowId) return _json({ status: "error", message: "缺少編號" });
+  var done = _writeStatusById("issue", rowId, "狀態", put);
+  if (!done) done = _writeStatusById("feedback", rowId, "狀態", put);
+  return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
 }
 
-// ---------- ⑤ 申請審核狀態寫回（標記完成 / 拒絕 / 重設） ----------
+// ---------- 申請審核狀態寫回 ----------
 function _handleMarkReq(data) {
-  if (!_checkKey(data)) return _json({ status: \"error\", message: \"API KEY 錯誤\" });
-  var rowId = (data.id || \"\").toString().trim();
-  var put   = (data.status || \"待處理\").toString().trim();
-  if (!rowId) return _json({ status: \"error\", message: \"缺少編號\" });
-  var done  = _writeStatusById(\"apply\", rowId, \"狀態\", put);
-  return _json({ status: done ? \"ok\" : \"error\", message: done ? \"已更新\" : \"找不到這條編號\" });
+  if (!_checkKey(data)) return _json({ status: "error", message: "API KEY 錯誤" });
+  var rowId = (data.id || "").toString().trim();
+  var put   = (data.status || "待處理").toString().trim();
+  if (!rowId) return _json({ status: "error", message: "缺少編號" });
+  var done  = _writeStatusById("apply", rowId, "狀態", put);
+  return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
 }
 
-// ---------- API KEY 工具 ----------
+// ---------- API KEY：產生／查詢（在編輯器「執行」一次） ----------
+function setupApiKey() {
+  var props = PropertiesService.getScriptProperties();
+  var key   = props.getProperty("API_KEY") || "";
+  if (!key) {
+    key = "scout-" + Utilities.getUuid().replace(/-/g, "") + "-" + Math.floor(100000 + Math.random() * 900000);
+    props.setProperty("API_KEY", key);
+  }
+  var msg =
+    "你的 Scout Admin 後台 API KEY：\\n\\n" + key + "\\n\\n" +
+    "用法：\\n" +
+    "1) 把上面這條 KEY 貼進 Scout Admin「⚙️ 設定」分頁（或直接點下面的連結）。\\n" +
+    "2) 也可把它加進 Vercel 環境變數留底（名稱例如 SCOUT_ADMIN_KEY）。\\n\\n" +
+    "一鍵填好（會在瀏覽器儲存 KEY）：\\nhttps://scout-admin-blue.vercel.app/?key=" + key;
+  try { MailApp.sendEmail({ to: ADMIN_EMAIL, subject: "🔑 [Scout Admin] 後台 API KEY", body: msg }); Logger.log("已寄出 API KEY 到 " + ADMIN_EMAIL); }
+  catch (e) { Logger.log(msg); }
+  Logger.log("API_KEY = " + key);
+  return key;
+}
+
+function resetApiKey() {
+  PropertiesService.getScriptProperties().deleteProperty("API_KEY");
+  return setupApiKey();
+}
+
 function _checkKey(data) {
   try {
-    var got = (data && data.apikey || \"\").toString();
+    var got   = (data && data.apikey || "").toString();
     var props = PropertiesService.getScriptProperties();
-    var want  = props.getProperty(\"API_KEY\") || \"\";
-    return want !== \"\" && got === want;
-  } catch (e) {
-    return false;
-  }
+    var want  = props.getProperty("API_KEY") || "";
+    return want !== "" && got === want;
+  } catch (e) { return false; }
 }
 
-// ---------- 取得／建立工作表（含補上舊表缺的欄；欄位順序以 cfg.headers 為準） ----------
+// ---------- 取得／建立工作表（自動補齊缺欄） ----------
 function _sheet(key) {
   var cfg   = SHEET_CFG[key];
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(cfg.name);
   if (!sheet) sheet = ss.insertSheet(cfg.name);
-
   var hdrs = cfg.headers;
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, hdrs.length).setValues([hdrs]);
-    sheet.getRange(1, 1, 1, hdrs.length).setFontWeight(\"bold\").setBackground(\"#8B0000\").setFontColor(\"#ffffff\");
+    sheet.getRange(1, 1, 1, hdrs.length).setFontWeight("bold").setBackground("#8B0000").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
     return sheet;
   }
-
-  // 已有標題列：把「現有欄位」對照回 cfg 順序（支援舊表改列 / 補「姓名」欄）
-  var have = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+  var have    = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
   var missing = hdrs.filter(function (h) { return have.indexOf(h) === -1; });
-  if (missing.length) {
-    sheet.getRange(1, have.length + 1, 1, missing.length).setValues([missing]);
-  }
+  if (missing.length) sheet.getRange(1, have.length + 1, 1, missing.length).setValues([missing]);
   return sheet;
 }
 
-// ---------- 追加一列（欄位名字 → 第幾欄，缺欄自動留空；「編號」欄自動填 UUID） ----------
-function _appendRow(key, row) {
-  var cfg   = SHEET_CFG[key];
-  var sheet = _sheet(key);
-  var head  = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
-  var idHdr = cfg.headers[cfg.headers.length - 1]; // 最後一個標題一定是「編號」
-  var out   = [];
-  for (var c = 0; c < head.length; c++) {
-    if (head[c] === idHdr) { out.push(Utilities.getUuid()); continue; }
-    var idx = cfg.headers.indexOf(head[c]);
-    out.push(idx >= 0 ? (row[idx] !== undefined ? row[idx] : \"\") : \"\");
-  }
-  sheet.appendRow(out);
-  return head;
-}
-
-// ---------- 依「編號」找列並更新某欄值 ----------
+// ---------- 依「編號」找列更新狀態 ----------
 function _writeStatusById(key, id, header, value) {
   var cfg   = SHEET_CFG[key];
   var sheet = _sheet(key);
   if (sheet.getLastRow() < 2) return false;
   var vals  = sheet.getDataRange().getValues();
   var head  = _normHeaders(vals[0]);
-  var idCol = head.indexOf(cfg.headers[cfg.headers.length - 1]); // 編號欄
+  var idCol = head.indexOf(cfg.headers[cfg.headers.length - 1]);
   var stCol = head.indexOf(header);
   if (idCol === -1 || stCol === -1) return false;
   for (var r = 1; r < vals.length; r++) {
-    if (String(vals[r][idCol] || \"\") === id) {
+    if (String(vals[r][idCol] || "") === id) {
       sheet.getRange(r + 1, stCol + 1).setValue(value);
       return true;
     }
@@ -1721,10 +1725,10 @@ function _writeStatusById(key, id, header, value) {
 }
 
 function _normHeaders(row) {
-  return row.map(function (h) { return String(h || \"\").trim(); });
+  return row.map(function (h) { return String(h === undefined || h === null ? "" : h).trim(); });
 }
 
-// ---------- 讀取工作表（給 Admin「🔄 同步」用） ----------
+// ---------- 讀取工作表（給後台「🔄 同步」用） ----------
 function _readSheet(key) {
   var cfg   = SHEET_CFG[key];
   var sheet = _sheet(key);
@@ -1741,27 +1745,24 @@ function _readSheet(key) {
 // ---------- GET：健康檢查；?action=list 需 API KEY ----------
 function doGet(e) {
   var p = (e && e.parameter) || {};
-  var action = (p.action || \"\").toString().trim();
-  if (action === \"list\") {
-    if (!_checkKey(p)) {
-      return _json({ status: \"error\", message: \"缺少或錯誤的 API KEY\" });
-    }
-    return _json({
-      status: \"ok\",
-      applications: _readSheet(\"apply\"),
-      issues:       _readSheet(\"issue\"),
-      feedbacks:    _readSheet(\"feedback\")
-    });
+  var action = (p.action || "").toString().trim();
+  if (action === "list") {
+    if (!_checkKey(p)) return _json({ status: "error", message: "缺少或錯誤的 API KEY" });
+    return _json({ status: "ok", applications: _readSheet("apply"), issues: _readSheet("issue"), feedbacks: _readSheet("feedback") });
   }
-  return _json({ status: \"ok\", message: \"Scout Admin Web App 正常運行\" });
+  return _json({ status: "ok", message: "Scout Admin Web App 正常運行" });
 }
 
-// ---------- 工具 ----------
+function _s(v) {
+  if (v === undefined || v === null) return "";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
 function _json(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}`;
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+`;
 
 // ============================================================
 // STATE
@@ -2536,16 +2537,14 @@ function updateStats() {
 // ============================================================
 // SETTINGS
 // ============================================================
-function loadSettings() { document.getElementById('cfg_apikey').value = state.settings.apikey || ''; }
+function loadSettings() {
+  document.getElementById('cfg_apikey').value = state.settings.apikey || '';
+}
 function saveSettings() {
   state.settings.apikey = (document.getElementById('cfg_apikey').value || '').trim();
   save();
   toast(state.settings.apikey ? '💾 API KEY 已本機儲存（僅存於這部裝置）' : '💾 已清除 API KEY');
-}
-function copyTempApikey() {
-  const s = 'scout-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('');
-  document.getElementById('cfg_apikey').value = s;
-  navigator.clipboard.writeText(s).then(() => toast('📋 隨機 KEY 已複製（請記到 Apps Script 腳本屬性）'));
+  refreshAll();
 }
 function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.settings={apikey:''}; refreshAll(); toast('🗑 已清除'); }
 
@@ -2660,10 +2659,28 @@ function toast(msg){ const el=document.getElementById('toast'); el.textContent=m
 function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); }
 
 // ============================================================
+// KEY BOOTSTRAP（?key= 或 #key= 自動帶入 API KEY）
+// ============================================================
+function bootstrapKeyFromUrl() {
+  var qp = new URLSearchParams(location.search).get('key');
+  var hp = (location.hash || '').replace(/^#/, '');
+  if (!qp && hp.startsWith('key=')) qp = hp.slice(4);
+  if (!qp) return;
+  if (!state.settings.apikey) {
+    state.settings.apikey = qp;
+    save();
+    var elm = document.getElementById('cfg_apikey');
+    if (elm) elm.value = qp;
+    toast('🔑 已自動帶入 API KEY');
+  }
+}
+
+// ============================================================
 // BOOT with demo data
 // ============================================================
 window.addEventListener('DOMContentLoaded',()=>{
   load();
+  bootstrapKeyFromUrl();
   renderGsTab();
   renderDoc('scout');
 });
