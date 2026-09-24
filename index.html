@@ -1529,8 +1529,7 @@ function _handleApply(data) {
     return _json({ status: \"error\", message: \"旅團名稱、URL 和 API Key 為必填\" });
   }
 
-  var sheetId = _appendRow(\"apply\", [ts, troopId, troopName, backendUrl, apiKey, note, \"待處理\"]);
-  var id      = Utilities.getUuid();
+  _appendRow(\"apply\", [ts, troopId, troopName, backendUrl, apiKey, note, \"待處理\"]);
 
   try {
     MailApp.sendEmail({
@@ -1686,17 +1685,18 @@ function _sheet(key) {
   return sheet;
 }
 
-// ---------- 追加一列（欄位名字 → 第幾欄，缺欄自動留空） ----------
+// ---------- 追加一列（欄位名字 → 第幾欄，缺欄自動留空；「編號」欄自動填 UUID） ----------
 function _appendRow(key, row) {
   var cfg   = SHEET_CFG[key];
   var sheet = _sheet(key);
   var head  = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+  var idHdr = cfg.headers[cfg.headers.length - 1]; // 最後一個標題一定是「編號」
   var out   = [];
   for (var c = 0; c < head.length; c++) {
+    if (head[c] === idHdr) { out.push(Utilities.getUuid()); continue; }
     var idx = cfg.headers.indexOf(head[c]);
     out.push(idx >= 0 ? (row[idx] !== undefined ? row[idx] : \"\") : \"\");
   }
-  out[out.length - 1] = Utilities.getUuid(); // 最後一欄一定是「編號」
   sheet.appendRow(out);
   return head;
 }
