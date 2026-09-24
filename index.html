@@ -115,6 +115,17 @@
   .troop-table tr:hover td { background:#faf8f5; }
   .url-cell { font-family:monospace; font-size:.7rem; color:var(--muted); word-break:break-all; max-width:200px; }
 
+  .tick-read { opacity:.55; }
+  .tick-read .app-troop, .tick-read .app-detail, .tick-read .app-detail strong,
+  .tick-read .app-detail code, .tick-read .app-detail span { color:#9a9a9a; }
+  .tick-read .app-detail span[style*="color"] { color:inherit; }
+  .tick-name { font-weight:700; color:var(--text); }
+  .tick-contact { color:var(--blue); }
+  .tick-read .tick-name, .tick-read .tick-contact { color:inherit; }
+  .read-chip { display:inline-block; padding:2px 9px; border-radius:12px; background:#eeeeee; color:#999; border:1px solid #d8d8d8; font-size:.72rem; font-weight:600; }
+  .btn-read { background:#7c8aa0; color:#fff; }
+  .btn-read:hover { filter:brightness(1.12); }
+
   .note { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:10px 14px; font-size:.82rem; color:#5d4037; margin-bottom:12px; }
   .note strong { color:#bf360c; }
 
@@ -146,11 +157,11 @@
 <div class="container">
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('requests',this)">📥 新申請</button>
+    <button class="tab-btn active" onclick="switchTab('requests',this)">🏛️ 旅團登記</button>
     <button class="tab-btn" onclick="switchTab('issues',this)">🐛 問題回報</button>
     <button class="tab-btn" onclick="switchTab('feedback',this)">💬 意見回饋</button>
-    <button class="tab-btn" onclick="switchTab('troops',this)">📋 旅團總覽</button>
-    <button class="tab-btn" onclick="switchTab('json',this)">🔧 JSON / TS 產生器</button>
+    <button class="tab-btn" onclick="switchTab('appstore',this)">📮 作品投稿</button>
+    <button class="tab-btn" onclick="switchTab('json',this)">🔧 產生器</button>
     <button class="tab-btn" onclick="switchTab('gs',this)">📜 Apps Script</button>
     <button class="tab-btn" onclick="switchTab('docs',this)">📖 說明書</button>
     <button class="tab-btn" onclick="switchTab('settings',this)">⚙️ 設定</button>
@@ -160,24 +171,25 @@
   <div class="section active" id="tab-requests">
     <div class="stats-row">
       <div class="stat-card"><div class="stat-num" id="statPending">0</div><div class="stat-lbl">待處理</div></div>
-      <div class="stat-card"><div class="stat-num" id="statDone" style="color:var(--green)">0</div><div class="stat-lbl">已完成</div></div>
-      <div class="stat-card"><div class="stat-num" id="statTotal" style="color:var(--blue)">0</div><div class="stat-lbl">總申請</div></div>
-      <div class="stat-card"><div class="stat-num" id="statTroops" style="color:var(--gold)">0</div><div class="stat-lbl">已接入旅團</div></div>
+      <div class="stat-card"><div class="stat-num" id="statDone" style="color:var(--green)">0</div><div class="stat-lbl">已接入</div></div>
+      <div class="stat-card"><div class="stat-num" id="statRejected" style="color:#c62828">0</div><div class="stat-lbl">已拒絕</div></div>
+      <div class="stat-card"><div class="stat-num" id="statTroops" style="color:var(--gold)">0</div><div class="stat-lbl">總旅團</div></div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📥 旅團接入申請</div>
+        <div class="card-title">🏛️ 旅團登記</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
           <button class="btn btn-gold" onclick="showAddModal()">＋ 手動新增</button>
         </div>
       </div>
+      <div class="note">旅團登記只需三個欄位：<strong>旅團名</strong>、<strong>URL</strong>、<strong>API KEY</strong>（有旅團號也可一併填上，用來生成 Vercel 環境變數名）。API KEY 你在 Vercel 環境變數加入即可，不必寫入 JSON。</div>
       <div class="filter-bar">
-        <input type="text" id="searchInput" placeholder="搜尋旅團名稱、編號…" oninput="renderRequests()" />
+        <input type="text" id="searchInput" placeholder="🔍 搜尋旅團名稱、旅團號…" oninput="renderRequests()" />
         <button class="filter-btn active" onclick="setFilter('all',this)">全部</button>
         <button class="filter-btn" onclick="setFilter('pending',this)">待處理</button>
-        <button class="filter-btn" onclick="setFilter('done',this)">已完成</button>
+        <button class="filter-btn" onclick="setFilter('done',this)">已接入</button>
         <button class="filter-btn" onclick="setFilter('rejected',this)">已拒絕</button>
       </div>
       <div class="app-list" id="requestList"></div>
@@ -187,9 +199,8 @@
   <!-- ===== TAB 1b: ISSUES ===== -->
   <div class="section" id="tab-issues">
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num" id="istatNew">0</div><div class="stat-lbl">待處理</div></div>
-      <div class="stat-card"><div class="stat-num" id="istatWorking" style="color:var(--blue)">0</div><div class="stat-lbl">處理中</div></div>
-      <div class="stat-card"><div class="stat-num" id="istatResolved" style="color:var(--green)">0</div><div class="stat-lbl">已解決</div></div>
+      <div class="stat-card"><div class="stat-num" id="istatNew">0</div><div class="stat-lbl">未閱</div></div>
+      <div class="stat-card"><div class="stat-num" id="istatRead" style="color:var(--green)">0</div><div class="stat-lbl">已閱</div></div>
       <div class="stat-card"><div class="stat-num" id="istatTotal" style="color:var(--gold)">0</div><div class="stat-lbl">總回報</div></div>
     </div>
     <div class="card">
@@ -200,14 +211,12 @@
           <button class="btn btn-gold" onclick="showAddIssueModal()">＋ 手動新增</button>
         </div>
       </div>
-      <div class="note">各 APP 用戶提交的問題回報。在 📜 Apps Script 分頁把「問題回報表單」貼入各 APP 後，回報會自動送到 Google Sheet 並 Email 通知你，再按「🔄 同步」載入本頁。處理狀態在本頁維護。</div>
+      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後整張卡<strong>灰字沉到底</strong>。用戶可匿名，或留底姓名／聯絡。<strong>填報不用 Key，任何人都可交</strong>；只有「讀取清單」與「寫回已閱狀態」這類碰得到後台資料的動作才受 API KEY 保護。</div>
       <div class="filter-bar">
-        <input type="text" id="issueSearch" placeholder="🔍 搜尋標題 / 來源 APP / 旅團號…" oninput="renderIssues()" />
+        <input type="text" id="issueSearch" placeholder="🔍 搜尋標題 / 姓名 / 來源 / 內容…" oninput="renderIssues()" />
         <button class="filter-btn active" onclick="setIssueFilter('all',this)">全部</button>
-        <button class="filter-btn" onclick="setIssueFilter('new',this)">待處理</button>
-        <button class="filter-btn" onclick="setIssueFilter('working',this)">處理中</button>
-        <button class="filter-btn" onclick="setIssueFilter('resolved',this)">已解決</button>
-        <button class="filter-btn" onclick="setIssueFilter('closed',this)">已關閉</button>
+        <button class="filter-btn" onclick="setIssueFilter('unread',this)">未閱</button>
+        <button class="filter-btn" onclick="setIssueFilter('read',this)">已閱</button>
       </div>
       <div class="app-list" id="issueList"></div>
     </div>
@@ -216,9 +225,8 @@
   <!-- ===== TAB 1c: FEEDBACK ===== -->
   <div class="section" id="tab-feedback">
     <div class="stats-row">
-      <div class="stat-card"><div class="stat-num" id="fstatNew">0</div><div class="stat-lbl">新回饋</div></div>
-      <div class="stat-card"><div class="stat-num" id="fstatReviewing" style="color:var(--blue)">0</div><div class="stat-lbl">檢視中</div></div>
-      <div class="stat-card"><div class="stat-num" id="fstatAdopted" style="color:var(--green)">0</div><div class="stat-lbl">已採納</div></div>
+      <div class="stat-card"><div class="stat-num" id="fstatNew">0</div><div class="stat-lbl">未閱</div></div>
+      <div class="stat-card"><div class="stat-num" id="fstatRead" style="color:var(--green)">0</div><div class="stat-lbl">已閱</div></div>
       <div class="stat-card"><div class="stat-num" id="fstatTotal" style="color:var(--gold)">0</div><div class="stat-lbl">總回饋</div></div>
     </div>
     <div class="card">
@@ -229,80 +237,56 @@
           <button class="btn btn-gold" onclick="showAddFeedbackModal()">＋ 手動新增</button>
         </div>
       </div>
-      <div class="note">用戶的建議、稱讚與批評。把 📜 Apps Script 分頁的「意見回饋表單」貼入各 APP 即可收集，按「🔄 同步」載入。處理狀態在本頁維護（新回饋 → 檢視中 → 已採納 / 不採納）。</div>
+      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後灰字沉底。用戶可匿名，或留底姓名／聯絡。填報不用 Key；只有讀取清單、寫回已閱這類後台動作才受 API KEY 保護。</div>
       <div class="filter-bar">
-        <input type="text" id="feedbackSearch" placeholder="🔍 搜尋內容 / 來源 APP / 旅團號…" oninput="renderFeedbacks()" />
+        <input type="text" id="feedbackSearch" placeholder="🔍 搜尋內容 / 姓名 / 來源…" oninput="renderFeedbacks()" />
         <button class="filter-btn active" onclick="setFeedbackFilter('all',this)">全部</button>
-        <button class="filter-btn" onclick="setFeedbackFilter('new',this)">新回饋</button>
-        <button class="filter-btn" onclick="setFeedbackFilter('reviewing',this)">檢視中</button>
-        <button class="filter-btn" onclick="setFeedbackFilter('adopted',this)">已採納</button>
-        <button class="filter-btn" onclick="setFeedbackFilter('declined',this)">不採納</button>
+        <button class="filter-btn" onclick="setFeedbackFilter('unread',this)">未閱</button>
+        <button class="filter-btn" onclick="setFeedbackFilter('read',this)">已閱</button>
       </div>
       <div class="app-list" id="feedbackList"></div>
     </div>
   </div>
 
-  <!-- ===== TAB 2: TROOPS ===== -->
-  <div class="section" id="tab-troops">
+  <!-- ===== TAB 2c: APP STORE 作品投稿 ===== -->
+  <div class="section" id="tab-appstore">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="astatPending">0</div><div class="stat-lbl">待審核</div></div>
+      <div class="stat-card"><div class="stat-num" id="astatDone" style="color:var(--green)">0</div><div class="stat-lbl">已上架</div></div>
+      <div class="stat-card"><div class="stat-num" id="astatTotal" style="color:var(--gold)">0</div><div class="stat-lbl">總投稿</div></div>
+    </div>
     <div class="card">
       <div class="card-header">
-        <div class="card-title">📋 已接入旅團</div>
+        <div class="card-title">📮 作品投稿（SCOUT APP STORE）</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-ghost" onclick="copyText(buildFullVsbadgeJson())">📋 複製 vsbadge JSON</button>
-          <button class="btn btn-ghost" onclick="copyText(buildFullTroopsTs())">📋 複製 troops.ts</button>
+          <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
         </div>
       </div>
-      <div class="note">已完成接入的旅團一覽。底部可複製各 APP 的完整設定檔。</div>
-      <div style="overflow-x:auto">
-        <table class="troop-table">
-          <thead><tr>
-            <th>旅團號</th><th>旅團名稱</th><th>Apps Script URL</th><th>API Key</th><th>狀態</th><th>操作</th>
-          </tr></thead>
-          <tbody id="troopTableBody"></tbody>
-        </table>
+      <div class="note">這裡是 <strong>SCOUT APP STORE</strong>（scoutappstore.vercel.app）送來的投稿紀錄，最新在最頂；資料一律照抄到 Google Sheet「作品投稿」＋ Email 通知，<strong>不重寫、不漏單</strong>。狀態為<strong>唯讀</strong>，要去 Sheet 改（如「待審核」→「已上架」），改完按「🔄 同步」即可更新。</div>
+      <div class="filter-bar">
+        <input type="text" id="appstoreSearch" placeholder="🔍 搜尋作品名稱 / 作者 / 分類 / 簡介…" oninput="renderAppStore()" />
+        <button class="filter-btn active" onclick="setAppStoreFilter('all',this)">全部</button>
+        <button class="filter-btn" onclick="setAppStoreFilter('pending',this)">待審核</button>
+        <button class="filter-btn" onclick="setAppStoreFilter('done',this)">已上架</button>
+        <button class="filter-btn" onclick="setAppStoreFilter('rejected',this)">已拒絕</button>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">🔥 vsbadge — <code>troops.json</code>（完整，可直接替換）</div></div>
-      <div class="json-block" id="fullVsbadgeBlock">
-        <button class="json-copy-btn" onclick="copyText(buildFullVsbadgeJson())">複製</button>
-        <span id="fullVsbadgeContent"></span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">🏠 scoutsystem — <code>lib/troops.ts</code>（完整，可直接替換）</div></div>
-      <div class="note"><strong>⚠️ 提醒：</strong>貼入 <code>lib/troops.ts</code> 後，還需在 Vercel 設定每個旅團的環境變數 <code>TROOP_{旅團號}_APIKEY</code>。</div>
-      <div class="ts-block" id="fullTroopsTsBlock">
-        <button class="json-copy-btn" onclick="copyText(buildFullTroopsTs())">複製</button>
-        <span id="fullTroopsTsContent"></span>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">🔑 Vercel 環境變數清單</div></div>
-      <div class="note">以下是所有旅團需要在 Vercel 設定的環境變數，逐一複製貼上到 Vercel Dashboard → Settings → Environment Variables。</div>
-      <div class="ts-block" id="vercelEnvBlock">
-        <button class="json-copy-btn" onclick="copyText(buildVercelEnvList())">複製全部</button>
-        <span id="vercelEnvContent"></span>
-      </div>
+      <div class="app-list" id="appstoreList"></div>
     </div>
   </div>
 
   <!-- ===== TAB 3: JSON / TS GENERATOR ===== -->
   <div class="section" id="tab-json">
     <div class="card">
-      <div class="card-header"><div class="card-title">🔧 單一旅團 JSON / TS 產生器</div></div>
-      <div class="note">填入旅團資料，即時預覽兩個 APP 各自需要的格式，一鍵複製。</div>
+      <div class="card-header"><div class="card-title">🔧 單一旅團設定產生器</div></div>
+      <div class="note">填旅團名稱、URL、API KEY 即時預覽。旅團號可留空（留空時環境變數名未定）。</div>
       <div class="form-grid">
-        <div class="form-group">
-          <label>旅團號 (如 0082)</label>
-          <input type="text" id="g_id" placeholder="0082" oninput="generateAll()" />
-        </div>
         <div class="form-group">
           <label>旅團名稱</label>
           <input type="text" id="g_name" placeholder="第 82 旅" oninput="generateAll()" />
+        </div>
+        <div class="form-group">
+          <label>旅團號（選填，如 0082）</label>
+          <input type="text" id="g_id" placeholder="0082" oninput="generateAll()" />
         </div>
         <div class="form-group full">
           <label>Apps Script URL</label>
@@ -338,9 +322,12 @@
   <!-- ===== TAB 4: APPS SCRIPT ===== -->
   <div class="section" id="tab-gs">
     <div class="card">
-      <div class="card-header"><div class="card-title">📜 申請接收 Apps Script</div></div>
+      <div class="card-header"><div class="card-title">📜 接收 Apps Script（旅團登記＋問題回報＋意見回饋＋作品投稿）</div></div>
       <div class="note">
-        ✅ <strong>Web App 已連接：</strong>旅團提交的申請會直接送往你的 Google Sheet 並寄 Email 通知你。
+        ⚠️ <strong>需要你重新部署一次才生效。</strong>把下方代碼整段貼到 Google Sheet → 擴充功能 → Apps Script → 儲存 → 部署 →「管理部署」→ <strong>編輯</strong> → 版本選「<strong>新版本</strong>」→ 部署（網址不變）。<br>
+        <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<strong>Key 保護的是「讀取／已閱／審核」這類後台動作；任何人提交（旅團登記、問題、回饋、作品投稿）都不需要 Key。</strong><br>
+        核心保證：欄位對不上自動加欄、Email 附全部欄位＋原始 JSON 備份，資料不漏。<br>
+        改動：①旅團號改為可選；②<strong>已閱／審核寫回</strong>（markRead / markReq）；③<strong>list 讀取受 API KEY 保護</strong>（防個人資料外洩）；④新增<strong>作品投稿</strong>工作表，接收 SCOUT APP STORE 投稿。
       </div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(GS_CODE)">複製備份</button>
@@ -349,8 +336,8 @@
     </div>
 
     <div class="card">
-      <div class="card-header"><div class="card-title">📋 前端申請表單代碼（嵌入旅團 APP）</div></div>
-      <div class="note">複製以下代碼，貼入旅團 APP 的設定/申請頁面。Web App URL 已預先填入。</div>
+      <div class="card-header"><div class="card-title">📋 前端旅團登記表單代碼（嵌入旅團 APP）</div></div>
+      <div class="note">複製貼入旅團 APP 設定頁。只需旅團名、URL、API KEY（旅團號選填）。網址已預先填好。</div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(FRONTEND_CODE)">複製</button>
         <span id="frontendCodeSpan"></span>
@@ -358,8 +345,8 @@
     </div>
 
     <div class="card">
-      <div class="card-header"><div class="card-title">🐛 問題回報表單代碼（嵌入各 APP）— v1.1 新增</div></div>
-      <div class="note">複製貼入任何 APP 的「回報問題 / 幫助」頁面。貼上後只需把代碼內的 <code>SOURCE_APP</code> 改成該 APP 名稱。用戶提交會寫入 Sheet「問題回報」工作表並 Email 通知你，到對應分頁按「🔄 同步」載入。</div>
+      <div class="card-header"><div class="card-title">🐛 問題回報表單代碼（嵌入各 APP）</div></div>
+      <div class="note">複製貼入各 APP 的回報／幫助頁，只需改 <code>SOURCE_APP</code>。姓名與聯絡方式均為<strong>選填</strong>（可匿名、可留底）。</div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(FRONTEND_ISSUE_CODE)">複製</button>
         <span id="issueCodeSpan"></span>
@@ -367,8 +354,8 @@
     </div>
 
     <div class="card">
-      <div class="card-header"><div class="card-title">💬 意見回饋表單代碼（嵌入各 APP）— v1.1 新增</div></div>
-      <div class="note">複製貼入任何 APP 的設定 / 關於頁面。同樣只需改 <code>SOURCE_APP</code>。用戶提交會寫入 Sheet「意見回饋」工作表並 Email 通知你。</div>
+      <div class="card-header"><div class="card-title">💬 意見回饋表單代碼（嵌入各 APP）</div></div>
+      <div class="note">複製貼入各 APP 的設定／關於頁，同樣只需改 <code>SOURCE_APP</code>。姓名與聯絡方式選填。</div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(FRONTEND_FEEDBACK_CODE)">複製</button>
         <span id="feedbackCodeSpan"></span>
@@ -376,8 +363,8 @@
     </div>
 
     <div class="card">
-      <div class="card-header"><div class="card-title">⚡ 一行 widget（v1.1 推薦 — 最少改動接入）</div></div>
-      <div class="note">不想逐個 APP 貼兩大段表單？改用<strong>浮動按鈕 widget</strong>：一行 <code>&lt;script&gt;</code> 同時內建 🐛 問題回報 + 💬 意見回饋兩個表單（右下角浮動「回報 · 意見」按鈕）。APP <strong>完全不需要後端</strong>，一行貼在 <code>&lt;/body&gt;</code> 前即可。<br><strong>來源免填</strong>：預設自動帶入所在網頁網址（= 你 Vercel 項目域名），收到回報一眼認得是哪個 APP；要覆蓋才加 <code>data-app="項目名"</code>。<strong>新 APP 不用在這裡登記任何東西</strong>。</div>
+      <div class="card-header"><div class="card-title">⚡ 一行 widget（浮動「回報 · 意見」按鈕）</div></div>
+      <div class="note">不想逐個 APP 貼表單，就用一行 <code>&lt;script&gt;</code>（右下角浮動按鈕，同時有 🐛 問題回報＋💬 意見回饋）。貼在 <code>&lt;/body&gt;</code> 前即可，APP 完全不需要後端。來源自動帶入網址，要覆蓋才加 <code>data-app="項目名"</code>。</div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(WIDGET_SNIPPET)">複製</button>
         <span id="widgetSnippet"></span>
@@ -388,27 +375,26 @@
 
     <div class="card">
       <div class="card-header"><div class="card-title">📋 Google Sheet 欄位說明</div></div>
-      <div class="note">Script 會在<strong>第一次收到資料時自動建立工作表和標題欄</strong>，無需手動建立。<br>⚠️ <strong>v1.1 升級提醒：</strong>問題回報 / 意見回饋功能需要先把上方「Apps Script 代碼」重新貼到 Google Sheet 的 Apps Script 並<strong>重新部署（編輯部署 → 版本：新版本）</strong>才會生效；舊的申請功能不受影響。</div>
+      <div class="note">Script 會在<strong>第一次收到資料時自動建立工作表、自動補齊標題欄</strong>（舊表會<strong>自動在右側補上「姓名」「聯絡方式」欄</strong>），無需手動加。<br>⚠️ <strong>升級提醒：</strong>把上方 Apps Script 代碼貼上後要<strong>重新部署</strong>（管理部署 → 編輯 → 版本：新版本）才會生效。「狀態」欄由前端寫回（審核狀態／已閱），開 Sheet 也能看到。</div>
 
-      <div class="section-label">工作表 ① — 申請記錄</div>
+      <div class="section-label">工作表 ① — 申請記錄（旅團登記）</div>
       <div style="overflow-x:auto">
         <table class="troop-table">
           <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
           <tbody>
             <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
-            <tr><td>B</td><td>旅團號</td><td>如 0082</td></tr>
-            <tr><td>C</td><td>旅團名稱</td><td>如 第82旅</td></tr>
-            <tr><td>D</td><td>Apps Script URL</td><td>旅團的後端 URL</td></tr>
-            <tr><td>E</td><td>API Key</td><td>旅團的 API Key</td></tr>
-            <tr><td>F</td><td>接入 APP</td><td>vsbadge / scoutsystem / 兩者</td></tr>
-            <tr><td>G</td><td>備注</td><td>選填</td></tr>
-            <tr><td>H</td><td>狀態</td><td>自動填「待處理」（審核狀態以本 APP 為準）</td></tr>
-            <tr><td>I</td><td>編號</td><td>系統自動產生，供同步去重用</td></tr>
+            <tr><td>B</td><td>旅團號</td><td>選填（有就填，如 0082）</td></tr>
+            <tr><td>C</td><td>旅團名稱</td><td>必填</td></tr>
+            <tr><td>D</td><td>URL</td><td>旅團 Apps Script 後端 URL</td></tr>
+            <tr><td>E</td><td>API Key</td><td>旅團 API Key → 在 Vercel 加入</td></tr>
+            <tr><td>F</td><td>備注</td><td>選填</td></tr>
+            <tr><td>G</td><td>狀態</td><td>可留空；前端審核寫回（待處理／已接入／已拒絕）</td></tr>
+            <tr><td>H</td><td>編號</td><td>自動產生，供同步去重</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="section-label" style="margin-top:18px">工作表 ② — 問題回報（v1.1）</div>
+      <div class="section-label" style="margin-top:18px">工作表 ② — 問題回報（TICK 看板）</div>
       <div style="overflow-x:auto">
         <table class="troop-table">
           <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
@@ -419,14 +405,15 @@
             <tr><td>D</td><td>標題</td><td>必填</td></tr>
             <tr><td>E</td><td>問題詳情</td><td>必填</td></tr>
             <tr><td>F</td><td>嚴重度</td><td>低 / 中 / 高 / 緊急</td></tr>
-            <tr><td>G</td><td>聯絡方式</td><td>選填</td></tr>
-            <tr><td>H</td><td>狀態</td><td>自動填「待處理」（進度以本 APP 為準）</td></tr>
-            <tr><td>I</td><td>編號</td><td>系統自動產生</td></tr>
+            <tr><td>G</td><td>聯絡方式</td><td>選填（用戶留底時才填）</td></tr>
+            <tr><td>H</td><td>姓名</td><td>選填；可匿名</td></tr>
+            <tr><td>I</td><td>狀態</td><td>可留空；已閱寫入「已閱」，未閱寫入「未閱」</td></tr>
+            <tr><td>J</td><td>編號</td><td>自動產生</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="section-label" style="margin-top:18px">工作表 ③ — 意見回饋（v1.1）</div>
+      <div class="section-label" style="margin-top:18px">工作表 ③ — 意見回饋</div>
       <div style="overflow-x:auto">
         <table class="troop-table">
           <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
@@ -437,8 +424,28 @@
             <tr><td>D</td><td>類型</td><td>建議 / 讚 / 批評 / 其他</td></tr>
             <tr><td>E</td><td>內容</td><td>必填</td></tr>
             <tr><td>F</td><td>聯絡方式</td><td>選填</td></tr>
-            <tr><td>G</td><td>狀態</td><td>自動填「新回饋」（進度以本 APP 為準）</td></tr>
-            <tr><td>H</td><td>編號</td><td>系統自動產生</td></tr>
+            <tr><td>G</td><td>姓名</td><td>選填；可匿名</td></tr>
+            <tr><td>H</td><td>狀態</td><td>可留空；已閱 / 未閱</td></tr>
+            <tr><td>I</td><td>編號</td><td>自動產生</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-label" style="margin-top:18px">工作表 ④ — 作品投稿（SCOUT APP STORE）</div>
+      <div style="overflow-x:auto">
+        <table class="troop-table">
+          <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
+            <tr><td>B</td><td>作品名稱</td><td>必填</td></tr>
+            <tr><td>C</td><td>作品連結</td><td>作品網址</td></tr>
+            <tr><td>D</td><td>作者名稱</td><td>投稿人</td></tr>
+            <tr><td>E</td><td>作品類型</td><td>如 apps / tools…（取自商店的 page 欄位）</td></tr>
+            <tr><td>F</td><td>分類</td><td>作品分類</td></tr>
+            <tr><td>G</td><td>作品簡介</td><td>簡介內容</td></tr>
+            <tr><td>H</td><td>標籤</td><td>自訂標籤</td></tr>
+            <tr><td>I</td><td>狀態</td><td>自動填「待審核」；可在 Sheet 直接改</td></tr>
+            <tr><td>J</td><td>編號</td><td>自動產生</td></tr>
           </tbody>
         </table>
       </div>
@@ -459,24 +466,36 @@
   <!-- ===== TAB 6: SETTINGS ===== -->
   <div class="section" id="tab-settings">
     <div class="card">
-      <div class="card-header"><div class="card-title">⚙️ 系統設定</div></div>
+      <div class="card-header"><div class="card-title">🔑 API KEY（保護後台讀取）</div></div>
+      <div class="note">API KEY 用於<strong>後台抓取 Sheet</strong>（<code>?action=list</code>，含 TICK 裡的姓名／聯絡方式等<strong>個人資料</strong>），防止外人讀走。<br>
+        Key 由 <strong>GS 自己產生</strong>：Apps Script 貼上最新代碼後，在編輯器上方選「<code>setupApiKey</code>」→ 執行 → 授權，就會自動生一組 Key、存進腳本屬性，並 E-mail 給你（信裡有「一鍵填好」連結，點開就會自動填寫下方這欄）。<br>
+        未設 Key 時系統照常收單，只是讀取不設防。</div>
       <div class="form-grid">
         <div class="form-group full">
-          <label>管理 Sheet Web App URL（部署後填入）</label>
-          <input type="text" id="cfg_url" placeholder="https://script.google.com/macros/s/…/exec" />
+          <label>API KEY（儲存在本機 localStorage，不會寫進任何代碼）</label>
+          <input type="password" id="cfg_apikey" placeholder="scout-****-****-****" autocomplete="off" />
         </div>
       </div>
       <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="saveSettings()">💾 儲存</button>
-        <button class="btn btn-ghost" onclick="clearAllData()">🗑️ 清除所有本地資料</button>
+        <button class="btn btn-primary" onclick="saveSettings()">💾 儲存 API KEY</button>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">🔄 同步 Sheet</div></div>
+      <div class="note">手動從 Google Sheet 拉取最新旅團登記／問題回報／意見回饋。讀取需要 API KEY（見上方）。</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-success" onclick="syncFromSheet()">🔄 立即同步</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header"><div class="card-title">📤 匯出 / 匯入</div></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-success" onclick="exportData()">📤 匯出備份 JSON</button>
         <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📥 匯入備份 JSON</button>
         <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+        <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清除所有本地資料</button>
       </div>
     </div>
   </div>
@@ -491,38 +510,31 @@
     <input type="hidden" id="modal_id" />
     <div class="form-grid">
       <div class="form-group">
-        <label>旅團號 *</label>
-        <input type="text" id="m_id" placeholder="0082" />
-      </div>
-      <div class="form-group">
         <label>旅團名稱 *</label>
         <input type="text" id="m_name" placeholder="第 82 旅" />
       </div>
+      <div class="form-group">
+        <label>旅團號（選填）</label>
+        <input type="text" id="m_id" placeholder="0082" />
+      </div>
       <div class="form-group full">
-        <label>Apps Script URL</label>
+        <label>URL *（後端 Apps Script）</label>
         <input type="text" id="m_url" placeholder="https://script.google.com/macros/s/…/exec" />
       </div>
       <div class="form-group full">
-        <label>API Key</label>
+        <label>API Key *</label>
         <input type="text" id="m_key" placeholder="ak_xxxxxxxx 或 vs_xxxxxxxx" />
-      </div>
-      <div class="form-group full">
-        <label>接入 APP（可多選）</label>
-        <div style="display:flex;gap:16px;padding:6px 0;flex-wrap:wrap">
-          <label style="font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" value="vsbadge" class="app-check" /> 🔥 vsbadge</label>
-          <label style="font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" value="scoutsystem" class="app-check" /> 🏠 scoutsystem</label>
-        </div>
       </div>
       <div class="form-group">
         <label>狀態</label>
         <select id="m_status">
           <option value="pending">待處理</option>
-          <option value="done">已完成</option>
+          <option value="done">已接入</option>
           <option value="rejected">已拒絕</option>
         </select>
       </div>
       <div class="form-group">
-        <label>備注</label>
+        <label>備注（選填）</label>
         <textarea id="m_note" placeholder="可選"></textarea>
       </div>
     </div>
@@ -566,16 +578,18 @@
         </select>
       </div>
       <div class="form-group">
-        <label>聯絡方式</label>
+        <label>聯絡方式（選填，可留底）</label>
         <input type="text" id="im_contact" placeholder="選填，電郵 / 電話" />
       </div>
       <div class="form-group">
-        <label>狀態</label>
+        <label>姓名（選填，可匿名）</label>
+        <input type="text" id="im_name" placeholder="留空＝匿名" />
+      </div>
+      <div class="form-group">
+        <label>已閱？</label>
         <select id="im_status">
-          <option value="new">待處理</option>
-          <option value="working">處理中</option>
-          <option value="resolved">已解決</option>
-          <option value="closed">已關閉</option>
+          <option value="unread">未閱</option>
+          <option value="read">已閱</option>
         </select>
       </div>
       <div class="form-group">
@@ -617,10 +631,8 @@
       <div class="form-group">
         <label>狀態</label>
         <select id="fm_status">
-          <option value="new">新回饋</option>
-          <option value="reviewing">檢視中</option>
-          <option value="adopted">已採納</option>
-          <option value="declined">不採納</option>
+          <option value="unread">未閱</option>
+          <option value="read">已閱</option>
         </select>
       </div>
       <div class="form-group full">
@@ -628,10 +640,14 @@
         <textarea id="fm_content" placeholder="用戶的建議、稱讚或批評…"></textarea>
       </div>
       <div class="form-group">
-        <label>聯絡方式</label>
+        <label>聯絡方式（選填，可留底）</label>
         <input type="text" id="fm_contact" placeholder="選填，電郵 / 電話" />
       </div>
       <div class="form-group">
+        <label>姓名（選填，可匿名）</label>
+        <input type="text" id="fm_name" placeholder="留空＝匿名" />
+      </div>
+      <div class="form-group full">
         <label>管理員備註</label>
         <input type="text" id="fm_note" placeholder="選填" />
       </div>
@@ -653,333 +669,98 @@ const DOCS = {
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：1.1 | 作者：系統管理員 | 新增：🐛 問題回報、💬 意見回饋、🔄 Sheet 同步
+> 版本：2.2 | 作者：系統管理員
+> 本次大改：旅團登記簡化為「旅團名 + URL + API KEY」、問題回報／意見回饋改成 TICK 看板（已閱灰字沉底）、新增 SCOUT APP STORE「作品投稿」分頁與工作表、後台讀取加 API KEY 保護
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
 
 ## 一、這是什麼
 
-Scout Admin 是一個**靜態管理後台**，用於：
+Scout Admin 是**純靜態後台**（部署在 Vercel，沒有自己的後端）。它的唯一接收端是固定的 **Google Apps Script Web App**（URL 已寫死在代碼內）。功能：
 
-1. 接收旅團的接入申請（透過 Apps Script Web App）
-2. 查看和審核申請
-3. 自動產生各 APP 所需的 JSON / TypeScript 設定格式
-4. 讓你一鍵複製貼入各 APP 的設定檔完成接入
-5. 收集各 APP 用戶的**問題回報**（v1.1 新增）
-6. 收集各 APP 用戶的**意見回饋**（v1.1 新增）
-7. 一鍵從 Google Sheet **同步**最新申請 / 回報 / 回饋（v1.1 新增）
+1. 接收旅團登記（旅團名、URL、API KEY；旅團號選填）
+2. 一鍵產生各 APP 需要的設定格式，你把 API KEY 放進 **Vercel 環境變數**即可
+3. 前端直接看「問題回報」「意見回饋」TICK：最新在最頂，點「✔ 已閱」灰字沉底
+4. TICK 可匿名，或留底姓名／聯絡方式
+5. 接收 **SCOUT APP STORE**（scoutappstore.vercel.app）送來的「作品投稿」，照抄到 Sheet「作品投稿」＋ Email 通知，不漏單
+6. 已閱／審核狀態寫回 Google Sheet，換裝置「🔄 同步」也一致
 
-**不需要伺服器、不需要資料庫。** 申請資料存在你的 Google Sheet，審核狀態存在瀏覽器 localStorage。
-
-> ⚠️ **給其他開發者 / Agent 看的重要說明**
->
-> Scout Admin APP 是**純靜態 HTML**，部署在 Vercel 上。
-> **它沒有任何後端 API 端點**，不存在 \`/api/submit\`、\`/api/register\` 或任何伺服器路由。
->
-> 申請的唯一接收端是 **Google Apps Script Web App**（URL 已固定寫死在代碼內），並非 \`scout-admin-blue.vercel.app\` 的任何路徑。不需要、也不應修改任何 \`ADMIN_API_URL\` 類的變數。
+> ⚠️ 給其他開發者／Agent：**API KEY 保護的是後台「讀取清單」（含個人資料）**；所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key**，照常接收，確保用戶交得到。
 
 ---
 
-## 二、系統組成
+## 二、要先做一次（重要）
 
-\`\`\`
-┌─────────────────────────────────────────────────┐
-│           Scout Admin APP（你的後台）            │
-│     https://scout-admin-blue.vercel.app/         │
-│                                                  │
-│  📥 申請  🐛 問題回報  💬 意見回饋  📋 總覽  🔧 產生器  📜 Script │
-└────────────────────┬────────────────────────────┘
-                     │ 資料來自
-                     ▼
-┌─────────────────────────────────────────────────┐
-│         Apps Script Web App（接收端）            │
-│  接收 POST → 寫 Google Sheet → 寄 Email 通知    │
-└────────────────────┬────────────────────────────┘
-                     │ 資料來源
-                     ▼
-┌─────────────────────────────────────────────────┐
-│      旅團 APP 內嵌的申請表單（發送端）           │
-│  填寫：旅團號、名稱、URL、API Key、接入APP      │
-└─────────────────────────────────────────────────┘
-\`\`\`
+把 📜 Apps Script 分頁的 **最新代碼**整段貼到 Apps Script → 儲存 → 部署 → 管理部署 → 編輯 → 版本「新版本」→ 部署（網址不變）。
+
+API KEY 由 **GS 自己產生**：編輯器上方選函式「setupApiKey」→ 執行 → 授權，就會自動生 Key、存進腳本屬性，並 E-mail 給你。把這條 Key 加進 **本專案 Vercel 環境變數 **SCOUT_ADMIN_KEY****（後台讀取走 /api/admin 代理，Key 不落瀏覽器）；信裡另附「一鍵填好」連結，點開會把 Key 帶入後台「⚙️ 設定」當本機後備。
 
 ---
 
-## 三、分頁功能說明
+## 三、旅團登記（簡化）
 
-### 📥 新申請
+旅團只要提供三項：**旅團名、URL、API KEY**（旅團號選填，有就填，用來生成 TROOP_編號_APIKEY 環境變數名）。
 
-查看所有旅團的接入申請。
+> 欄位對不上也不怕：GS 收到「沒見過的欄位」會**自動加欄**存進 Sheet；Email 一定附上**全部欄位＋原始 JSON 備份**，確保不漏。
 
-| 操作 | 說明 |
-|------|------|
-| ✅ 標記完成 | 申請審核通過，移至「已完成」 |
-| ❌ 拒絕 | 拒絕申請 |
-| ↩ 重設 | 將已完成/已拒絕的申請重設回待處理 |
-| ✏️ 編輯 | 修改申請資料 |
-| 🗑 刪除 | 永久刪除申請記錄 |
-| 🔧 查看 JSON/TS 輸出 | 展開查看該旅團的設定片段 |
-| ＋ 手動新增 | 直接在 Admin APP 新增申請 |
-
-**申請卡展開後顯示的輸出**（根據旅團勾選的 APP 而定）：
-
-- 勾了 **vsbadge** → \`troops.json\` 片段
-- 勾了 **scoutsystem** → \`troops.ts\` 片段 + Vercel 環境變數
-- 兩個都勾 → 兩者都顯示
-
-**🔄 同步 Sheet**：從 Google Sheet 拉取各 APP 提交的申請（按編號 / 旅團去重，已存在的不會重複匯入）。
+- 登記表單貼在旅團 APP 設定頁，提交即寫入 Sheet「申請記錄」＋ Email 通知你
+- 你在後台按「🔄 同步 Sheet」載入 → 審核（✅ 接入 / ❌ 拒絕）→ 展開卡片複製對應設定
+- **API KEY 一律放 Vercel 環境變數**，不寫進 JSON
 
 ---
 
-### 🐛 問題回報（v1.1 新增）
+## 四、問題回報／意見回饋（TICK 看板）
 
-收集各 APP 用戶提交的問題。流程：各 APP 貼上「問題回報表單」→ 用戶提交 → 寫入 Sheet「問題回報」+ Email 通知 → 你在本分頁按「🔄 同步」載入 → 處理。
-
-| 操作 | 說明 |
-|------|------|
-| 🔄 同步 Sheet | 載入 Google Sheet 最新回報 |
-| ＋ 手動新增 | 電話 / 聊天收到的問題直接登記 |
-| ▶ 處理中 / ✔ 已解決 / ✕ 關閉 | 更新處理進度 |
-| ↩ 重開 | 已解決 / 已關閉的問題重新打開 |
-| ✏️ 編輯 / 🗑 刪除 | 修改或移除記錄（可加管理員備註） |
-
-**篩選**：全部 / 待處理 / 處理中 / 已解決 / 已關閉；可按標題、來源 APP、旅團號搜尋。
-**欄位**：來源 APP、旅團號（選填）、標題、問題詳情、嚴重度（低 / 中 / 高 / 緊急）、聯絡方式。
+- 前端直接看 TICK：**未閱最新在最頂**；點「✔ 已閱」→ 整張卡**灰字沉到底**
+- 可匿名（姓名、聯絡方式都選填），也可留底姓名＋聯絡
+- 已閱／未閱可反悔（↩ 未閱）；狀態寫回 Sheet，開 Sheet 也看得到、換裝置同步
+- 用戶端可用：一行 widget（浮動按鈕）、貼表單代碼、或獨立回報頁 report.html?app=APP名
 
 ---
 
-### 💬 意見回饋（v1.1 新增）
+## 六、設定格式
 
-收集建議、稱讚與批評。流程與問題回報相同（表單 → Sheet「意見回饋」→ 同步）。
-
-| 操作 | 說明 |
-|------|------|
-| 🔄 同步 Sheet | 載入 Google Sheet 最新回饋 |
-| ＋ 手動新增 | 直接登記 |
-| ▶ 檢視中 / ✔ 已採納 / ✕ 不採納 | 更新處理進度 |
-| ↩ 重設 | 回到「新回饋」 |
-| ✏️ 編輯 / 🗑 刪除 | 修改或移除記錄（可加管理員備註） |
-
-**類型**：💡 建議 / 👍 讚 / 👎 批評 / 📝 其他。
-
----
-
-### 📋 旅團總覽
-
-顯示所有**已完成接入**的旅團。
-
-| 輸出 | 說明 |
-|------|------|
-| vsbadge \`troops.json\` | 完整 JSON，可直接替換 vsbadge repo 的 \`troops.json\` |
-| scoutsystem \`lib/troops.ts\` | 完整 TypeScript，可直接替換 \`lib/troops.ts\` |
-| Vercel 環境變數清單 | 所有旅團的 \`TROOP_{ID}_APIKEY=...\`，逐行列出 |
-
----
-
-### 🔧 JSON / TS 產生器
-
-手動輸入旅團資料，即時預覽三種格式：
-1. vsbadge \`troops.json\` 片段
-2. scoutsystem \`troops.ts\` 片段
-3. Vercel 環境變數
-
----
-
-### 📜 Apps Script
-
-- **上半部**：Apps Script 代碼備份（已部署，留底用）
-- **下半部**：前端申請表單代碼，複製後直接貼入任何旅團 APP 的設定頁面
-
----
-
-### ⚙️ 設定 / 匯出匯入
-
-- **匯出**：把所有申請記錄匯出成 JSON 備份
-- **匯入**：從備份 JSON 還原資料
-- **清除**：清空所有本地資料（不可撤銷）
-
-> 💡 建議定期匯出備份，因為資料存在瀏覽器 localStorage，換瀏覽器或清除快取會遺失。
-
----
-
-## 四、完整申請流程
-
-\`\`\`
-旅團在 APP 設定頁面填申請表單
-      │  POST（no-cors）
-      ▼
-Apps Script Web App
-      ├─→ 寫入 Google Sheet「申請記錄」工作表
-      └─→ 寄 Email 至管理員信箱
-                  │
-                  ▼
-      你收到 Email → 前往 Scout Admin APP → 📥 新申請
-                  │
-                  ├─ 確認資料 → 點「✅ 標記完成」
-                  └─ 展開卡片 → 複製輸出
-                              │
-                              ├─ vsbadge：貼入 troops.json → git push
-                              └─ scoutsystem：貼入 troops.ts + Vercel env → git push
-                              │
-                              ▼
-                        Vercel 自動部署 → 旅團立即可用
-\`\`\`
-
----
-
-## 五、各 APP 設定格式
-
-### vsbadge — \`troops.json\`
-
-貼入位置：\`vsbadge\` repo 根目錄的 \`troops.json\`
-
-\`\`\`json
+vsbadge 用 troops.json（鍵＝旅團號；留空則用旅團名當鍵）：
 {
-  "troops": {
-    "0082": {
-      "name": "第 82 旅",
-      "backend": "https://script.google.com/macros/s/XXXXXX/exec",
-      "apikey": "vs_xxxxxxxxxxxxxxxxxxxxxxxx"
-    }
-  }
+  "troops": { "0082": { "name": "第82旅", "backend": "https://…/exec" } }
 }
-\`\`\`
 
-### scoutsystem — \`lib/troops.ts\`
+scoutsystem 用 lib/troops.ts 片段（同旅團號為 key／id）。
 
-貼入位置：\`scoutsystem-2.0\` repo 的 \`lib/troops.ts\`，加入 \`APPROVED_TROOPS\` 陣列內
-
-\`\`\`typescript
-{
-  key: 'troop_0082',
-  id: '0082',
-  name: '第82旅',
-  webAppUrl: 'https://script.google.com/macros/s/XXXXXX/exec',
-  // API Key → Vercel env: TROOP_0082_APIKEY
-  status: 'active',
-},
-\`\`\`
-
-### scoutsystem — Vercel 環境變數
-
-設定位置：Vercel Dashboard → scoutsystem 專案 → Settings → Environment Variables
-
-\`\`\`
-Name:  TROOP_0082_APIKEY
-Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
-\`\`\`
-
-> ⚠️ API Key **永遠不進 Git**，只存在 Vercel 環境變數。
+Vercel 環境變數：Name = TROOP_0082_APIKEY，Value = 旅團的 API Key（旅團號留空時自行命名）。
 
 ---
 
-## 六、將表單加入新 APP（含問題回報 / 意見回饋）
+## 五、作品投稿（SCOUT APP STORE）
 
-**不需要事先在 Admin 登記任何 APP 的 URL。** 接收端 URL 固定寫死在表單代碼裡，任何 APP 只要貼上表單就會自動送到同一個 Apps Script。
+- Scout APP STORE（scoutappstore.vercel.app）的投稿會<strong>多送一份</strong>到這裡，寫進 Sheet「作品投稿」＋ Email 通知，不影響商店本身
+- 後台「📮 作品投稿」分頁：最新在最頂、可搜尋／篩選；狀態唯讀（改狀態回 Sheet 改，再「🔄 同步」）
 
-每開發一個新 APP，在其設定 / 幫助頁面加入：
+## 七、Google Sheet 工作表
 
-1. 前往 **Scout Admin APP → 📜 Apps Script 分頁**
-2. 找到三份表單代碼，逐一「複製」並貼入新 APP：
-   - **📋 前端申請表單** — 旅團接入申請
-   - **🐛 問題回報表單** — 貼上後把代碼內 \`SOURCE_APP\` 改成新 APP 名稱
-   - **💬 意見回饋表單** — 同上，改 \`SOURCE_APP\`
-3. 完成。提交會自動寫入 Google Sheet 並 Email 通知你
+- ① 申請記錄：提交時間 / 旅團號(選) / 旅團名稱 / URL / API Key / 備注 / 狀態 / 編號
+- ② 問題回報：… / 聯絡方式 / 姓名 / 狀態(未閱/已閱) / 編號
+- ③ 意見回饋：來源APP / 旅團號 / 類型 / 內容 / 聯絡方式 / 姓名 / 狀態 / 編號
+- ④ 作品投稿：提交時間 / 作品名稱 / 作品連結 / 作者名稱 / 作品類型 / 分類 / 作品簡介 / 標籤 / 狀態 / 編號
 
----
-
-## 七、資料儲存說明
-
-| 資料 | 儲存位置 | 說明 |
-|------|---------|------|
-| 申請記錄審核狀態 | 瀏覽器 localStorage | 換瀏覽器需重新匯入 |
-| 問題回報進度（v1.1） | 瀏覽器 localStorage | 同上 |
-| 意見回饋進度（v1.1） | 瀏覽器 localStorage | 同上 |
-| 原始申請 / 回報 / 回饋 | Google Sheet | 永久保存，不受瀏覽器影響 |
-| Email 通知記錄 | Gmail | 永久保存 |
-
-💡 v1.1 起可在各分頁按 **🔄 同步 Sheet** 直接載入 Sheet 資料，不用再手動抄。
+工作表、標題欄會自動建立；舊表缺的「姓名」欄會自動在右側補上。
 
 ---
 
-## 八、Apps Script Web App 資訊
+## 八、常見問題
 
-| 項目 | 說明 |
-|------|------|
-| 執行身分 | 管理員帳號（你） |
-| 存取權限 | 所有人 |
-| 通知 Email | 見 Apps Script \`ADMIN_EMAIL\` 變數 |
-| Google Sheet 工作表 | 申請記錄、問題回報、意見回饋 |
+**Q：同步失敗、提示 API KEY？**
+A：先照第二節執行 setupApiKey（Apps Script），再把 E-mail 裡的 Key（或點一鍵連結）帶入後台「⚙️ 設定」。
 
-**健康檢查**（應回傳 \`{"status":"ok"}\`）：
-打開 Apps Script 分頁複製的 Web App URL 在瀏覽器開啟即可測試。
+**Q：旅團號留空會怎樣？**
+A：照常登記。Vercel 環境變數名你自行命名；vsbadge JSON 以旅團名當鍵。
 
----
+**Q：收不到 TICK？**
+A：✅ 已重新部署最新代碼；✅ 各 APP 已貼新表單（含 SOURCE_APP）；✅ 後台按「🔄 同步」。
 
-## 九、Google Sheet 欄位說明
-
-### 工作表 ①：\`申請記錄\`（第一次收到申請時自動建立）
-
-| 欄 | 欄位名稱 | 說明 |
-|----|---------|------|
-| A | 提交時間 | 自動填入 |
-| B | 旅團號 | 如 \`0082\` |
-| C | 旅團名稱 | 如 \`第82旅\` |
-| D | Apps Script URL | 旅團的後端 URL |
-| E | API Key | 旅團的 API Key |
-| F | 接入 APP | vsbadge / scoutsystem / 兩者 |
-| G | 備注 | 選填 |
-| H | 狀態 | 自動填「待處理」 |
-| I | 編號 | 系統自動產生，供同步去重（v1.1） |
-
-### 工作表 ②：\`問題回報\`（v1.1）
-
-| 欄 | 欄位名稱 | 說明 |
-|----|---------|------|
-| A | 提交時間 | 自動填入 |
-| B | 來源 APP | 如 vsbadge |
-| C | 旅團號 | 選填 |
-| D | 標題 | 必填 |
-| E | 問題詳情 | 必填 |
-| F | 嚴重度 | 低 / 中 / 高 / 緊急 |
-| G | 聯絡方式 | 選填 |
-| H | 狀態 | 自動填「待處理」 |
-| I | 編號 | 系統自動產生 |
-
-### 工作表 ③：\`意見回饋\`（v1.1）
-
-| 欄 | 欄位名稱 | 說明 |
-|----|---------|------|
-| A | 提交時間 | 自動填入 |
-| B | 來源 APP | 如 vsbadge |
-| C | 旅團號 | 選填 |
-| D | 類型 | 建議 / 讚 / 批評 / 其他 |
-| E | 內容 | 必填 |
-| F | 聯絡方式 | 選填 |
-| G | 狀態 | 自動填「新回饋」 |
-| H | 編號 | 系統自動產生 |
-
-> 處理進度以 Admin APP 本地狀態為準；Sheet 保存原始提交資料。
-
----
-
-## 十、常見問題
-
-**Q：新 APP 要先在 Admin 登記它的 URL 嗎？還是寫好就自動登記？**
-A：**都不用登記。** 接收端是同一個固定的 Apps Script URL（寫死在表單代碼內）。其他 APP 只要把 📜 Apps Script 分頁的表單代碼貼進去，提交就會自動送到你的 Google Sheet，按「🔄 同步」即出現在 Admin。沒有「逐個 APP 登記 URL」這一步——要改的只有表單代碼裡的 \`SOURCE_APP\` 名稱（方便你分辨回報來自哪個 APP）。
-
-**Q：問題回報 / 意見回饋收不到？**
-A：① 先把 📜 Apps Script 分頁的最新代碼重新貼到 Google Sheet 的 Apps Script 並**重新部署**（部署 → 編輯部署 → 版本：新版本）；② 確認各 APP 已貼上對應表單；③ 到分頁按「🔄 同步 Sheet」。注意：v1.1 部署前，舊 Script 不认识 \`type: issue/feedback\`，相關提交不會入表。
-
-**Q：旅團提交後我沒收到 Email？**
-A：檢查 Gmail 垃圾郵件夾。或直接打開 Google Sheet 查看「申請記錄」工作表。
-
-**Q：換了瀏覽器，申請記錄不見了？**
-A：用舊瀏覽器匯出備份 JSON，在新瀏覽器匯入。Google Sheet 的原始申請資料不受影響。
-
-**Q：想修改通知 Email？**
-A：到 Google Sheet → 擴充功能 → Apps Script，修改 \`ADMIN_EMAIL\` 變數，儲存後重新部署（更新現有部署）。`
+**Q：換了瀏覽器記錄不見？**
+A：原始資料都在 Sheet，重新「🔄 同步」即可；或匯出／匯入備份 JSON（API KEY 也要重填）。`
   },
 
   _unused_maintainer: {
@@ -1399,16 +1180,19 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 let currentDoc = 'scout';
 
 // ============================================================
-// WEB APP URL（已部署）
+// WEB APP URL（已部署）與 API KEY 策略
+//   優先：/api/admin 代理（Key 只在 Vercel 環境變數，server 端注入，瀏覽器不接觸）
+//   退回：未部署代理／本地開發時，用本機 localStorage 的 Key 直連（安全性較低）
 // ============================================================
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
 
 // ============================================================
-// 前端申請表單代碼（嵌入旅團 APP）
+// 前端旅團登記表單代碼（嵌入旅團 APP）
 // ============================================================
 const FRONTEND_CODE = `<!-- ============================================================
-  Scout Admin — 旅團接入申請表單
+  Scout Admin — 旅團登記表單
   嵌入位置：旅團 APP 的設定頁面 / 首次登入引導頁
+  只需：旅團名稱、URL、API KEY（旅團號選填）
   ============================================================ -->
 
 <div id="scoutApplyWrap" style="
@@ -1417,16 +1201,10 @@ const FRONTEND_CODE = `<!-- ====================================================
   max-width:480px; margin:0 auto;
   font-family:'Segoe UI','PingFang HK',sans-serif;">
 
-  <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">⚜️ 申請接入童軍管理系統</h3>
-  <p style="font-size:.82rem;color:#888;margin-bottom:18px">填妥以下資料，管理員審核後會為你開通。</p>
+  <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">⚜️ 旅團登記</h3>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">只需填旅團名稱、URL 和 API KEY，管理員就會為你接入。</p>
 
   <div style="display:flex;flex-direction:column;gap:12px">
-
-    <div>
-      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團號 *（如 0082）</label>
-      <input id="apply_troopId" placeholder="0082"
-        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
-    </div>
 
     <div>
       <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團名稱 *</label>
@@ -1435,7 +1213,13 @@ const FRONTEND_CODE = `<!-- ====================================================
     </div>
 
     <div>
-      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">Apps Script URL *</label>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團號（選填，如 0082）</label>
+      <input id="apply_troopId" placeholder="0082"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">URL *（後端 Apps Script）</label>
       <input id="apply_backendUrl" placeholder="https://script.google.com/macros/s/…/exec"
         style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.85rem;font-family:monospace" />
     </div>
@@ -1447,18 +1231,6 @@ const FRONTEND_CODE = `<!-- ====================================================
     </div>
 
     <div>
-      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:6px">申請接入的系統（可多選）</label>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer">
-          <input type="checkbox" value="vsbadge" class="apply-app-check" style="accent-color:#8B0000"> 🔥 深資童軍追蹤（vsbadge）
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:.88rem;cursor:pointer">
-          <input type="checkbox" value="scoutsystem" class="apply-app-check" style="accent-color:#8B0000"> 🏠 主系統（scoutsystem）
-        </label>
-      </div>
-    </div>
-
-    <div>
       <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">備注（選填）</label>
       <textarea id="apply_note" placeholder="如有特殊情況可在此說明"
         style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.88rem;resize:vertical;min-height:60px"></textarea>
@@ -1466,7 +1238,7 @@ const FRONTEND_CODE = `<!-- ====================================================
 
     <button onclick="submitScoutApply()"
       style="background:#8B0000;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;margin-top:4px">
-      提交申請
+      提交登記
     </button>
 
     <div id="apply_msg" style="font-size:.85rem;text-align:center;min-height:20px"></div>
@@ -1483,12 +1255,11 @@ async function submitScoutApply() {
   var backendUrl = document.getElementById('apply_backendUrl').value.trim();
   var apiKey     = document.getElementById('apply_apiKey').value.trim();
   var note       = document.getElementById('apply_note').value.trim();
-  var apps       = [...document.querySelectorAll('.apply-app-check:checked')].map(c => c.value);
   var msg        = document.getElementById('apply_msg');
 
-  if (!troopId || !troopName || !backendUrl || !apiKey) {
+  if (!troopName || !backendUrl || !apiKey) {
     msg.style.color = '#c62828';
-    msg.textContent = '⚠️ 請填寫所有必填欄位（*）';
+    msg.textContent = '⚠️ 請填寫旅團名稱、URL 和 API KEY（*）';
     return;
   }
 
@@ -1501,15 +1272,14 @@ async function submitScoutApply() {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ troopId, troopName, backendUrl, apiKey, apps, note })
+      body: JSON.stringify({ type:'apply', troopId, troopName, backendUrl, apiKey, note })
     });
     // no-cors 無法讀回應，但只要不報錯即為成功
     msg.style.color = '#1a7a3c';
-    msg.textContent = '✅ 申請已成功提交！管理員將盡快處理，請耐心等候。';
+    msg.textContent = '✅ 登記已成功提交！管理員會用你提供的 URL＋API KEY 完成接入。';
     // 清空表單
     ['apply_troopId','apply_troopName','apply_backendUrl','apply_apiKey','apply_note']
       .forEach(id => document.getElementById(id).value = '');
-    document.querySelectorAll('.apply-app-check').forEach(c => c.checked = false);
   } catch (err) {
     msg.style.color = '#c62828';
     msg.textContent = '❌ 提交失敗：' + err.message;
@@ -1527,9 +1297,10 @@ const WIDGET_SNIPPET = '<script src="https://scout-admin-blue.vercel.app/widget.
 // 問題回報表單代碼（嵌入各 APP）
 // ============================================================
 const FRONTEND_ISSUE_CODE = `<!-- ============================================================
-  Scout Admin — 問題回報表單（v1.1）
+  Scout Admin — 問題回報表單（TICK）
   嵌入位置：任何旅團 APP 的「回報問題 / 幫助 / 除錯」頁面
   用法：只需把下方 SOURCE_APP 改成你的 APP 名稱，其餘不用動
+  姓名 / 聯絡方式選填，可匿名、可留底
   ============================================================ -->
 
 <div id="scoutIssueWrap" style="
@@ -1539,7 +1310,7 @@ const FRONTEND_ISSUE_CODE = `<!-- ==============================================
   font-family:'Segoe UI','PingFang HK',sans-serif;">
 
   <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">🐛 回報問題</h3>
-  <p style="font-size:.82rem;color:#888;margin-bottom:18px">遇到問題？告訴我們，管理員會盡快跟進。</p>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">遇到問題？告訴我們，管理員會盡快跟進。姓名、聯絡方式可不填（匿名）。</p>
 
   <div style="display:flex;flex-direction:column;gap:12px">
 
@@ -1573,10 +1344,17 @@ const FRONTEND_ISSUE_CODE = `<!-- ==============================================
       </div>
     </div>
 
-    <div>
-      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">聯絡方式（選填）</label>
-      <input id="issue_contact" placeholder="電郵 / 電話，方便回覆你"
-        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">姓名（選填，可匿名）</label>
+        <input id="issue_name" placeholder="留空＝匿名"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">聯絡方式（選填）</label>
+        <input id="issue_contact" placeholder="電郵 / 電話，方便回覆你"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+      </div>
     </div>
 
     <button onclick="submitScoutIssue()"
@@ -1598,6 +1376,7 @@ async function submitScoutIssue() {
   var desc     = document.getElementById('issue_desc').value.trim();
   var severity = document.getElementById('issue_severity').value;
   var troopId  = document.getElementById('issue_troopId').value.trim();
+  var name     = document.getElementById('issue_name').value.trim();
   var contact  = document.getElementById('issue_contact').value.trim();
   var msg      = document.getElementById('issue_msg');
 
@@ -1615,11 +1394,11 @@ async function submitScoutIssue() {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'issue', sourceApp: SOURCE_APP, title, desc, severity, troopId, contact })
+      body: JSON.stringify({ type: 'issue', sourceApp: SOURCE_APP, title, desc, severity, troopId, name, contact })
     });
     msg.style.color = '#1a7a3c';
     msg.textContent = '✅ 問題回報已提交，多謝！管理員會盡快跟進。';
-    ['issue_title','issue_desc','issue_troopId','issue_contact']
+    ['issue_title','issue_desc','issue_troopId','issue_name','issue_contact']
       .forEach(id => document.getElementById(id).value = '');
   } catch (err) {
     msg.style.color = '#c62828';
@@ -1632,9 +1411,10 @@ async function submitScoutIssue() {
 // 意見回饋表單代碼（嵌入各 APP）
 // ============================================================
 const FRONTEND_FEEDBACK_CODE = `<!-- ============================================================
-  Scout Admin — 意見回饋表單（v1.1）
+  Scout Admin — 意見回饋表單（TICK）
   嵌入位置：任何旅團 APP 的設定 / 關於 / 意見頁面
   用法：只需把下方 SOURCE_APP 改成你的 APP 名稱，其餘不用動
+  姓名 / 聯絡方式選填，可匿名、可留底
   ============================================================ -->
 
 <div id="scoutFeedbackWrap" style="
@@ -1644,7 +1424,7 @@ const FRONTEND_FEEDBACK_CODE = `<!-- ===========================================
   font-family:'Segoe UI','PingFang HK',sans-serif;">
 
   <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">💬 意見回饋</h3>
-  <p style="font-size:.82rem;color:#888;margin-bottom:18px">你的建議和批評，是系統進步的動力。</p>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">你的建議和批評，是系統進步的動力。姓名、聯絡方式可不填（匿名）。</p>
 
   <div style="display:flex;flex-direction:column;gap:12px">
 
@@ -1679,6 +1459,11 @@ const FRONTEND_FEEDBACK_CODE = `<!-- ===========================================
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
       </div>
       <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">姓名（選填，可匿名）</label>
+        <input id="feedback_name" placeholder="留空＝匿名"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+      </div>
+      <div>
         <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">聯絡方式（選填）</label>
         <input id="feedback_contact" placeholder="電郵 / 電話"
           style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
@@ -1703,6 +1488,7 @@ async function submitScoutFeedback() {
   var type    = document.querySelector('input[name="fb_type"]:checked').value;
   var content = document.getElementById('feedback_content').value.trim();
   var troopId = document.getElementById('feedback_troopId').value.trim();
+  var name    = document.getElementById('feedback_name').value.trim();
   var contact = document.getElementById('feedback_contact').value.trim();
   var msg     = document.getElementById('feedback_msg');
 
@@ -1720,12 +1506,13 @@ async function submitScoutFeedback() {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'feedback', sourceApp: SOURCE_APP, fbType: type, content, troopId, contact })
+      body: JSON.stringify({ type: 'feedback', sourceApp: SOURCE_APP, fbType: type, content, troopId, name, contact })
     });
     msg.style.color = '#1a7a3c';
     msg.textContent = '✅ 意見已收到，多謝你！';
     document.getElementById('feedback_content').value = '';
     document.getElementById('feedback_troopId').value = '';
+    document.getElementById('feedback_name').value = '';
     document.getElementById('feedback_contact').value = '';
   } catch (err) {
     msg.style.color = '#c62828';
@@ -1738,192 +1525,282 @@ async function submitScoutFeedback() {
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 申請 / 問題回報 / 意見回饋 接收系統（v1.1）
+// Scout Admin — 旅團登記 / 問題回報 / 意見回饋 / 作品投稿 接收系統（v2.2）
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
-// 使用方式：
+//
+// 【部署】
 //   擴充功能 → Apps Script → 貼上 → 儲存
-//   部署 → 編輯部署 → 版本：新版本 → 部署
+//   部署 → 管理部署 → 編輯 → 版本：新版本 → 部署（網址不變）
 //   （首次部署：新增部署 → 網頁應用程式，執行身分：我，存取：所有人）
+//
+// 【API KEY 一次設定（保護後台讀取）】
+//   在編輯器上方選取函式「setupApiKey」→ 按「執行」→ 授權。
+//   它會自動產生一組 KEY、存進腳本屬性，並 E-mail 到 ADMIN_EMAIL。
+//   之後把這個 Key 填進 Scout Admin 的 Vercel 環境變數（SCOUT_ADMIN_KEY）。
+//   注意：API KEY 只保護「讀取／已閱／審核寫回」這類後台動作；
+//   公開提交（旅團登記、問題回報、意見回饋、作品投稿）一律不用 Key，照常接收。
+//
+// 【相容性／不漏資料】
+//   收到任何「沒見過的欄位」都會自動加欄存進 Sheet；
+//   Email 一定附上全部欄位＋原始 JSON 備份，確保永不漏掉。
 // ============================================================
 
-var ADMIN_EMAIL = \"playerkousas@hotmail.com\";
+var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
-// 三張工作表的名稱與標題欄（第一次收到資料時自動建立）
+// 四張工作表（第一次收到資料時自動建立／自動補齊缺的欄位）
 var SHEET_CFG = {
-  apply: {
-    name: \"申請記錄\",
-    headers: [\"提交時間\",\"旅團號\",\"旅團名稱\",\"Apps Script URL\",\"API Key\",\"接入APP\",\"備注\",\"狀態\",\"編號\"]
-  },
-  issue: {
-    name: \"問題回報\",
-    headers: [\"提交時間\",\"來源APP\",\"旅團號\",\"標題\",\"問題詳情\",\"嚴重度\",\"聯絡方式\",\"狀態\",\"編號\"]
-  },
-  feedback: {
-    name: \"意見回饋\",
-    headers: [\"提交時間\",\"來源APP\",\"旅團號\",\"類型\",\"內容\",\"聯絡方式\",\"狀態\",\"編號\"]
-  }
+  apply:    { name: "申請記錄", headers: ["提交時間","旅團號","旅團名稱","URL","API Key","備注","狀態","編號"] },
+  issue:    { name: "問題回報", headers: ["提交時間","來源APP","旅團號","標題","問題詳情","嚴重度","聯絡方式","姓名","狀態","編號"] },
+  feedback: { name: "意見回饋", headers: ["提交時間","來源APP","旅團號","類型","內容","聯絡方式","姓名","狀態","編號"] },
+  appstore: { name: "作品投稿", headers: ["提交時間","作品名稱","作品連結","作者名稱","作品類型","分類","作品簡介","標籤","狀態","編號"] }
 };
 
-// ---------- 接收 POST（依 type 分流，缺省 type=apply 相容舊表單） ----------
+// 已知欄位的中文標題 ← 可能收到的原始欄位名（欄位對不上就會自動加欄儲存）
+var FIELD_MAP = {
+  "提交時間": ["ts"],
+  "旅團號":   ["troopId"],
+  "旅團名稱": ["troopName"],
+  "URL":      ["backendUrl","url"],
+  "API Key":  ["apiKey","apikey"],
+  "備注":     ["note"],
+  "來源APP":  ["sourceApp","source"],
+  "標題":     ["title"],
+  "問題詳情": ["desc","description"],
+  "嚴重度":   ["severity"],
+  "聯絡方式": ["contact"],
+  "姓名":     ["name"],
+  "類型":     ["fbType","kind"],
+  "內容":     ["content"],
+  "作品名稱": ["name"],
+  "作品連結": ["url"],
+  "作者名稱": ["author"],
+  "作品類型": ["page"],
+  "分類":     ["category"],
+  "作品簡介": ["desc","description"],
+  "標籤":     ["tags"]
+};
+
+// 系統欄位：不要自動加進 Sheet
+var IGNORE_KEYS = { type: 1, apikey: 1 };
+
+// ---------- POST 分流 ----------
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var type = (data.type || \"apply\").toString().trim();
-    if (type === \"issue\")    return _handleIssue(data);
-    if (type === \"feedback\") return _handleFeedback(data);
-    return _handleApply(data);
+    var type = (data.type || "apply").toString().trim();
+    if (type === "issue")    return _capture("issue",    data, "未閱");
+    if (type === "feedback") return _capture("feedback", data, "未閱");
+    if (type === "appstore") return _capture("appstore", data, "待審核");
+    if (type === "markReq")  return _handleMarkReq(data);
+    if (type === "markRead") return _handleMarkRead(data);
+    return _capture("apply", data, "待處理");
   } catch (err) {
-    return _json({ status: \"error\", message: err.toString() });
+    return _json({ status: "error", message: err.toString() });
   }
 }
 
-// ---------- ① 接入申請 ----------
-function _handleApply(data) {
-  var troopId    = (data.troopId    || \"\").toString().trim();
-  var troopName  = (data.troopName  || \"\").toString().trim();
-  var backendUrl = (data.backendUrl || \"\").toString().trim();
-  var apiKey     = (data.apiKey     || \"\").toString().trim();
-  var apps       = (data.apps || []).join(\", \");
-  var note       = (data.note || \"\").toString().trim();
-  var ts         = new Date();
+// ---------- 通用收集：對齊已知欄位 → 未知欄位自動加欄 → Email 全部 ----------
+function _capture(key, data, defaultStatus) {
+  var ts   = new Date();
+  var map  = {};
+  var hdrs = SHEET_CFG[key].headers;
+  for (var i = 0; i < hdrs.length; i++) map[hdrs[i]] = "";
+  map["提交時間"] = ts;
+  map["狀態"]     = defaultStatus;
 
-  if (!troopId || !troopName) {
-    return _json({ status: \"error\", message: \"旅團號和名稱為必填\" });
+  for (var i2 = 0; i2 < hdrs.length; i2++) {
+    var header = hdrs[i2];
+    if (header === "提交時間" || header === "狀態" || header === "編號") continue;
+    if (data[header] !== undefined && data[header] !== null) { map[header] = _s(data[header]); continue; }
+    var aliases = FIELD_MAP[header];
+    if (!aliases) continue;
+    for (var a = 0; a < aliases.length; a++) {
+      if (data[aliases[a]] !== undefined && data[aliases[a]] !== null) { map[header] = _s(data[aliases[a]]); break; }
+    }
   }
 
-  var sheet = _sheet(\"apply\");
-  var id    = Utilities.getUuid();
-  sheet.appendRow([ts, troopId, troopName, backendUrl, apiKey, apps, note, \"待處理\", id]);
+  // 未知欄位 → 收集進 extras（稍後自動加欄）
+  var consumed = {};
+  for (var h2 in FIELD_MAP) {
+    consumed[h2] = 1;
+    var al2 = FIELD_MAP[h2];
+    for (var x = 0; x < al2.length; x++) consumed[al2[x]] = 1;
+  }
+  var extras = {};
+  for (var k in data) {
+    if (IGNORE_KEYS[k] || consumed[k]) continue;
+    extras[k] = _s(data[k]);
+  }
 
+  // 完全沒資料才拒收（部分資料照樣登記＋Email，確保不漏）
+  var hasAny = false;
+  for (var h3 in map) {
+    if (h3 === "提交時間" || h3 === "狀態") continue;
+    if (_s(map[h3]) !== "") { hasAny = true; break; }
+  }
+  if (!hasAny) { for (var k2 in extras) { hasAny = true; break; } }
+  if (!hasAny) return _json({ status: "error", message: "沒有收到任何資料" });
+
+  var sheetOk = true;
+  try { _appendRowAny(key, map, extras); } catch (e) { sheetOk = false; }
+  try { _emailAll(key, map, extras, ts, data); } catch (e) {}
+
+  var okMsg = key === "issue"    ? "問題回報已提交，多謝！管理員會盡快跟進。"
+            : key === "feedback" ? "意見已收到，多謝你！"
+            : key === "appstore" ? "作品已提交審核，多謝！"
+            : "登記已提交，管理員會盡快接入。";
+  return _json({ status: "success", message: sheetOk ? okMsg : (okMsg + "（寫入 Sheet 失敗，已改以 Email 通知）") });
+}
+
+// ---------- 新增一列（欄位名 → 位置；缺欄自動補；沒見過的欄位自動加欄） ----------
+function _appendRowAny(key, map, extras) {
+  var cfg   = SHEET_CFG[key];
+  var sheet = _sheet(key);
+  var head  = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+
+  var toAdd = [];
+  for (var k in extras) { if (head.indexOf(k) === -1) toAdd.push(k); }
+  if (toAdd.length) {
+    sheet.getRange(1, head.length + 1, 1, toAdd.length).setValues([toAdd]);
+    head = head.concat(toAdd);
+  }
+
+  var idHdr = cfg.headers[cfg.headers.length - 1];
+  var row = [];
+  for (var c = 0; c < head.length; c++) {
+    var h = head[c];
+    if (h === idHdr) { row.push(Utilities.getUuid()); continue; }
+    row.push((map[h] !== undefined && map[h] !== null) ? map[h] : (extras[h] !== undefined ? extras[h] : ""));
+  }
+  sheet.appendRow(row);
+}
+
+// ---------- Email：全部欄位＋原始 JSON 備份 ----------
+function _emailAll(key, map, extras, ts, rawData) {
+  var cfg  = SHEET_CFG[key];
+  var subject =
+    key === "issue"    ? "🐛 [Scout Admin] 問題回報 — " + _s(map["標題"])
+  : key === "feedback" ? "💬 [Scout Admin] 意見回饋（" + _s(map["類型"]) + "）"
+  : key === "appstore" ? "📮 [Scout Admin] 新作品投稿 — " + _s(map["作品名稱"])
+  : "📥 [Scout Admin] 新旅團登記 — " + _s(map["旅團名稱"]);
+
+  var body = "請到對應系統查看並處理（資料已同步登記到 Google Sheet）。\\n\\n━━━━━━━━━━━━━━━━━━\\n";
+  for (var i = 0; i < cfg.headers.length; i++) {
+    var h = cfg.headers[i];
+    if (h === "編號" || h === "狀態") continue;
+    var v = _s(map[h]);
+    if (v !== "") body += h + "：" + v + "\\n";
+  }
+  for (var k in extras) {
+    if (_s(extras[k]) !== "") body += k + "：" + _s(extras[k]) + "\\n";
+  }
+  body += "━━━━━━━━━━━━━━━━━━\\n\\n（原始資料備份，確保不漏）\\n" + JSON.stringify(rawData);
+
+  MailApp.sendEmail({ to: ADMIN_EMAIL, subject: subject, body: body });
+}
+
+// ---------- 已閱 / 未閱 寫回 ----------
+function _handleMarkRead(data) {
+  var rowId = (data.id || "").toString().trim();
+  var put   = data.status === "read" ? "已閱" : "未閱";
+  if (!rowId) return _json({ status: "error", message: "缺少編號" });
+  var done = _writeStatusById("issue", rowId, "狀態", put);
+  if (!done) done = _writeStatusById("feedback", rowId, "狀態", put);
+  return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
+}
+
+// ---------- 申請審核狀態寫回 ----------
+function _handleMarkReq(data) {
+  var rowId = (data.id || "").toString().trim();
+  var put   = (data.status || "待處理").toString().trim();
+  if (!rowId) return _json({ status: "error", message: "缺少編號" });
+  var done  = _writeStatusById("apply", rowId, "狀態", put);
+  return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
+}
+
+// ---------- API KEY：產生／查詢（在編輯器「執行」一次） ----------
+function setupApiKey() {
+  var props = PropertiesService.getScriptProperties();
+  var key   = props.getProperty("API_KEY") || "";
+  if (!key) {
+    key = "scout-" + Utilities.getUuid().replace(/-/g, "") + "-" + Math.floor(100000 + Math.random() * 900000);
+    props.setProperty("API_KEY", key);
+  }
+  var msg =
+    "你的 Scout Admin 後台 API KEY：\\n\\n" + key + "\\n\\n" +
+    "用法：\\n" +
+    "1) 把上面這條 Key 加進 Scout Admin 的 Vercel 環境變數，名稱 SCOUT_ADMIN_KEY（保護後台讀取，不落瀏覽器）。\\n" +
+    "2) 也可在 Scout Admin「⚙️ 設定」填同一條（本機後備，多裝置時可用）。\\n\\n" +
+    "一鍵填好（本機後備）：\\nhttps://scout-admin-blue.vercel.app/?key=" + key;
+  try { MailApp.sendEmail({ to: ADMIN_EMAIL, subject: "🔑 [Scout Admin] 後台 API KEY", body: msg }); Logger.log("已寄出 API KEY 到 " + ADMIN_EMAIL); }
+  catch (e) { Logger.log(msg); }
+  Logger.log("API_KEY = " + key);
+  return key;
+}
+
+function resetApiKey() {
+  PropertiesService.getScriptProperties().deleteProperty("API_KEY");
+  return setupApiKey();
+}
+
+function _checkKey(data) {
   try {
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: \"📥 [Scout Admin] 新旅團申請 — \" + troopName + \"（\" + troopId + \"）\",
-      body:
-        \"有新旅團提交接入申請，請到 Scout Admin APP 查看並處理。\\n\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\n\" +
-        \"旅團號：\"     + troopId    + \"\\n\" +
-        \"旅團名稱：\"   + troopName  + \"\\n\" +
-        \"接入 APP：\"   + apps       + \"\\n\" +
-        \"Apps Script URL：\" + backendUrl + \"\\n\" +
-        \"API Key：\"    + apiKey     + \"\\n\" +
-        (note ? \"備注：\" + note + \"\\n\" : \"\") +
-        \"提交時間：\"   + ts         + \"\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\n\"
-    });
-  } catch (mailErr) { /* Email 失敗不影響收單 */ }
-
-  return _json({ status: \"success\", message: \"申請已成功提交！管理員將盡快處理。\" });
+    var got   = (data && data.apikey || "").toString();
+    var props = PropertiesService.getScriptProperties();
+    var want  = props.getProperty("API_KEY") || "";
+    return want !== "" && got === want;
+  } catch (e) { return false; }
 }
 
-// ---------- ② 問題回報 ----------
-function _handleIssue(data) {
-  var title     = (data.title     || \"\").toString().trim();
-  var desc      = (data.desc      || \"\").toString().trim();
-  var sourceApp = (data.sourceApp || \"\").toString().trim();
-  var troopId   = (data.troopId   || \"\").toString().trim();
-  var severity  = (data.severity  || \"中\").toString().trim();
-  var contact   = (data.contact   || \"\").toString().trim();
-  var ts        = new Date();
-
-  if (!title || !desc) {
-    return _json({ status: \"error\", message: \"標題和問題詳情為必填\" });
-  }
-
-  var sheet = _sheet(\"issue\");
-  var id    = Utilities.getUuid();
-  sheet.appendRow([ts, sourceApp, troopId, title, desc, severity, contact, \"待處理\", id]);
-
-  try {
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: \"🐛 [Scout Admin] 問題回報 — \" + title,
-      body:
-        \"收到新的問題回報，請到 Scout Admin APP → 🐛 問題回報 處理。\\n\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\n\" +
-        \"來源 APP：\" + sourceApp + \"\\n\" +
-        \"標題：\"     + title     + \"\\n\" +
-        \"嚴重度：\"   + severity  + \"\\n\" +
-        \"旅團號：\"   + (troopId || \"—\") + \"\\n\" +
-        \"問題詳情：\\n\" + desc + \"\\n\" +
-        (contact ? \"聯絡方式：\" + contact + \"\\n\" : \"\") +
-        \"提交時間：\" + ts + \"\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\n\"
-    });
-  } catch (mailErr) { /* Email 失敗不影響收單 */ }
-
-  return _json({ status: \"success\", message: \"問題回報已提交，多謝！管理員會盡快跟進。\" });
-}
-
-// ---------- ③ 意見回饋 ----------
-function _handleFeedback(data) {
-  var content   = (data.content   || \"\").toString().trim();
-  var fbType    = (data.fbType    || \"建議\").toString().trim();
-  var sourceApp = (data.sourceApp || \"\").toString().trim();
-  var troopId   = (data.troopId   || \"\").toString().trim();
-  var contact   = (data.contact   || \"\").toString().trim();
-  var ts        = new Date();
-
-  if (!content) {
-    return _json({ status: \"error\", message: \"回饋內容為必填\" });
-  }
-
-  var sheet = _sheet(\"feedback\");
-  var id    = Utilities.getUuid();
-  sheet.appendRow([ts, sourceApp, troopId, fbType, content, contact, \"新回饋\", id]);
-
-  try {
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: \"💬 [Scout Admin] 意見回饋（\" + fbType + \"）\",
-      body:
-        \"收到新的意見回饋，請到 Scout Admin APP → 💬 意見回饋 處理。\\n\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\n\" +
-        \"來源 APP：\" + sourceApp + \"\\n\" +
-        \"類型：\"     + fbType    + \"\\n\" +
-        \"旅團號：\"   + (troopId || \"—\") + \"\\n\" +
-        \"內容：\\n\" + content + \"\\n\" +
-        (contact ? \"聯絡方式：\" + contact + \"\\n\" : \"\") +
-        \"提交時間：\" + ts + \"\\n\" +
-        \"━━━━━━━━━━━━━━━━━━\\n\"
-    });
-  } catch (mailErr) { /* Email 失敗不影響收單 */ }
-
-  return _json({ status: \"success\", message: \"意見已收到，多謝你！\" });
-}
-
-// ---------- 取得／建立工作表（含補上舊表缺的欄） ----------
+// ---------- 取得／建立工作表（自動補齊缺欄） ----------
 function _sheet(key) {
   var cfg   = SHEET_CFG[key];
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(cfg.name);
   if (!sheet) sheet = ss.insertSheet(cfg.name);
-
+  var hdrs = cfg.headers;
   if (sheet.getLastRow() === 0) {
-    var hdr = sheet.getRange(1, 1, 1, cfg.headers.length);
-    hdr.setValues([cfg.headers]);
-    hdr.setFontWeight(\"bold\");
-    hdr.setBackground(\"#8B0000\");
-    hdr.setFontColor(\"#ffffff\");
+    sheet.getRange(1, 1, 1, hdrs.length).setValues([hdrs]);
+    sheet.getRange(1, 1, 1, hdrs.length).setFontWeight("bold").setBackground("#8B0000").setFontColor("#ffffff");
     sheet.setFrozenRows(1);
-  } else {
-    var have = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    if (have.length < cfg.headers.length) {
-      sheet.getRange(1, have.length + 1, 1, cfg.headers.length - have.length)
-           .setValues([cfg.headers.slice(have.length)]);
-    }
+    return sheet;
   }
+  var have    = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+  var missing = hdrs.filter(function (h) { return have.indexOf(h) === -1; });
+  if (missing.length) sheet.getRange(1, have.length + 1, 1, missing.length).setValues([missing]);
   return sheet;
 }
 
-// ---------- 讀取工作表（給 Admin「🔄 同步」用） ----------
+// ---------- 依「編號」找列更新狀態 ----------
+function _writeStatusById(key, id, header, value) {
+  var cfg   = SHEET_CFG[key];
+  var sheet = _sheet(key);
+  if (sheet.getLastRow() < 2) return false;
+  var vals  = sheet.getDataRange().getValues();
+  var head  = _normHeaders(vals[0]);
+  var idCol = head.indexOf(cfg.headers[cfg.headers.length - 1]);
+  var stCol = head.indexOf(header);
+  if (idCol === -1 || stCol === -1) return false;
+  for (var r = 1; r < vals.length; r++) {
+    if (String(vals[r][idCol] || "") === id) {
+      sheet.getRange(r + 1, stCol + 1).setValue(value);
+      return true;
+    }
+  }
+  return false;
+}
+
+function _normHeaders(row) {
+  return row.map(function (h) { return String(h === undefined || h === null ? "" : h).trim(); });
+}
+
+// ---------- 讀取工作表（給後台「🔄 同步」用） ----------
 function _readSheet(key) {
   var cfg   = SHEET_CFG[key];
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(cfg.name);
-  if (!sheet || sheet.getLastRow() < 2) return [];
+  var sheet = _sheet(key);
+  if (sheet.getLastRow() < 2) return [];
   var values  = sheet.getDataRange().getValues();
-  var headers = values.shift();
+  var headers = _normHeaders(values.shift());
   return values.map(function (row) {
     var obj = {};
     for (var i = 0; i < headers.length; i++) obj[headers[i]] = row[i];
@@ -1931,26 +1808,27 @@ function _readSheet(key) {
   });
 }
 
-// ---------- GET：健康檢查；?action=list 回傳全部資料 ----------
+// ---------- GET：健康檢查；?action=list 需 API KEY ----------
 function doGet(e) {
-  var action = (e && e.parameter && e.parameter.action) || \"\";
-  if (action === \"list\") {
-    return _json({
-      status: \"ok\",
-      applications: _readSheet(\"apply\"),
-      issues:       _readSheet(\"issue\"),
-      feedbacks:    _readSheet(\"feedback\")
-    });
+  var p = (e && e.parameter) || {};
+  var action = (p.action || "").toString().trim();
+  if (action === "list") {
+    if (!_checkKey(p)) return _json({ status: "error", message: "缺少或錯誤的 API KEY" });
+    return _json({ status: "ok", applications: _readSheet("apply"), issues: _readSheet("issue"), feedbacks: _readSheet("feedback"), appstore: _readSheet("appstore") });
   }
-  return _json({ status: \"ok\", message: \"Scout Admin Web App 正常運行\" });
+  return _json({ status: "ok", message: "Scout Admin Web App 正常運行" });
 }
 
-// ---------- 工具 ----------
+function _s(v) {
+  if (v === undefined || v === null) return "";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
 function _json(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}`;
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+`;
 
 // ============================================================
 // STATE
@@ -1959,10 +1837,12 @@ let state = {
   requests: [],
   issues: [],
   feedbacks: [],
+  appstore: [],
   filter: 'all',
+  appStoreFilter: 'all',
   issueFilter: 'all',
   feedbackFilter: 'all',
-  settings: { webappUrl: '' }
+  settings: { apikey: '' }
 };
 
 // ============================================================
@@ -1976,9 +1856,16 @@ function load() {
       state.requests = d.requests || [];
       state.issues = d.issues || [];
       state.feedbacks = d.feedbacks || [];
-      state.settings = d.settings || { webappUrl: '' };
+      state.appstore  = d.appstore || [];
+      state.settings = d.settings || { apikey: '' };
     }
   } catch(e){}
+  // 遷移舊資料：把舊的問題／回饋「流程狀態」接到未閱，舊申請擋住缺旅團名的空行
+  state.issues = state.issues.filter(x => x && x.title);
+  state.feedbacks = state.feedbacks.filter(x => x && x.content);
+  state.appstore  = state.appstore.filter(x => x && x.name);
+  state.issues.forEach(x => { if (x.status !== 'read') x.status = 'unread'; });
+  state.feedbacks.forEach(x => { if (x.status !== 'read') x.status = 'unread'; });
   refreshAll();
 }
 
@@ -1987,6 +1874,7 @@ function save() {
     requests: state.requests,
     issues: state.issues,
     feedbacks: state.feedbacks,
+    appstore: state.appstore,
     settings: state.settings
   }));
 }
@@ -2001,7 +1889,7 @@ function switchTab(id, btn) {
   btn.classList.add('active');
   if (id === 'issues')   renderIssues();
   if (id === 'feedback') renderFeedbacks();
-  if (id === 'troops')  renderTroopsTab();
+  if (id === 'appstore') renderAppStore();
   if (id === 'gs')      renderGsTab();
   if (id === 'docs')    renderDoc(currentDoc);
   if (id === 'settings') loadSettings();
@@ -2021,29 +1909,28 @@ function renderRequests() {
   const q    = (document.getElementById('searchInput')?.value || '').toLowerCase();
   let list   = state.requests.filter(r => {
     const mf = state.filter === 'all' || r.status === state.filter;
-    const ms = !q || r.troopId.toLowerCase().includes(q) || r.troopName.toLowerCase().includes(q);
+    const ms = !q || (r.troopId||'').toLowerCase().includes(q) || (r.troopName||'').toLowerCase().includes(q);
     return mf && ms;
   });
   list.sort((a,b) => {
     const o = { pending:0, done:1, rejected:2 };
-    return (o[a.status]||9)-(o[b.status]||9) || new Date(b.createdAt)-new Date(a.createdAt);
+    return (o[a.status]||9)-(o[b.status]||9) || dateSortable(b.createdAt)-dateSortable(a.createdAt);
   });
   const el = document.getElementById('requestList');
   el.innerHTML = list.length
     ? list.map(buildAppCard).join('')
-    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的申請</div>';
+    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的旅團登記</div>';
   updateStats();
 }
 
 function buildAppCard(r) {
   const bmap = { pending:'badge-pending', done:'badge-done', rejected:'badge-rejected' };
-  const btxt = { pending:'待處理', done:'已完成', rejected:'已拒絕' };
-  const appsStr = (r.apps||[]).join(' · ') || '—';
+  const btxt = { pending:'待處理', done:'已接入', rejected:'已拒絕' };
 
   const actions = r.status === 'pending'
-    ? `<button class="btn btn-success" onclick="markDone('${r.id}')">✅ 完成</button>
-       <button class="btn btn-danger"  onclick="markRejected('${r.id}')">❌ 拒絕</button>`
-    : `<button class="btn btn-ghost"   onclick="markPending('${r.id}')">↩ 重設</button>`;
+    ? `<button class="btn btn-success" onclick="markDone('${escJs(r.id)}')">✅ 接入</button>
+       <button class="btn btn-danger"  onclick="markRejected('${escJs(r.id)}')">❌ 拒絕</button>`
+    : `<button class="btn btn-ghost"   onclick="markPending('${escJs(r.id)}')">↩ 重設</button>`;
 
   // build JSON snippets inline
   const vsSnippet  = buildSingleVsbadge(r);
@@ -2051,40 +1938,28 @@ function buildAppCard(r) {
   const envSnippet = buildSingleEnv(r);
 
   return `
-<div class="app-card ${r.status}" id="card_${r.id}">
+<div class="app-card ${r.status}" id="card_${escHtml(r.id)}">
   <div class="app-card-top">
     <div class="app-meta">
-      <div class="app-troop">⚜️ ${r.troopId} — ${r.troopName}</div>
+      <div class="app-troop">⚜️ ${escHtml(r.troopName)}${r.troopId ? ` <span style="font-size:.78rem;color:var(--muted);font-weight:600">（${escHtml(r.troopId)}）</span>` : ''}</div>
       <div class="app-detail">
-        <strong>申請時間：</strong>${r.createdAt}<br>
-        <strong>接入 APP：</strong>${appsStr}<br>
-        <strong>API Key：</strong><code>${r.apiKey||'—'}</code><br>
-        ${r.note?`<strong>備注：</strong>${r.note}`:''}
+        <strong>登記時間：</strong>${escHtml(r.createdAt)}<br>
+        <strong>URL：</strong><span class="url-cell" style="max-width:none">${escHtml(r.backendUrl||'—')}</span><br>
+        <strong>API Key：</strong><code>${escHtml(r.apiKey||'—')}</code>
+        ${r.note?`<br><strong>備注：</strong>${escHtml(r.note)}`:''}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
       <span class="badge ${bmap[r.status]}">${btxt[r.status]}</span>
       <div class="app-actions">
         ${actions}
-        <button class="btn btn-ghost" onclick="editRequest('${r.id}')">✏️</button>
-        <button class="btn btn-danger" onclick="deleteRequest('${r.id}')">🗑</button>
+        <button class="btn btn-ghost" onclick="editRequest('${escJs(r.id)}')">✏️</button>
+        <button class="btn btn-danger" onclick="deleteRequest('${escJs(r.id)}')">🗑</button>
       </div>
     </div>
   </div>
-  <button class="expand-toggle" onclick="toggleExpand('ex_${r.id}')">🔧 查看 JSON / TS 輸出 ▼</button>
-  <div class="expand-content" id="ex_${r.id}">
-    ${r.apps&&r.apps.includes('vsbadge') ? `
-    <div class="section-label">🔥 vsbadge — troops.json 片段</div>
-    <div class="json-block" style="font-size:.74rem">
-      <button class="json-copy-btn" onclick="copyText(\`${esc(vsSnippet)}\`)">複製</button>${sh(vsSnippet)}</div>` : ''}
-    ${r.apps&&r.apps.includes('scoutsystem') ? `
-    <div class="section-label" style="margin-top:12px">🏠 scoutsystem — troops.ts 片段</div>
-    <div class="ts-block" style="font-size:.74rem">
-      <button class="json-copy-btn" onclick="copyText(\`${esc(tsSnippet)}\`)">複製</button>${tsSnippet}</div>
-    <div class="section-label" style="margin-top:10px">🔑 Vercel 環境變數</div>
-    <div class="ts-block" style="font-size:.74rem">
-      <button class="json-copy-btn" onclick="copyText(\`${esc(envSnippet)}\`)">複製</button>${envSnippet}</div>` : ''}
-    ${(!r.apps||r.apps.length===0) ? `
+  <button class="expand-toggle" onclick="toggleExpand('ex_${escHtml(r.id)}')">🔧 查看設定輸出 ▼</button>
+  <div class="expand-content" id="ex_${escHtml(r.id)}">
     <div class="section-label">🔥 vsbadge — troops.json 片段</div>
     <div class="json-block" style="font-size:.74rem">
       <button class="json-copy-btn" onclick="copyText(\`${esc(vsSnippet)}\`)">複製</button>${sh(vsSnippet)}</div>
@@ -2093,12 +1968,13 @@ function buildAppCard(r) {
       <button class="json-copy-btn" onclick="copyText(\`${esc(tsSnippet)}\`)">複製</button>${tsSnippet}</div>
     <div class="section-label" style="margin-top:10px">🔑 Vercel 環境變數</div>
     <div class="ts-block" style="font-size:.74rem">
-      <button class="json-copy-btn" onclick="copyText(\`${esc(envSnippet)}\`)">複製</button>${envSnippet}</div>` : ''}
+      <button class="json-copy-btn" onclick="copyText(\`${esc(envSnippet)}\`)">複製</button>${envSnippet}</div>
   </div>
 </div>`;
 }
 
 function esc(s){ return s.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$'); }
+function escJs(s){ s = String(s ?? ''); return esc(s).replace(/'/g, "\\'"); }
 function toggleExpand(id){
   const el=document.getElementById(id);
   el.classList.toggle('open');
@@ -2111,49 +1987,62 @@ function toggleExpand(id){
 // JSON / TS BUILDERS
 // ============================================================
 function buildSingleVsbadge(r) {
-  if (!r.troopId) return '— 請填入旅團號 —';
-  const o = {}; o[r.troopId] = { name: r.troopName, backend: r.backendUrl||'', apikey: r.apiKey||'' };
-  return JSON.stringify(o, null, 2);
+  if (!r.troopName) return '— 請填入旅團名稱 —';
+  const id = String(r.troopId || '').trim();
+  const out = {};
+  out[id || r.troopName] = { name: r.troopName, backend: r.backendUrl||'' };
+  return JSON.stringify(out, null, 2);
 }
 
 function buildSingleTs(r) {
-  if (!r.troopId) return '— 請填入資料 —';
-  const id = r.troopId;
+  if (!r.troopName) return '— 請填入旅團名稱 —';
+  const id = String(r.troopId || '').trim();
+  const key = id ? 'troop_' + id : 'troop_' + r.troopName.replace(/\s+/g, '');
+  const idJs = id || r.troopName;
   return `  {
-    key: 'troop_${id}',
-    id: '${id}',
+    key: '${key}',
+    id: '${idJs}',
     name: '${r.troopName}',
     webAppUrl: '${r.backendUrl||''}',
+    // API Key → Vercel env: ${id ? 'TROOP_' + id + '_APIKEY' : '（自行命名）'}
     status: 'active',
   },`;
 }
 
 function buildSingleEnv(r) {
-  if (!r.troopId) return '— 請填入資料 —';
-  return `Name:  TROOP_${r.troopId}_APIKEY\nValue: ${r.apiKey||''}`;
+  if (!r.troopName) return '— 請填入旅團名稱 —';
+  const id = String(r.troopId || '').trim();
+  if (!id) return '（旅團號留空，未定環境變數名）\n旅團：' + r.troopName + '\nValue: ' + (r.apiKey||'');
+  return `Name:  TROOP_${id}_APIKEY\nValue: ${r.apiKey||''}`;
 }
 
 function buildFullVsbadgeJson() {
   const troops = {};
-  state.requests.filter(r=>r.status==='done' && (!r.apps||r.apps.length===0||r.apps.includes('vsbadge'))).forEach(r=>{
-    troops[r.troopId]={ name:r.troopName, backend:r.backendUrl||'', apikey:r.apiKey||'' };
+  state.requests.filter(r=>r.status==='done').forEach(r=>{
+    const id = String(r.troopId || '').trim();
+    troops[id || r.troopName] = { name: r.troopName, backend: r.backendUrl||'' };
   });
   return JSON.stringify({ troops }, null, 2);
 }
 
 function buildFullTroopsTs() {
-  const done = state.requests.filter(r=>r.status==='done' && (!r.apps||r.apps.length===0||r.apps.includes('scoutsystem')));
-  const entries = done.map(r=>`  {
-    key: 'troop_${r.troopId}',
-    id: '${r.troopId}',
+  const done = state.requests.filter(r=>r.status==='done');
+  const entries = done.map(r=>{
+    const id = String(r.troopId || '').trim();
+    const key = id ? 'troop_' + id : 'troop_' + r.troopName.replace(/\s+/g, '');
+    const idJs = id || r.troopName;
+    return `  {
+    key: '${key}',
+    id: '${idJs}',
     name: '${r.troopName}',
     webAppUrl: '${r.backendUrl||''}',
-    // API Key → Vercel env: TROOP_${r.troopId}_APIKEY
+    // API Key → Vercel env: ${id ? 'TROOP_' + id + '_APIKEY' : '（自行命名）'}
     status: 'active',
-  },`).join('\n');
+  },`;
+  }).join('\n');
   return `// 2026 Scout System 已接入旅團登記表
 // 由系統管理員維護（Scout Admin 自動產生）
-// API Key 存在 Vercel 環境變數，不出現在前端 JS
+// API Key 存在 Vercel 環境變數，不出現在前端 JSON
 
 export type ApprovedTroop = {
   key: string;
@@ -2178,8 +2067,11 @@ export function activeTroops(): ApprovedTroop[] {
 }
 
 function buildVercelEnvList() {
-  const done = state.requests.filter(r=>r.status==='done' && (!r.apps||r.apps.length===0||r.apps.includes('scoutsystem')));
-  return done.map(r=>`TROOP_${r.troopId}_APIKEY=${r.apiKey||''}`).join('\n') || '— 尚無已完成的旅團 —';
+  const done = state.requests.filter(r=>r.status==='done');
+  return done.map(r=>{
+    const id = String(r.troopId || '').trim();
+    return id ? `TROOP_${id}_APIKEY=${r.apiKey||''}` : `# ${r.troopName}（旅團號留空，自行命名）\nTROOP_XXX_APIKEY=${r.apiKey||''}`;
+  }).join('\n') || '— 尚無已接入旅團 —';
 }
 
 // ============================================================
@@ -2192,30 +2084,6 @@ function sh(json) {
       if(/^"/.test(m)) return `<span class="json-str">${m}</span>`;
       return `<span class="json-num">${m}</span>`;
     });
-}
-
-// ============================================================
-// TROOPS TAB
-// ============================================================
-function renderTroopsTab() {
-  const done = state.requests.filter(r=>r.status==='done');
-  const tbody = document.getElementById('troopTableBody');
-  tbody.innerHTML = done.length
-    ? done.map(r=>`<tr>
-        <td><code>${r.troopId}</code></td>
-        <td>${r.troopName}</td>
-        <td class="url-cell">${r.backendUrl||'—'}</td>
-        <td><code style="font-size:.7rem">${r.apiKey||'—'}</code></td>
-        <td><span class="badge badge-done">${(r.apps||[]).join(' · ')||'—'}</span></td>
-        <td><button class="btn btn-ghost" style="font-size:.73rem" onclick="editRequest('${r.id}')">✏️ 編輯</button></td>
-      </tr>`).join('')
-    : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">尚無已完成旅團</td></tr>';
-
-  // Full JSON panels
-  const vsJson = buildFullVsbadgeJson();
-  document.getElementById('fullVsbadgeContent').innerHTML = sh(vsJson);
-  document.getElementById('fullTroopsTsContent').textContent = buildFullTroopsTs();
-  document.getElementById('vercelEnvContent').textContent   = buildVercelEnvList();
 }
 
 // ============================================================
@@ -2239,33 +2107,31 @@ function generateAll() {
   const key  = document.getElementById('g_key').value.trim();
   const r    = { troopId:id, troopName:name, backendUrl:url, apiKey:key };
 
-  document.getElementById('gen_vs').innerHTML  = id ? sh(buildSingleVsbadge(r)) : '— 請填入旅團號 —';
-  document.getElementById('gen_ts').textContent = id ? buildSingleTs(r)          : '— 請填入旅團號 —';
-  document.getElementById('gen_env').textContent= id ? buildSingleEnv(r)         : '— 請填入旅團號 —';
+  document.getElementById('gen_vs').innerHTML  = name ? sh(buildSingleVsbadge(r)) : '— 請填入旅團名稱 —';
+  document.getElementById('gen_ts').textContent = name ? buildSingleTs(r)          : '— 請填入旅團名稱 —';
+  document.getElementById('gen_env').textContent= name ? buildSingleEnv(r)         : '— 請填入旅團名稱 —';
 }
 
 // ============================================================
 // CRUD
 // ============================================================
 function showAddModal() {
-  document.getElementById('modalTitle').textContent = '新增旅團申請';
+  document.getElementById('modalTitle').textContent = '新增旅團登記';
   document.getElementById('modal_id').value = '';
   ['m_id','m_name','m_url','m_key','m_note'].forEach(i=>document.getElementById(i).value='');
-  document.querySelectorAll('.app-check').forEach(c=>c.checked=false);
   document.getElementById('m_status').value = 'pending';
   document.getElementById('modal').style.display='block';
 }
 function editRequest(id) {
   const r = state.requests.find(r=>r.id===id); if(!r) return;
-  document.getElementById('modalTitle').textContent = '編輯申請';
+  document.getElementById('modalTitle').textContent = '編輯旅團登記';
   document.getElementById('modal_id').value = id;
-  document.getElementById('m_id').value     = r.troopId;
-  document.getElementById('m_name').value   = r.troopName;
+  document.getElementById('m_id').value     = r.troopId||'';
+  document.getElementById('m_name').value   = r.troopName||'';
   document.getElementById('m_url').value    = r.backendUrl||'';
   document.getElementById('m_key').value    = r.apiKey||'';
   document.getElementById('m_note').value   = r.note||'';
-  document.getElementById('m_status').value = r.status;
-  document.querySelectorAll('.app-check').forEach(c=>{ c.checked=(r.apps||[]).includes(c.value); });
+  document.getElementById('m_status').value = (r.status==='done'||r.status==='pending'||r.status==='rejected') ? r.status : 'pending';
   document.getElementById('modal').style.display='block';
 }
 function closeModal() { document.getElementById('modal').style.display='none'; }
@@ -2277,41 +2143,34 @@ function saveModal() {
   const apiKey    = document.getElementById('m_key').value.trim();
   const note      = document.getElementById('m_note').value.trim();
   const status    = document.getElementById('m_status').value;
-  const apps      = [...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
-  if(!troopId||!troopName){ alert('請填寫旅團號和名稱'); return; }
+  if(!troopName){ alert('請填寫旅團名稱'); return; }
+  if(!backendUrl){ alert('請填寫 URL'); return; }
+  if(!apiKey){ alert('請填寫 API Key'); return; }
   if(eid) {
     const idx=state.requests.findIndex(r=>r.id===eid);
-    if(idx>=0) Object.assign(state.requests[idx],{troopId,troopName,backendUrl,apiKey,note,status,apps});
+    if(idx>=0) Object.assign(state.requests[idx],{troopId,troopName,backendUrl,apiKey,note,status});
   } else {
     state.requests.unshift({
       id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      troopId,troopName,backendUrl,apiKey,note,status,apps,
+      troopId,troopName,backendUrl,apiKey,note,status,
       createdAt: new Date().toLocaleString('zh-HK')
     });
   }
-  save(); closeModal(); refreshAll(); toast('✅ 已儲存');
+  save(); closeModal(); refreshAll();
+  pushRequestStatus(eid || null);
+  toast('✅ 已儲存');
 }
 
-function markDone(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='done';save();refreshAll();toast('✅ 已標記完成');} }
-function markRejected(id){ if(!confirm('確定拒絕？')) return; const r=state.requests.find(r=>r.id===id); if(r){r.status='rejected';save();refreshAll();toast('❌ 已拒絕');} }
-function markPending(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='pending';save();refreshAll();toast('↩ 已重設');} }
+function markDone(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='done';save();refreshAll();pushRequestStatus(id);toast('✅ 已標記接入');} }
+function markRejected(id){ if(!confirm('確定拒絕？')) return; const r=state.requests.find(r=>r.id===id); if(r){r.status='rejected';save();refreshAll();pushRequestStatus(id);toast('❌ 已拒絕');} }
+function markPending(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='pending';save();refreshAll();pushRequestStatus(id);toast('↩ 已重設');} }
 function deleteRequest(id){ if(!confirm('確定刪除？')) return; state.requests=state.requests.filter(r=>r.id!==id); save();refreshAll();toast('🗑 已刪除'); }
 
 // ============================================================
 // ISSUES（問題回報）
 // ============================================================
-const ISSUE_STATUS = {
-  new:      { label:'待處理', badge:'badge-pending' },
-  working:  { label:'處理中', badge:'badge-blue'   },
-  resolved: { label:'已解決', badge:'badge-done'   },
-  closed:   { label:'已關閉', badge:'badge-muted'  }
-};
-const FB_STATUS = {
-  new:       { label:'新回饋', badge:'badge-pending' },
-  reviewing: { label:'檢視中', badge:'badge-blue'   },
-  adopted:   { label:'已採納', badge:'badge-done'   },
-  declined:  { label:'不採納', badge:'badge-muted'  }
-};
+function issueIsRead(r) { return String(r.status||'unread') === 'read'; }
+function feedbackIsRead(r) { return String(r.status||'unread') === 'read'; }
 
 function setIssueFilter(f, btn) {
   state.issueFilter = f;
@@ -2329,18 +2188,24 @@ function setFeedbackFilter(f, btn) {
 }
 
 function newLocalId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function hasServerId(id){ return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(id||'')); }
 
 function renderIssues() {
   const q = (document.getElementById('issueSearch')?.value || '').toLowerCase();
   let list = state.issues.filter(r => {
-    const mf = state.issueFilter === 'all' || r.status === state.issueFilter;
-    const ms = !q || (r.title||'').toLowerCase().includes(q)
-      || (r.sourceApp||'').toLowerCase().includes(q)
-      || (r.troopId||'').toLowerCase().includes(q);
+    const read = issueIsRead(r);
+    const mf = state.issueFilter === 'all'
+      ? true
+      : (state.issueFilter === 'read' ? read : !read);
+    const ms = !q || [r.title,r.sourceApp,r.troopId,r.desc,r.name,r.contact]
+      .join(' ').toLowerCase().includes(q);
     return mf && ms;
   });
-  const o = { new:0, working:1, resolved:2, closed:3 };
-  list.sort((a,b) => (o[a.status]??9)-(o[b.status]??9) || new Date(b.createdAt)-new Date(a.createdAt));
+  list.sort((a,b) => {
+    const ra = issueIsRead(a) ? 1 : 0;
+    const rb = issueIsRead(b) ? 1 : 0;
+    return (ra-rb) || (dateSortable(b.createdAt)-dateSortable(a.createdAt));
+  });
   const el = document.getElementById('issueList');
   el.innerHTML = list.length
     ? list.map(buildIssueCard).join('')
@@ -2349,38 +2214,37 @@ function renderIssues() {
 }
 
 function buildIssueCard(r) {
-  const st = ISSUE_STATUS[r.status] || ISSUE_STATUS.new;
+  const read = issueIsRead(r);
   const sevColor = { '低':'#6b6b6b', '中':'#c05800', '高':'#c62828', '緊急':'#8B0000' }[r.severity] || '#6b6b6b';
   let actions = '';
-  if (r.status === 'new')
-    actions = `<button class="btn btn-primary" onclick="markIssue('${r.id}','working')">▶ 處理中</button>
-               <button class="btn btn-success" onclick="markIssue('${r.id}','resolved')">✔ 已解決</button>`;
-  else if (r.status === 'working')
-    actions = `<button class="btn btn-success" onclick="markIssue('${r.id}','resolved')">✔ 已解決</button>
-               <button class="btn btn-ghost" onclick="markIssue('${r.id}','closed')">✕ 關閉</button>`;
+  if (!read)
+    actions = `<button class="btn btn-success" onclick="markIssue('${escJs(r.id)}','read')">✔ 已閱</button>
+               <button class="btn btn-read" onclick="markIssue('${escJs(r.id)}','unread')" title="標回未閱">↩ 未閱</button>`;
   else
-    actions = `<button class="btn btn-ghost" onclick="markIssue('${r.id}','new')">↩ 重開</button>`;
+    actions = `<button class="btn btn-ghost" onclick="markIssue('${escJs(r.id)}','unread')">↩ 未閱</button>`;
+
   return `
-<div class="app-card ${r.status}" id="icard_${r.id}">
+<div class="app-card ${read ? 'tick-read' : 'pending'}" id="icard_${escHtml(r.id)}">
   <div class="app-card-top">
     <div class="app-meta">
       <div class="app-troop">🐛 ${escHtml(r.title || '（無標題）')}</div>
       <div class="app-detail">
         <strong>嚴重度：</strong><span style="color:${sevColor};font-weight:700">${escHtml(r.severity || '—')}</span>　
-        <span class="badge ${st.badge}">${st.label}</span><br>
+        ${read ? '<span class="read-chip">已閱</span>' : '<span class="badge badge-pending">未閱</span>'}<br>
         <strong>來源 APP：</strong>${escHtml(r.sourceApp || '—')}
         ${r.troopId ? `　<strong>旅團號：</strong><code>${escHtml(r.troopId)}</code>` : ''}<br>
         <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
-        ${r.contact ? `<br><strong>聯絡方式：</strong>${escHtml(r.contact)}` : ''}<br>
-        <strong>詳情：</strong><span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.desc || '')}</span>
-        ${r.note ? `<br><strong>管理員備註：</strong><span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.note)}</span>` : ''}
+        ${r.contact ? `<br><span class="tick-label">聯絡方式：</span><span class="tick-contact">${escHtml(r.contact)}</span>` : ''}
+        ${r.name ? `　<span class="tick-label">姓名：</span><span class="tick-name">${escHtml(r.name)}</span>` : '　<span style="color:#b0a89a">（匿名）</span>'}<br>
+        <strong>詳情：</strong><span style="white-space:pre-wrap;color:inherit">${escHtml(r.desc || '')}</span>
+        ${r.note ? `<br><strong>管理員備註：</strong><span style="white-space:pre-wrap;color:inherit">${escHtml(r.note)}</span>` : ''}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
       <div class="app-actions">
         ${actions}
-        <button class="btn btn-ghost" onclick="editIssue('${r.id}')">✏️</button>
-        <button class="btn btn-danger" onclick="deleteIssue('${r.id}')">🗑</button>
+        <button class="btn btn-ghost" onclick="editIssue('${escJs(r.id)}')">✏️</button>
+        <button class="btn btn-danger" onclick="deleteIssue('${escJs(r.id)}')">🗑</button>
       </div>
     </div>
   </div>
@@ -2390,9 +2254,9 @@ function buildIssueCard(r) {
 function showAddIssueModal() {
   document.getElementById('issueModalTitle').textContent = '新增問題回報';
   document.getElementById('im_id').value = '';
-  ['im_source','im_troopId','im_title','im_desc','im_contact','im_note'].forEach(i=>document.getElementById(i).value='');
+  ['im_source','im_troopId','im_title','im_desc','im_contact','im_name','im_note'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('im_severity').value = '中';
-  document.getElementById('im_status').value = 'new';
+  document.getElementById('im_status').value = 'unread';
   document.getElementById('issueModal').style.display='block';
 }
 function editIssue(id) {
@@ -2405,7 +2269,8 @@ function editIssue(id) {
   document.getElementById('im_desc').value     = r.desc||'';
   document.getElementById('im_severity').value = r.severity||'中';
   document.getElementById('im_contact').value  = r.contact||'';
-  document.getElementById('im_status').value   = ISSUE_STATUS[r.status] ? r.status : 'new';
+  document.getElementById('im_name').value     = r.name||'';
+  document.getElementById('im_status').value   = issueIsRead(r) ? 'read' : 'unread';
   document.getElementById('im_note').value     = r.note||'';
   document.getElementById('issueModal').style.display='block';
 }
@@ -2419,6 +2284,7 @@ function saveIssueModal() {
     desc:      document.getElementById('im_desc').value.trim(),
     severity:  document.getElementById('im_severity').value,
     contact:   document.getElementById('im_contact').value.trim(),
+    name:      document.getElementById('im_name').value.trim(),
     status:    document.getElementById('im_status').value,
     note:      document.getElementById('im_note').value.trim()
   };
@@ -2429,19 +2295,20 @@ function saveIssueModal() {
   } else {
     state.issues.unshift({ id:newLocalId(), ...rec, createdAt:new Date().toLocaleString('zh-HK') });
   }
-  save(); closeIssueModal(); refreshAll(); toast('✅ 已儲存');
+  save(); closeIssueModal(); refreshAll();
+  markIssueServer(eid || null, rec.status);
+  toast('✅ 已儲存');
 }
 function markIssue(id, status){
   const r=state.issues.find(x=>x.id===id);
-  if(r){ r.status=status; save(); refreshAll(); toast('🔄 狀態已更新：'+(ISSUE_STATUS[status]?.label||status)); }
+  if(r){ r.status=status; save(); refreshAll(); markIssueServer(id, status); toast(status==='read'?'✔ 已讀，已沉底':'↩ 已標回未閱'); }
 }
 function deleteIssue(id){ if(!confirm('確定刪除這條問題回報？')) return; state.issues=state.issues.filter(x=>x.id!==id); save();refreshAll();toast('🗑 已刪除'); }
 
 function updateIssueStats() {
   const s = state.issues;
-  document.getElementById('istatNew').textContent      = s.filter(r=>r.status==='new').length;
-  document.getElementById('istatWorking').textContent  = s.filter(r=>r.status==='working').length;
-  document.getElementById('istatResolved').textContent = s.filter(r=>r.status==='resolved').length;
+  document.getElementById('istatNew').textContent      = s.filter(r=>!issueIsRead(r)).length;
+  document.getElementById('istatRead').textContent     = s.filter(r=>issueIsRead(r)).length;
   document.getElementById('istatTotal').textContent    = s.length;
 }
 
@@ -2451,14 +2318,19 @@ function updateIssueStats() {
 function renderFeedbacks() {
   const q = (document.getElementById('feedbackSearch')?.value || '').toLowerCase();
   let list = state.feedbacks.filter(r => {
-    const mf = state.feedbackFilter === 'all' || r.status === state.feedbackFilter;
-    const ms = !q || (r.content||'').toLowerCase().includes(q)
-      || (r.sourceApp||'').toLowerCase().includes(q)
-      || (r.troopId||'').toLowerCase().includes(q);
+    const read = feedbackIsRead(r);
+    const mf = state.feedbackFilter === 'all'
+      ? true
+      : (state.feedbackFilter === 'read' ? read : !read);
+    const ms = !q || [r.content,r.sourceApp,r.troopId,r.type,r.name,r.contact]
+      .join(' ').toLowerCase().includes(q);
     return mf && ms;
   });
-  const o = { new:0, reviewing:1, adopted:2, declined:3 };
-  list.sort((a,b) => (o[a.status]??9)-(o[b.status]??9) || new Date(b.createdAt)-new Date(a.createdAt));
+  list.sort((a,b) => {
+    const ra = feedbackIsRead(a) ? 1 : 0;
+    const rb = feedbackIsRead(b) ? 1 : 0;
+    return (ra-rb) || (dateSortable(b.createdAt)-dateSortable(a.createdAt));
+  });
   const el = document.getElementById('feedbackList');
   el.innerHTML = list.length
     ? list.map(buildFeedbackCard).join('')
@@ -2467,36 +2339,34 @@ function renderFeedbacks() {
 }
 
 function buildFeedbackCard(r) {
-  const st = FB_STATUS[r.status] || FB_STATUS.new;
+  const read = feedbackIsRead(r);
   const typeBadge = { '建議':'💡', '讚':'👍', '批評':'👎', '其他':'📝' }[r.type] || '📝';
   let actions = '';
-  if (r.status === 'new')
-    actions = `<button class="btn btn-primary" onclick="markFeedback('${r.id}','reviewing')">▶ 檢視中</button>
-               <button class="btn btn-ghost" onclick="markFeedback('${r.id}','declined')">✕ 不採納</button>`;
-  else if (r.status === 'reviewing')
-    actions = `<button class="btn btn-success" onclick="markFeedback('${r.id}','adopted')">✔ 已採納</button>
-               <button class="btn btn-ghost" onclick="markFeedback('${r.id}','declined')">✕ 不採納</button>`;
+  if (!read)
+    actions = `<button class="btn btn-success" onclick="markFeedback('${escJs(r.id)}','read')">✔ 已閱</button>
+               <button class="btn btn-read" onclick="markFeedback('${escJs(r.id)}','unread')" title="標回未閱">↩ 未閱</button>`;
   else
-    actions = `<button class="btn btn-ghost" onclick="markFeedback('${r.id}','new')">↩ 重設</button>`;
+    actions = `<button class="btn btn-ghost" onclick="markFeedback('${escJs(r.id)}','unread')">↩ 未閱</button>`;
   return `
-<div class="app-card ${r.status==='adopted'?'done':(r.status==='declined'?'rejected':'pending')}" id="fcard_${r.id}">
+<div class="app-card ${read ? 'tick-read' : 'pending'}" id="fcard_${escHtml(r.id)}">
   <div class="app-card-top">
     <div class="app-meta">
-      <div class="app-troop">${typeBadge} ${escHtml(r.type || '其他')} · <span style="font-weight:400;font-size:.9rem;color:var(--muted)">${escHtml(r.sourceApp || '—')}</span></div>
+      <div class="app-troop">${typeBadge} ${escHtml(r.type || '其他')} · <span style="font-weight:400;font-size:.9rem;color:inherit">${escHtml(r.sourceApp || '—')}</span></div>
       <div class="app-detail">
-        <span class="badge ${st.badge}">${st.label}</span>
+        ${read ? '<span class="read-chip">已閱</span>' : '<span class="badge badge-pending">未閱</span>'}
         ${r.troopId ? `　<strong>旅團號：</strong><code>${escHtml(r.troopId)}</code>` : ''}<br>
         <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
-        ${r.contact ? `　<strong>聯絡方式：</strong>${escHtml(r.contact)}` : ''}<br>
-        <span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.content || '')}</span>
-        ${r.note ? `<br><strong>管理員備註：</strong><span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.note)}</span>` : ''}
+        ${r.contact ? `　<span class="tick-label">聯絡方式：</span><span class="tick-contact">${escHtml(r.contact)}</span>` : ''}
+        ${r.name ? `　<span class="tick-label">姓名：</span><span class="tick-name">${escHtml(r.name)}</span>` : '　<span style="color:#b0a89a">（匿名）</span>'}<br>
+        <span style="white-space:pre-wrap;color:inherit">${escHtml(r.content || '')}</span>
+        ${r.note ? `<br><strong>管理員備註：</strong><span style="white-space:pre-wrap;color:inherit">${escHtml(r.note)}</span>` : ''}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
       <div class="app-actions">
         ${actions}
-        <button class="btn btn-ghost" onclick="editFeedback('${r.id}')">✏️</button>
-        <button class="btn btn-danger" onclick="deleteFeedback('${r.id}')">🗑</button>
+        <button class="btn btn-ghost" onclick="editFeedback('${escJs(r.id)}')">✏️</button>
+        <button class="btn btn-danger" onclick="deleteFeedback('${escJs(r.id)}')">🗑</button>
       </div>
     </div>
   </div>
@@ -2506,9 +2376,9 @@ function buildFeedbackCard(r) {
 function showAddFeedbackModal() {
   document.getElementById('feedbackModalTitle').textContent = '新增意見回饋';
   document.getElementById('fm_id').value = '';
-  ['fm_source','fm_troopId','fm_content','fm_contact','fm_note'].forEach(i=>document.getElementById(i).value='');
+  ['fm_source','fm_troopId','fm_content','fm_contact','fm_name','fm_note'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('fm_type').value = '建議';
-  document.getElementById('fm_status').value = 'new';
+  document.getElementById('fm_status').value = 'unread';
   document.getElementById('feedbackModal').style.display='block';
 }
 function editFeedback(id) {
@@ -2520,7 +2390,8 @@ function editFeedback(id) {
   document.getElementById('fm_type').value     = r.type||'建議';
   document.getElementById('fm_content').value  = r.content||'';
   document.getElementById('fm_contact').value  = r.contact||'';
-  document.getElementById('fm_status').value   = FB_STATUS[r.status] ? r.status : 'new';
+  document.getElementById('fm_name').value     = r.name||'';
+  document.getElementById('fm_status').value   = feedbackIsRead(r) ? 'read' : 'unread';
   document.getElementById('fm_note').value     = r.note||'';
   document.getElementById('feedbackModal').style.display='block';
 }
@@ -2533,6 +2404,7 @@ function saveFeedbackModal() {
     type:      document.getElementById('fm_type').value,
     content:   document.getElementById('fm_content').value.trim(),
     contact:   document.getElementById('fm_contact').value.trim(),
+    name:      document.getElementById('fm_name').value.trim(),
     status:    document.getElementById('fm_status').value,
     note:      document.getElementById('fm_note').value.trim()
   };
@@ -2543,57 +2415,177 @@ function saveFeedbackModal() {
   } else {
     state.feedbacks.unshift({ id:newLocalId(), ...rec, createdAt:new Date().toLocaleString('zh-HK') });
   }
-  save(); closeFeedbackModal(); refreshAll(); toast('✅ 已儲存');
+  save(); closeFeedbackModal(); refreshAll();
+  markFeedbackServer(eid || null, rec.status);
+  toast('✅ 已儲存');
 }
 function markFeedback(id, status){
   const r=state.feedbacks.find(x=>x.id===id);
-  if(r){ r.status=status; save(); refreshAll(); toast('🔄 狀態已更新：'+(FB_STATUS[status]?.label||status)); }
+  if(r){ r.status=status; save(); refreshAll(); markFeedbackServer(id, status); toast(status==='read'?'✔ 已讀，已沉底':'↩ 已標回未閱'); }
 }
 function deleteFeedback(id){ if(!confirm('確定刪除這條意見回饋？')) return; state.feedbacks=state.feedbacks.filter(x=>x.id!==id); save();refreshAll();toast('🗑 已刪除'); }
 
 function updateFeedbackStats() {
   const s = state.feedbacks;
-  document.getElementById('fstatNew').textContent       = s.filter(r=>r.status==='new').length;
-  document.getElementById('fstatReviewing').textContent = s.filter(r=>r.status==='reviewing').length;
-  document.getElementById('fstatAdopted').textContent   = s.filter(r=>r.status==='adopted').length;
-  document.getElementById('fstatTotal').textContent     = s.length;
+  document.getElementById('fstatNew').textContent   = s.filter(r=>!feedbackIsRead(r)).length;
+  document.getElementById('fstatRead').textContent  = s.filter(r=>feedbackIsRead(r)).length;
+  document.getElementById('fstatTotal').textContent = s.length;
+}
+
+// ============================================================
+// APP STORE（作品投稿）
+// ============================================================
+function setAppStoreFilter(f, btn) {
+  state.appStoreFilter = f;
+  document.querySelectorAll('#tab-appstore .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAppStore();
+}
+
+function appStoreStatus(r) {
+  const s = String(r.status || '');
+  if (s === '已上架' || s === '上架' || s === 'done' || s === 'approved') return 'done';
+  if (s === '已拒絕' || s === '拒絕' || s === 'rejected') return 'rejected';
+  return 'pending';
+}
+
+function renderAppStore() {
+  const q = (document.getElementById('appstoreSearch')?.value || '').toLowerCase();
+  let list = state.appstore.filter(r => {
+    const st = appStoreStatus(r);
+    const mf = state.appStoreFilter === 'all' ? true : (state.appStoreFilter === st);
+    const ms = !q || [r.name, r.url, r.author, r.page, r.category, r.description, r.tags]
+      .join(' ').toLowerCase().includes(q);
+    return mf && ms;
+  });
+  list.sort((a,b) => dateSortable(b.createdAt) - dateSortable(a.createdAt));
+  const el = document.getElementById('appstoreList');
+  el.innerHTML = list.length
+    ? list.map(buildAppStoreCard).join('')
+    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的作品投稿</div>';
+  updateAppStoreStats();
+}
+
+function buildAppStoreCard(r) {
+  const st = appStoreStatus(r);
+  const bmap = { pending:'badge-pending', done:'badge-done', rejected:'badge-rejected' };
+  const btxt = { pending:'待審核', done:'已上架', rejected:'已拒絕' };
+  return `
+<div class="app-card ${st}" id="scard_${escHtml(r.id)}">
+  <div class="app-card-top">
+    <div class="app-meta">
+      <div class="app-troop">📮 ${escHtml(r.name || '（無名稱）')}</div>
+      <div class="app-detail">
+        <strong>作品連結：</strong><a href="${escHtml(r.url || '#')}" target="_blank" rel="noopener" style="word-break:break-all">${escHtml(r.url || '—')}</a><br>
+        <strong>作者：</strong>${escHtml(r.author || '（無作者）')}　<strong>類型：</strong>${escHtml(r.page || '—')}　<strong>分類：</strong>${escHtml(r.category || '—')}<br>
+        <strong>簡介：</strong><span style="white-space:pre-wrap">${escHtml(r.description || '')}</span><br>
+        ${r.tags ? `<strong>標籤：</strong><code>${escHtml(r.tags)}</code><br>` : ''}
+        <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <span class="badge ${bmap[st]}">${btxt[st]}</span>
+      <div class="app-actions">
+        <button class="btn btn-danger" onclick="deleteAppStore('${escJs(r.id)}')">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function updateAppStoreStats() {
+  const s = state.appstore;
+  document.getElementById('astatPending').textContent = s.filter(r=>appStoreStatus(r)==='pending').length;
+  document.getElementById('astatDone').textContent    = s.filter(r=>appStoreStatus(r)==='done').length;
+  document.getElementById('astatTotal').textContent   = s.length;
+}
+
+function deleteAppStore(id) {
+  if (!confirm('確定刪除這筆作品投稿？')) return;
+  state.appstore = state.appstore.filter(x => x.id !== id);
+  save(); renderAppStore(); toast('🗑 已刪除');
 }
 
 // ============================================================
 // SYNC FROM GOOGLE SHEET（Apps Script ?action=list）
-// ============================================================
-const ISSUE_STATUS_FROM_SHEET = { '待處理':'new', '處理中':'working', '已解決':'resolved', '已關閉':'closed' };
-const FB_STATUS_FROM_SHEET    = { '新回饋':'new', '檢視中':'reviewing', '已採納':'adopted', '不採納':'declined' };
-
 function sheetDate(v){
   if (v == null || v === '') return '';
   const d = new Date(v);
   return isNaN(d) ? String(v) : d.toLocaleString('zh-HK');
 }
+// 排序用：把各種時間格式（ISO、zh-HK「20/9/2026 上午10:00:00」…）轉毫秒
+function dateSortable(v) {
+  if (v == null || v === '') return 0;
+  if (v instanceof Date) { const t = v.getTime(); return isNaN(t) ? 0 : t; }
+  const t = Date.parse(String(v));
+  if (!isNaN(t)) return t;
+  const mm = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(上午|下午)?\s*(\d{1,2}):(\d{2}):(\d{2})/);
+  if (!mm) return 0;
+  let h = parseInt(mm[5], 10) || 0;
+  if (mm[4] === '下午' && h < 12) h += 12;
+  if (mm[4] === '上午' && h === 12) h = 0;
+  const mi = parseInt(mm[6], 10) || 0;
+  const ss = parseInt(mm[7], 10) || 0;
+  return new Date(parseInt(mm[3],10), parseInt(mm[2],10)-1, parseInt(mm[1],10), h, mi, ss).getTime();
+}
+
+
+// 用 /api/admin 代理（Key 只在 Vercel 環境變數）。回傳 {ok, data}。
+// 失敗（未部署代理／無 JSON）時回 {ok:false}，交由呼叫端退回直連。
+async function viaProxy(method, action, payload) {
+  try {
+    const res = method === 'GET'
+      ? await fetch('/api/admin?action=' + encodeURIComponent(action), { method: 'GET', cache: 'no-store' })
+      : await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('json')) return { ok: false };
+    const data = await res.json();
+    return { ok: true, data };
+  } catch (e) { return { ok: false }; }
+}
 
 async function syncFromSheet() {
   toast('🔄 同步中…');
+  // 1) 優先走 Vercel 代理（Key 在 server，最安全）
+  let used = 'proxy', data = null;
+  const proxied = await viaProxy('GET', 'list');
+  if (proxied.ok) data = proxied.data;
+  else {
+    // 2) 退回本機 Key 直連
+    const apikey = getApiKey();
+    if (!apikey) { toast('❌ 同步失敗：代理不可用，且未設本機 API KEY。請部署 /api/admin 並設 SCOUT_ADMIN_KEY，或到「⚙️ 設定」填 Key。'); return; }
+    used = 'direct';
+    try {
+      const res = await fetch(WEBAPP_URL + '?action=list&apikey=' + encodeURIComponent(apikey), { method: 'GET' });
+      data = await res.json();
+    } catch (err) { console.error(err); }
+  }
+  if (!data) { toast('❌ 同步失敗：無法讀取 Google Sheet。'); return; }
   try {
-    const res  = await fetch(WEBAPP_URL + '?action=list', { method: 'GET' });
-    const data = await res.json();
     if (data.status !== 'ok') throw new Error(data.message || 'Sheet 端回應異常');
 
-    let addA = 0, addI = 0, addF = 0;
+    let addA = 0, addI = 0, addF = 0, addS = 0;
 
     (data.applications || []).forEach(row => {
       const troopId   = String(row['旅團號'] ?? '').trim();
       const troopName = String(row['旅團名稱'] ?? '').trim();
-      if (!troopId || !troopName) return;
-      const dup = state.requests.some(r => r.troopId === troopId && r.troopName === troopName);
-      if (dup) return;
+      if (!troopName) return;
+      const id = String(row['編號'] || '');
+      const dupById   = id && state.requests.some(r => r.id === id);
+      const dupByComp = !id && state.requests.some(r => r.troopName === troopName && r.troopId === troopId);
+      if (dupById || dupByComp) return;
+      const sheetStatus = String(row['狀態'] ?? '').trim();
       state.requests.unshift({
-        id: String(row['編號'] || '') || newLocalId(),
+        id: id || newLocalId(),
         troopId, troopName,
-        backendUrl: String(row['Apps Script URL'] ?? ''),
+        backendUrl: String(row['URL'] ?? row['Apps Script URL'] ?? ''),
         apiKey:     String(row['API Key'] ?? ''),
-        apps:       String(row['接入APP'] ?? '').split(',').map(s=>s.trim()).filter(Boolean),
         note:       String(row['備注'] ?? ''),
-        status:     'pending',
+        status:     REQ_STATUS_FROM_SHEET[sheetStatus] || 'pending',
         createdAt:  sheetDate(row['提交時間'])
       });
       addA++;
@@ -2607,7 +2599,8 @@ async function syncFromSheet() {
       const createdAt = sheetDate(row['提交時間']);
       const dupByComp = !id && state.issues.some(x => x.title === title && x.createdAt === createdAt);
       if (dupById || dupByComp) return;
-      const sheetStatus = String(row['狀態'] ?? '待處理');
+      const sheetStatus = String(row['狀態'] ?? '未閱');
+      const sheetRead = sheetStatus === '已閱' || sheetStatus === 'read';
       state.issues.unshift({
         id: id || newLocalId(),
         sourceApp: String(row['來源APP'] ?? ''),
@@ -2616,7 +2609,8 @@ async function syncFromSheet() {
         desc:      String(row['問題詳情'] ?? ''),
         severity:  String(row['嚴重度'] ?? '中'),
         contact:   String(row['聯絡方式'] ?? ''),
-        status:    ISSUE_STATUS_FROM_SHEET[sheetStatus] || 'new',
+        name:      String(row['姓名'] ?? ''),
+        status:    sheetRead ? 'read' : 'unread',
         note:      '',
         createdAt
       });
@@ -2631,7 +2625,8 @@ async function syncFromSheet() {
       const createdAt = sheetDate(row['提交時間']);
       const dupByComp = !id && state.feedbacks.some(x => x.content === content && x.createdAt === createdAt);
       if (dupById || dupByComp) return;
-      const sheetStatus = String(row['狀態'] ?? '新回饋');
+      const sheetStatus = String(row['狀態'] ?? '未閱');
+      const sheetRead = sheetStatus === '已閱' || sheetStatus === 'read';
       state.feedbacks.unshift({
         id: id || newLocalId(),
         sourceApp: String(row['來源APP'] ?? ''),
@@ -2639,19 +2634,127 @@ async function syncFromSheet() {
         type:      String(row['類型'] ?? '其他'),
         content,
         contact:   String(row['聯絡方式'] ?? ''),
-        status:    FB_STATUS_FROM_SHEET[sheetStatus] || 'new',
+        name:      String(row['姓名'] ?? ''),
+        status:    sheetRead ? 'read' : 'unread',
         note:      '',
         createdAt
       });
       addF++;
     });
 
+    (data.appstore || []).forEach(row => {
+
+      const name = String(row['作品名稱'] ?? '').trim();
+      if (!name) return;
+
+      const id = String(row['編號'] || '');
+
+      const dupById   = id && state.appstore.some(a => a.id === id);
+
+      const createdAt = sheetDate(row['提交時間']);
+
+      const dupByComp = !id && state.appstore.some(a => a.name === name && a.createdAt === createdAt);
+
+      if (dupById || dupByComp) return;
+      state.appstore.unshift({
+
+        id: id || newLocalId(),
+        name,
+
+        url:         String(row['作品連結'] ?? ''),
+
+        author:      String(row['作者名稱'] ?? ''),
+
+        page:        String(row['作品類型'] ?? ''),
+
+        category:    String(row['分類'] ?? ''),
+
+        description: String(row['作品簡介'] ?? ''),
+
+        tags:        String(row['標籤'] ?? ''),
+
+        status:      String(row['狀態'] ?? '待審核'),
+        createdAt
+      });
+      addS++;
+    });
+
     save(); refreshAll();
-    toast(`✅ 同步完成：申請 +${addA}、問題 +${addI}、回饋 +${addF}`);
+    toast(`✅ 同步完成：旅團 +${addA}、問題 +${addI}、回饋 +${addF}、作品 +${addS}`);
   } catch (err) {
     console.error('sync failed', err);
     toast('❌ 同步失敗：' + (err.message || err));
   }
+}
+
+// ============================================================
+// STATUS WRITE-BACK（把審核狀態 / 已閱狀態寫回 Google Sheet）
+// ============================================================
+const REQ_STATUS_FROM_SHEET = { '待處理':'pending', '已接入':'done', '已完成':'done', '已拒絕':'rejected' };
+
+function getApiKey() {
+  return (state.settings.apikey || '').trim();
+}
+
+async function pushReqStatusRemote(id, status) {
+  if (!id) return;
+  const label = status === 'rejected' ? '已拒絕' : (status === 'done' ? '已接入' : '待處理');
+  const payload = { type: 'markReq', id, status: label };
+  // 1) 優先走 Vercel 代理（Key 在 server）
+  const proxied = await viaProxy('POST', 'markReq', payload);
+  if (proxied.ok && proxied.data && proxied.data.status === 'ok') return;
+  if (proxied.ok && proxied.data && proxied.data.status === 'error') { console.log('markReq 失敗', proxied.data.message); return; }
+  // 2) 退回本機 Key 直連
+  const apikey = getApiKey();
+  if (!apikey) return;
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ ...payload, apikey })
+    });
+  } catch (e) { console.log('markReq 寫回失敗', e); }
+}
+
+function pushRequestStatus(id) {
+  if (!id) return;
+  const r = state.requests.find(x => x.id === id);
+  if (r && hasServerId(r.id)) pushReqStatusRemote(r.id, r.status);
+}
+
+async function pushMarkRead(status, id) {
+  // 1) 優先走 Vercel 代理（Key 在 server）
+  const proxied = await viaProxy('POST', 'markRead', { type: 'markRead', status, id });
+  if (proxied.ok && proxied.data && proxied.data.status === 'ok') { toast('🔄 已標記（已寫回 Google Sheet）'); return; }
+  if (proxied.ok && proxied.data && proxied.data.status === 'error') {
+    toast('⚠️ 寫回 Sheet 失敗：' + (proxied.data.message || 'API KEY 錯誤'));
+    return;
+  }
+  // 2) 退回本機 Key 直連
+  const apikey = getApiKey();
+  if (!apikey) {
+    toast(`⚠️ 本機已標記，但尚未寫回 Google Sheet（未設 API KEY）。`);
+    return;
+  }
+  try {
+    await fetch(WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ type: 'markRead', status, id, apikey })
+    });
+    toast('🔄 已標記（已寫回 Google Sheet）');
+  } catch (err) {
+    toast('⚠️ 寫回 Sheet 失敗：' + (err.message || err));
+  }
+}
+
+function markIssueServer(id, status) {
+  if (id && hasServerId(id)) pushMarkRead(status, id);
+}
+function markFeedbackServer(id, status) {
+  if (id && hasServerId(id)) pushMarkRead(status, id);
 }
 
 // ============================================================
@@ -2660,29 +2763,37 @@ async function syncFromSheet() {
 function updateStats() {
   const pending = state.requests.filter(r=>r.status==='pending').length;
   const done    = state.requests.filter(r=>r.status==='done').length;
-  const total   = state.requests.length;
+  const rejected= state.requests.filter(r=>r.status==='rejected').length;
   const troops  = state.requests.filter(r=>r.status==='done').length;
-  const issueOpen = state.issues.filter(r=>r.status==='new'||r.status==='working').length;
-  const fbOpen    = state.feedbacks.filter(r=>r.status==='new'||r.status==='reviewing').length;
+  const issueOpen = state.issues.filter(r=>!issueIsRead(r)).length;
+  const fbOpen    = state.feedbacks.filter(r=>!feedbackIsRead(r)).length;
+  const appOpen   = state.appstore.filter(r=>appStoreStatus(r)==='pending').length;
   document.getElementById('statPending').textContent = pending;
   document.getElementById('statDone').textContent    = done;
-  document.getElementById('statTotal').textContent   = total;
+  document.getElementById('statRejected').textContent= rejected;
   document.getElementById('statTroops').textContent  = troops;
-  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已完成 ${done} | 旅團 ${troops} | 問題 ${issueOpen} | 回饋 ${fbOpen}`;
+  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已接入 ${done} | 旅團 ${troops} | 問題未閱 ${issueOpen} | 回饋未閱 ${fbOpen} | 作品待審 ${appOpen}`;
 }
 
 // ============================================================
 // SETTINGS
 // ============================================================
-function loadSettings() { document.getElementById('cfg_url').value=state.settings.webappUrl||''; }
-function saveSettings() { state.settings.webappUrl=document.getElementById('cfg_url').value.trim(); save(); toast('💾 設定已儲存'); }
-function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.settings={webappUrl:''}; refreshAll(); toast('🗑 已清除'); }
+function loadSettings() {
+  document.getElementById('cfg_apikey').value = state.settings.apikey || '';
+}
+function saveSettings() {
+  state.settings.apikey = (document.getElementById('cfg_apikey').value || '').trim();
+  save();
+  toast(state.settings.apikey ? '💾 API KEY 已本機儲存（僅存於這部裝置）' : '💾 已清除 API KEY');
+  refreshAll();
+}
+function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.appstore=[]; state.settings={apikey:''}; refreshAll(); toast('🗑 已清除'); }
 
 // ============================================================
 // EXPORT / IMPORT
 // ============================================================
 function exportData() {
-  const blob=new Blob([JSON.stringify({requests:state.requests,issues:state.issues,feedbacks:state.feedbacks,settings:state.settings},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({requests:state.requests,issues:state.issues,feedbacks:state.feedbacks,appstore:state.appstore,settings:state.settings},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scout-admin-backup.json'; a.click();
 }
 function importData(evt) {
@@ -2691,7 +2802,7 @@ function importData(evt) {
   reader.onload=e=>{
     try {
       const d=JSON.parse(e.target.result);
-      state.requests=d.requests||[]; state.issues=d.issues||[]; state.feedbacks=d.feedbacks||[]; state.settings=d.settings||{webappUrl:''};
+      state.requests=d.requests||[]; state.issues=d.issues||[]; state.feedbacks=d.feedbacks||[]; state.appstore=d.appstore||[]; state.settings=d.settings||{apikey:''};
       save(); refreshAll(); toast('📥 匯入成功');
     } catch(err){ alert('匯入失敗：'+err.message); }
   };
@@ -2770,7 +2881,7 @@ function mdToHtml(md) {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 // ============================================================
@@ -2786,13 +2897,31 @@ function toast(msg){ const el=document.getElementById('toast'); el.textContent=m
 // ============================================================
 // REFRESH ALL
 // ============================================================
-function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); }
+function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); renderAppStore(); }
+
+// ============================================================
+// KEY BOOTSTRAP（?key= 或 #key= 自動帶入 API KEY）
+// ============================================================
+function bootstrapKeyFromUrl() {
+  var qp = new URLSearchParams(location.search).get('key');
+  var hp = (location.hash || '').replace(/^#/, '');
+  if (!qp && hp.startsWith('key=')) qp = hp.slice(4);
+  if (!qp) return;
+  if (!state.settings.apikey) {
+    state.settings.apikey = qp;
+    save();
+    var elm = document.getElementById('cfg_apikey');
+    if (elm) elm.value = qp;
+    toast('🔑 已自動帶入 API KEY');
+  }
+}
 
 // ============================================================
 // BOOT with demo data
 // ============================================================
-window.addEventListener('DOMContentLoaded',()=>{
+window.addEventListener('DOMContentLoaded', () => {
   load();
+  bootstrapKeyFromUrl();
   renderGsTab();
   renderDoc('scout');
 });
