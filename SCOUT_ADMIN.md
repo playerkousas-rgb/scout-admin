@@ -1,11 +1,12 @@
 # Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：2.1 | 作者：系統管理員
+> 版本：2.2 | 作者：系統管理員
 > 本次大改：
 > ① 旅團登記簡化為「旅團名 + URL + API KEY」（旅團號選填）
 > ② 問題回報 / 意見回饋改成 **TICK 看板**（前端直接看，已閱灰字沉底、最新在最頂；可匿名／留底姓名聯絡）
-> ③ 後台讀取（list）與「已閱」寫回加 **API KEY** 保護，**Key 由 GS 自己產生並 E-mail 給你**
-> ④ 相容性／不漏資料：欄位對不上自動加欄，Email 附全部欄位＋原始 JSON 備份
+> ③ 後台**讀取清單（list）**加 **API KEY** 保護；**每題提交／寫回狀態一律不需要 Key**，確保用戶交得到
+> ④ 新增 **SCOUT APP STORE「作品投稿」**：入 Sheet「作品投稿」＋ Email 通知，不漏單
+> ⑤ 相容性／不漏資料：欄位對不上自動加欄，Email 附全部欄位＋原始 JSON 備份
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -20,7 +21,10 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有後端**�
 2. 一鍵產生各 APP 需要的設定格式；API KEY 一律由你在 **Vercel 環境變數**加入
 3. 前端直接看「問題回報」「意見回饋」TICK：**最新在最頂**，點「✔ 已閱」整張卡**灰字沉到底**
 4. TICK 可**匿名**，也可留底**姓名／聯絡方式**
-5. 「已閱」狀態寫回 Google Sheet（需要 API KEY），換裝置也同步
+5. 接收 **SCOUT APP STORE**（scoutappstore.vercel.app）送來的「作品投稿」，照抄到 Sheet「作品投稿」＋ Email 通知，不漏單
+6. 已閱／審核狀態寫回 Google Sheet，換裝置「🔄 同步」也一致
+
+> ⚠️ **API KEY 保護的是後台「讀取清單」（含個人資料）**；所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key**，照常接收。
 
 ---
 
@@ -36,8 +40,9 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有後端**�
 5. 它會自動：
    - 產生一串 `scout-…` 的 Key
    - 存進**腳本屬性**（`API_KEY`）
-   - **E-mail 到 `ADMIN_EMAIL`**（信裡附「一鍵填好」連結，點開會自動把 Key 帶入後台「⚙️ 設定」）
-6. Key 也可加進 **Vercel 環境變數**（如 `SCOUT_ADMIN_KEY`）留底，與 App 分離
+   - **E-mail 到 `ADMIN_EMAIL`**
+6. 把這條 Key 加進 **本專案 Vercel 環境變數 `SCOUT_ADMIN_KEY`**（後台讀取走 `/api/admin` 代理，Key 不落瀏覽器）
+   - 信裡另附「一鍵填好」連結，點開會把 Key 帶入後台「⚙️ 設定」當**本機後備**
 
 > 有 `resetApiKey()` 可重新產生（舊 Key 作廢）。健康檢查網址不需 Key；`?action=list` 需 Key。
 > 工作表、標題欄會自動建立；舊表缺的欄會自動在右側補上。
@@ -68,7 +73,7 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有後端**�
 - 前端直接看 TICK：**未閱最新在最頂**；點「✔ 已閱」→ 卡變**灰字、沉到底**
 - 可反悔：↩ 未閱 可以把卡翻回未閱
 - **可匿名**（姓名、聯絡方式都選填），也可留底**姓名 + 聯絡方式**
-- 已閱／未閱寫回 Google Sheet（需 API KEY）→ 開 Sheet 也看得到、換裝置同步
+- 已閱／未閱寫回 Google Sheet → 開 Sheet 也看得到、換裝置同步（寫回不需 Key）
 - 有管理員備註欄（✏️ 編輯內可加）
 
 用戶端可任選一種接入：
@@ -79,7 +84,15 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有後端**�
 
 ---
 
-## 五、各 APP 設定格式
+## 五、作品投稿（SCOUT APP STORE）
+
+- Scout APP STORE（`scoutappstore.vercel.app`）的投稿會**多送一份**到這裡，寫進 Sheet「作品投稿」＋ Email 通知，不影響商店本身
+- 後台「📮 作品投稿」分頁：**最新在最頂**、可搜尋／篩選（待審核／已上架／已拒絕）
+- 狀態**唯讀**：改狀態回 Sheet 改（如「待審核」→「已上架」），改完按「🔄 同步」即可更新
+
+---
+
+## 六、各 APP 設定格式
 
 ### vsbadge — `troops.json`
 
@@ -124,9 +137,9 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-## 六、Google Sheet 工作表
+## 七、Google Sheet 工作表
 
-三張表會自動建立／自動補欄（以新 cfg 順序為準）：
+四張表會自動建立／自動補欄（以新 cfg 順序為準）：
 
 ### ① 申請記錄（旅團登記）
 
@@ -170,48 +183,65 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 | H | 狀態（未閱／已閱） |
 | I | 編號 |
 
+### ④ 作品投稿（SCOUT APP STORE）
+
+| 欄 | 欄位名稱 |
+|----|---------|
+| A | 提交時間 |
+| B | 作品名稱 |
+| C | 作品連結 |
+| D | 作者名稱 |
+| E | 作品類型（page） |
+| F | 分類 |
+| G | 作品簡介 |
+| H | 標籤 |
+| I | 狀態（待審核 → 已上架／已拒絕，在 Sheet 改） |
+| J | 編號 |
+
 ---
 
-## 七、資料儲存說明
+## 八、資料儲存說明
 
 | 資料 | 儲存位置 |
 |------|---------|
 | 審核狀態 / 已閱狀態（前端） | 瀏覽器 localStorage（快取） |
-| 已閱狀態（正式） | Google Sheet「狀態」欄（透過 `markRead` 端點寫回，需 API KEY） |
-| 原始登記 / 回報 / 回饋 | Google Sheet 三張工作表 |
+| 已閱／審核狀態（正式） | Google Sheet「狀態」欄（透過 `markRead`／`markReq` 寫回，不需 Key） |
+| 原始登記 / 回報 / 回饋 / 作品投稿 | Google Sheet 四張工作表 |
 | Email 通知 | Gmail |
-| 你的後台 API KEY | 瀏覽器 localStorage（不寫進任何代碼）＋ Apps Script 腳本屬性 |
+| 後台讀取保護（API KEY） | Vercel 環境變數 `SCOUT_ADMIN_KEY`（經 `/api/admin` 代理注入）＋ Apps Script 腳本屬性 |
+| 本機後備 Key | 瀏覽器 localStorage（不寫進任何代碼） |
 
 ---
 
-## 八、Apps Script Web App 資訊
+## 九、Apps Script Web App 資訊
 
 | 項目 | 說明 |
 |------|------|
 | URL | `https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec` |
 | 執行身分 | 你（管理員帳號） |
-| 存取權限 | 所有人（**寫入**照舊開放，用戶才能交 TICK） |
-| POST 分流 | `apply`（預設）／`issue`／`feedback`／`markReq`（審核寫回）／`markRead`（已閱寫回） |
-| GET | `?action=list`（**需 `apikey`**）回傳三張工作表 |
+| 存取權限 | 所有人（**寫入照舊開放**，用戶才能交 TICK／投稿；**讀取清單需 Key**） |
+| POST 分流 | `apply`（預設）／`issue`／`feedback`／`appstore`／`markReq`（審核寫回）／`markRead`（已閱寫回）——**皆不需 Key** |
+| GET | `?action=list`（**需 `apikey`**）回傳四張工作表 |
 | 健康檢查 | 直接開網址應回 `{"status":"ok"}`（不需要 key） |
 | 生成 API KEY | Apps Script 編輯器執行 `setupApiKey()`（自動產生＋存屬性＋Email 給你）；`resetApiKey()` 重設 |
 | 不漏保證 | 未知欄位自動加欄；Email 附全部欄位＋原始 JSON 備份；完全無資料才略過 |
+| 前端代理 | `/api/admin`（`api/admin.js`）：GET `?action=list`／POST `markRead`、`markReq`，Key 由 Vercel `SCOUT_ADMIN_KEY` 注入 |
 
 ---
 
-## 九、常見問題
+## 十、常見問題
 
 **Q：同步失敗、提示 API KEY？**
-A：先照第二節執行 `setupApiKey()`（Apps Script），再把 E-mail 裡的 Key（或點一鍵連結）帶入後台「⚙️ 設定」。兩邊要用同一條。
+A：先照第二節執行 `setupApiKey()`（Apps Script），把 E-mail 裡的 Key 加進 Vercel `SCOUT_ADMIN_KEY`（走 `/api/admin`），或在後台「⚙️ 設定」填同一條當本機後備。兩邊要用同一條。
 
 **Q：旅團號留空會怎樣？**
 A：照常登記。Vercel 環境變數名自行命名；vsbadge JSON 以旅團名當鍵。
 
-**Q：收不到 TICK？**
-A：① 已重新部署 v2.0 代碼（編輯部署 → 新版本）；② 各 APP 已貼新表單／widget（`SOURCE_APP` 已改）；③ 後台按「🔄 同步」。
+**Q：收不到 TICK／投稿？**
+A：① 已重新部署最新代碼（編輯部署 → 新版本）；② 各 APP 已貼新表單／widget（`SOURCE_APP` 已改）；③ App Store 端已把投稿鏡射到固定 Apps Script URL（`type:'appstore'`）；④ 後台按「🔄 同步」。
 
 **Q：點「✔ 已閱」後另一個裝置看不到？**
-A：沒設 API KEY 時「已閱」只存在本機。設好 API KEY 後，已閱會寫回 Sheet，再「🔄 同步」即同步。
+A：「已閱」會寫回 Sheet（不需 Key），另一裝置按「🔄 同步」即一致。
 
 **Q：換了瀏覽器記錄不見？**
 A：原始資料都在 Sheet，按「🔄 同步」重新載入即可；或用「匯出／匯入」搬遷（API KEY 需重填一次）。

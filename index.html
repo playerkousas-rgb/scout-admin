@@ -160,6 +160,7 @@
     <button class="tab-btn active" onclick="switchTab('requests',this)">🏛️ 旅團登記</button>
     <button class="tab-btn" onclick="switchTab('issues',this)">🐛 問題回報</button>
     <button class="tab-btn" onclick="switchTab('feedback',this)">💬 意見回饋</button>
+    <button class="tab-btn" onclick="switchTab('appstore',this)">📮 作品投稿</button>
     <button class="tab-btn" onclick="switchTab('json',this)">🔧 產生器</button>
     <button class="tab-btn" onclick="switchTab('gs',this)">📜 Apps Script</button>
     <button class="tab-btn" onclick="switchTab('docs',this)">📖 說明書</button>
@@ -210,7 +211,7 @@
           <button class="btn btn-gold" onclick="showAddIssueModal()">＋ 手動新增</button>
         </div>
       </div>
-      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後整張卡<strong>灰字沉到底</strong>。用戶可匿名，或留底姓名／聯絡。已閱狀態會寫回 Google Sheet（有設 API KEY 時），換裝置也同步。</div>
+      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後整張卡<strong>灰字沉到底</strong>。用戶可匿名，或留底姓名／聯絡。<strong>填報不用 Key，任何人都可交</strong>；只有「讀取清單」與「寫回已閱狀態」這類碰得到後台資料的動作才受 API KEY 保護。</div>
       <div class="filter-bar">
         <input type="text" id="issueSearch" placeholder="🔍 搜尋標題 / 姓名 / 來源 / 內容…" oninput="renderIssues()" />
         <button class="filter-btn active" onclick="setIssueFilter('all',this)">全部</button>
@@ -236,7 +237,7 @@
           <button class="btn btn-gold" onclick="showAddFeedbackModal()">＋ 手動新增</button>
         </div>
       </div>
-      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後灰字沉底。用戶可匿名，或留底姓名／聯絡。已閱狀態會寫回 Google Sheet（有設 API KEY 時）。</div>
+      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後灰字沉底。用戶可匿名，或留底姓名／聯絡。填報不用 Key；只有讀取清單、寫回已閱這類後台動作才受 API KEY 保護。</div>
       <div class="filter-bar">
         <input type="text" id="feedbackSearch" placeholder="🔍 搜尋內容 / 姓名 / 來源…" oninput="renderFeedbacks()" />
         <button class="filter-btn active" onclick="setFeedbackFilter('all',this)">全部</button>
@@ -244,6 +245,32 @@
         <button class="filter-btn" onclick="setFeedbackFilter('read',this)">已閱</button>
       </div>
       <div class="app-list" id="feedbackList"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2c: APP STORE 作品投稿 ===== -->
+  <div class="section" id="tab-appstore">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="astatPending">0</div><div class="stat-lbl">待審核</div></div>
+      <div class="stat-card"><div class="stat-num" id="astatDone" style="color:var(--green)">0</div><div class="stat-lbl">已上架</div></div>
+      <div class="stat-card"><div class="stat-num" id="astatTotal" style="color:var(--gold)">0</div><div class="stat-lbl">總投稿</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📮 作品投稿（SCOUT APP STORE）</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
+        </div>
+      </div>
+      <div class="note">這裡是 <strong>SCOUT APP STORE</strong>（scoutappstore.vercel.app）送來的投稿紀錄，最新在最頂；資料一律照抄到 Google Sheet「作品投稿」＋ Email 通知，<strong>不重寫、不漏單</strong>。狀態為<strong>唯讀</strong>，要去 Sheet 改（如「待審核」→「已上架」），改完按「🔄 同步」即可更新。</div>
+      <div class="filter-bar">
+        <input type="text" id="appstoreSearch" placeholder="🔍 搜尋作品名稱 / 作者 / 分類 / 簡介…" oninput="renderAppStore()" />
+        <button class="filter-btn active" onclick="setAppStoreFilter('all',this)">全部</button>
+        <button class="filter-btn" onclick="setAppStoreFilter('pending',this)">待審核</button>
+        <button class="filter-btn" onclick="setAppStoreFilter('done',this)">已上架</button>
+        <button class="filter-btn" onclick="setAppStoreFilter('rejected',this)">已拒絕</button>
+      </div>
+      <div class="app-list" id="appstoreList"></div>
     </div>
   </div>
 
@@ -295,12 +322,12 @@
   <!-- ===== TAB 4: APPS SCRIPT ===== -->
   <div class="section" id="tab-gs">
     <div class="card">
-      <div class="card-header"><div class="card-title">📜 接收 Apps Script（含旅團登記 + 問題回報 + 意見回饋）</div></div>
+      <div class="card-header"><div class="card-title">📜 接收 Apps Script（旅團登記＋問題回報＋意見回饋＋作品投稿）</div></div>
       <div class="note">
         ⚠️ <strong>需要你重新部署一次才生效。</strong>把下方代碼整段貼到 Google Sheet → 擴充功能 → Apps Script → 儲存 → 部署 →「管理部署」→ <strong>編輯</strong> → 版本選「<strong>新版本</strong>」→ 部署（網址不變）。<br>
-        <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<br>
+        <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<strong>Key 保護的是「讀取／已閱／審核」這類後台動作；任何人提交（旅團登記、問題、回饋、作品投稿）都不需要 Key。</strong><br>
         核心保證：欄位對不上自動加欄、Email 附全部欄位＋原始 JSON 備份，資料不漏。<br>
-        改動：①旅團號改為可選；②<strong>已閱寫回</strong>（markRead）；③<strong>list 讀取受 API KEY 保護</strong>（防個人資料外洩）。
+        改動：①旅團號改為可選；②<strong>已閱／審核寫回</strong>（markRead / markReq）；③<strong>list 讀取受 API KEY 保護</strong>（防個人資料外洩）；④新增<strong>作品投稿</strong>工作表，接收 SCOUT APP STORE 投稿。
       </div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(GS_CODE)">複製備份</button>
@@ -379,7 +406,7 @@
             <tr><td>E</td><td>問題詳情</td><td>必填</td></tr>
             <tr><td>F</td><td>嚴重度</td><td>低 / 中 / 高 / 緊急</td></tr>
             <tr><td>G</td><td>聯絡方式</td><td>選填（用戶留底時才填）</td></tr>
-            <tr><td>H</td><td>姓名</td><td>選填；可匿名。此欄由「已閱」端點寫入，供 list 回傳</td></tr>
+            <tr><td>H</td><td>姓名</td><td>選填；可匿名</td></tr>
             <tr><td>I</td><td>狀態</td><td>可留空；已閱寫入「已閱」，未閱寫入「未閱」</td></tr>
             <tr><td>J</td><td>編號</td><td>自動產生</td></tr>
           </tbody>
@@ -397,9 +424,28 @@
             <tr><td>D</td><td>類型</td><td>建議 / 讚 / 批評 / 其他</td></tr>
             <tr><td>E</td><td>內容</td><td>必填</td></tr>
             <tr><td>F</td><td>聯絡方式</td><td>選填</td></tr>
-            <tr><td>G</td><td>姓名</td><td>選填；可匿名。由「已閱」端點寫入，供 list 回傳</td></tr>
+            <tr><td>G</td><td>姓名</td><td>選填；可匿名</td></tr>
             <tr><td>H</td><td>狀態</td><td>可留空；已閱 / 未閱</td></tr>
             <tr><td>I</td><td>編號</td><td>自動產生</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-label" style="margin-top:18px">工作表 ④ — 作品投稿（SCOUT APP STORE）</div>
+      <div style="overflow-x:auto">
+        <table class="troop-table">
+          <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
+            <tr><td>B</td><td>作品名稱</td><td>必填</td></tr>
+            <tr><td>C</td><td>作品連結</td><td>作品網址</td></tr>
+            <tr><td>D</td><td>作者名稱</td><td>投稿人</td></tr>
+            <tr><td>E</td><td>作品類型</td><td>如 apps / tools…（取自商店的 page 欄位）</td></tr>
+            <tr><td>F</td><td>分類</td><td>作品分類</td></tr>
+            <tr><td>G</td><td>作品簡介</td><td>簡介內容</td></tr>
+            <tr><td>H</td><td>標籤</td><td>自訂標籤</td></tr>
+            <tr><td>I</td><td>狀態</td><td>自動填「待審核」；可在 Sheet 直接改</td></tr>
+            <tr><td>J</td><td>編號</td><td>自動產生</td></tr>
           </tbody>
         </table>
       </div>
@@ -421,7 +467,7 @@
   <div class="section" id="tab-settings">
     <div class="card">
       <div class="card-header"><div class="card-title">🔑 API KEY（保護後台讀取）</div></div>
-      <div class="note">後台抓取 Sheet（<code>?action=list</code>）與「已閱」寫回都需要帶 API KEY，防止外人拿到 TICK 裡的姓名／聯絡方式等<strong>個人資料</strong>。<br>
+      <div class="note">API KEY 用於<strong>後台抓取 Sheet</strong>（<code>?action=list</code>，含 TICK 裡的姓名／聯絡方式等<strong>個人資料</strong>），防止外人讀走。<br>
         Key 由 <strong>GS 自己產生</strong>：Apps Script 貼上最新代碼後，在編輯器上方選「<code>setupApiKey</code>」→ 執行 → 授權，就會自動生一組 Key、存進腳本屬性，並 E-mail 給你（信裡有「一鍵填好」連結，點開就會自動填寫下方這欄）。<br>
         未設 Key 時系統照常收單，只是讀取不設防。</div>
       <div class="form-grid">
@@ -623,8 +669,8 @@ const DOCS = {
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：2.0 | 作者：系統管理員
-> 本次大改：旅團登記簡化為「旅團名 + URL + API KEY」、問題回報／意見回饋改成 TICK 看板（已閱灰字沉底）、後台讀取加 API KEY 保護
+> 版本：2.2 | 作者：系統管理員
+> 本次大改：旅團登記簡化為「旅團名 + URL + API KEY」、問題回報／意見回饋改成 TICK 看板（已閱灰字沉底）、新增 SCOUT APP STORE「作品投稿」分頁與工作表、後台讀取加 API KEY 保護
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -637,9 +683,10 @@ Scout Admin 是**純靜態後台**（部署在 Vercel，沒有自己的後端）
 2. 一鍵產生各 APP 需要的設定格式，你把 API KEY 放進 **Vercel 環境變數**即可
 3. 前端直接看「問題回報」「意見回饋」TICK：最新在最頂，點「✔ 已閱」灰字沉底
 4. TICK 可匿名，或留底姓名／聯絡方式
-5. 「已閱」狀態寫回 Google Sheet（需要 API KEY），換裝置也同步
+5. 接收 **SCOUT APP STORE**（scoutappstore.vercel.app）送來的「作品投稿」，照抄到 Sheet「作品投稿」＋ Email 通知，不漏單
+6. 已閱／審核狀態寫回 Google Sheet，換裝置「🔄 同步」也一致
 
-> ⚠️ 給其他開發者／Agent：本 APP 沒有任何 /api/ 端點，不存在 ADMIN_API_URL 這類變數。唯一後端是 Apps Script URL。
+> ⚠️ 給其他開發者／Agent：**API KEY 保護的是後台「讀取清單」（含個人資料）**；所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key**，照常接收，確保用戶交得到。
 
 ---
 
@@ -647,7 +694,7 @@ Scout Admin 是**純靜態後台**（部署在 Vercel，沒有自己的後端）
 
 把 📜 Apps Script 分頁的 **最新代碼**整段貼到 Apps Script → 儲存 → 部署 → 管理部署 → 編輯 → 版本「新版本」→ 部署（網址不變）。
 
-API KEY 由 **GS 自己產生**：編輯器上方選函式「setupApiKey」→ 執行 → 授權，就會自動生 Key、存進腳本屬性，並 E-mail 給你；信裡有「一鍵填好」連結，點開即把 Key 帶入後台「⚙️ 設定」。Key 也可加進 Vercel 環境變數（如 SCOUT_ADMIN_KEY）留底。
+API KEY 由 **GS 自己產生**：編輯器上方選函式「setupApiKey」→ 執行 → 授權，就會自動生 Key、存進腳本屬性，並 E-mail 給你。把這條 Key 加進 **本專案 Vercel 環境變數 **SCOUT_ADMIN_KEY****（後台讀取走 /api/admin 代理，Key 不落瀏覽器）；信裡另附「一鍵填好」連結，點開會把 Key 帶入後台「⚙️ 設定」當本機後備。
 
 ---
 
@@ -667,12 +714,12 @@ API KEY 由 **GS 自己產生**：編輯器上方選函式「setupApiKey」→ �
 
 - 前端直接看 TICK：**未閱最新在最頂**；點「✔ 已閱」→ 整張卡**灰字沉到底**
 - 可匿名（姓名、聯絡方式都選填），也可留底姓名＋聯絡
-- 已閱／未閱可反悔（↩ 未閱）；狀態寫回 Sheet（需 API KEY），開 Sheet 也看得到
+- 已閱／未閱可反悔（↩ 未閱）；狀態寫回 Sheet，開 Sheet 也看得到、換裝置同步
 - 用戶端可用：一行 widget（浮動按鈕）、貼表單代碼、或獨立回報頁 report.html?app=APP名
 
 ---
 
-## 五、設定格式
+## 六、設定格式
 
 vsbadge 用 troops.json（鍵＝旅團號；留空則用旅團名當鍵）：
 {
@@ -685,17 +732,23 @@ Vercel 環境變數：Name = TROOP_0082_APIKEY，Value = 旅團的 API Key（旅
 
 ---
 
-## 六、Google Sheet 工作表
+## 五、作品投稿（SCOUT APP STORE）
+
+- Scout APP STORE（scoutappstore.vercel.app）的投稿會<strong>多送一份</strong>到這裡，寫進 Sheet「作品投稿」＋ Email 通知，不影響商店本身
+- 後台「📮 作品投稿」分頁：最新在最頂、可搜尋／篩選；狀態唯讀（改狀態回 Sheet 改，再「🔄 同步」）
+
+## 七、Google Sheet 工作表
 
 - ① 申請記錄：提交時間 / 旅團號(選) / 旅團名稱 / URL / API Key / 備注 / 狀態 / 編號
 - ② 問題回報：… / 聯絡方式 / 姓名 / 狀態(未閱/已閱) / 編號
 - ③ 意見回饋：來源APP / 旅團號 / 類型 / 內容 / 聯絡方式 / 姓名 / 狀態 / 編號
+- ④ 作品投稿：提交時間 / 作品名稱 / 作品連結 / 作者名稱 / 作品類型 / 分類 / 作品簡介 / 標籤 / 狀態 / 編號
 
 工作表、標題欄會自動建立；舊表缺的「姓名」欄會自動在右側補上。
 
 ---
 
-## 七、常見問題
+## 八、常見問題
 
 **Q：同步失敗、提示 API KEY？**
 A：先照第二節執行 setupApiKey（Apps Script），再把 E-mail 裡的 Key（或點一鍵連結）帶入後台「⚙️ 設定」。
@@ -1127,7 +1180,9 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 let currentDoc = 'scout';
 
 // ============================================================
-// WEB APP URL（已部署）
+// WEB APP URL（已部署）與 API KEY 策略
+//   優先：/api/admin 代理（Key 只在 Vercel 環境變數，server 端注入，瀏覽器不接觸）
+//   退回：未部署代理／本地開發時，用本機 localStorage 的 Key 直連（安全性較低）
 // ============================================================
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
 
@@ -1470,7 +1525,7 @@ async function submitScoutFeedback() {
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 旅團登記 / 問題回報 / 意見回饋 接收系統（v2.1）
+// Scout Admin — 旅團登記 / 問題回報 / 意見回饋 / 作品投稿 接收系統（v2.2）
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
 //
 // 【部署】
@@ -1481,7 +1536,9 @@ const GS_CODE = `// ============================================================
 // 【API KEY 一次設定（保護後台讀取）】
 //   在編輯器上方選取函式「setupApiKey」→ 按「執行」→ 授權。
 //   它會自動產生一組 KEY、存進腳本屬性，並 E-mail 到 ADMIN_EMAIL。
-//   把 E-mail 裡的 KEY（或 E-mail 附上的連結）貼到 Scout Admin「⚙️ 設定」即可。
+//   之後把這個 Key 填進 Scout Admin 的 Vercel 環境變數（SCOUT_ADMIN_KEY）。
+//   注意：API KEY 只保護「讀取／已閱／審核寫回」這類後台動作；
+//   公開提交（旅團登記、問題回報、意見回饋、作品投稿）一律不用 Key，照常接收。
 //
 // 【相容性／不漏資料】
 //   收到任何「沒見過的欄位」都會自動加欄存進 Sheet；
@@ -1490,14 +1547,15 @@ const GS_CODE = `// ============================================================
 
 var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
-// 三張工作表（第一次收到資料時自動建立／自動補齊缺的欄位）
+// 四張工作表（第一次收到資料時自動建立／自動補齊缺的欄位）
 var SHEET_CFG = {
   apply:    { name: "申請記錄", headers: ["提交時間","旅團號","旅團名稱","URL","API Key","備注","狀態","編號"] },
   issue:    { name: "問題回報", headers: ["提交時間","來源APP","旅團號","標題","問題詳情","嚴重度","聯絡方式","姓名","狀態","編號"] },
-  feedback: { name: "意見回饋", headers: ["提交時間","來源APP","旅團號","類型","內容","聯絡方式","姓名","狀態","編號"] }
+  feedback: { name: "意見回饋", headers: ["提交時間","來源APP","旅團號","類型","內容","聯絡方式","姓名","狀態","編號"] },
+  appstore: { name: "作品投稿", headers: ["提交時間","作品名稱","作品連結","作者名稱","作品類型","分類","作品簡介","標籤","狀態","編號"] }
 };
 
-// 已知欄位的中文標題 ← 可能收到的原始欄位名（欄位對不上就會自動加欄）
+// 已知欄位的中文標題 ← 可能收到的原始欄位名（欄位對不上就會自動加欄儲存）
 var FIELD_MAP = {
   "提交時間": ["ts"],
   "旅團號":   ["troopId"],
@@ -1512,7 +1570,14 @@ var FIELD_MAP = {
   "聯絡方式": ["contact"],
   "姓名":     ["name"],
   "類型":     ["fbType","kind"],
-  "內容":     ["content"]
+  "內容":     ["content"],
+  "作品名稱": ["name"],
+  "作品連結": ["url"],
+  "作者名稱": ["author"],
+  "作品類型": ["page"],
+  "分類":     ["category"],
+  "作品簡介": ["desc","description"],
+  "標籤":     ["tags"]
 };
 
 // 系統欄位：不要自動加進 Sheet
@@ -1525,6 +1590,7 @@ function doPost(e) {
     var type = (data.type || "apply").toString().trim();
     if (type === "issue")    return _capture("issue",    data, "未閱");
     if (type === "feedback") return _capture("feedback", data, "未閱");
+    if (type === "appstore") return _capture("appstore", data, "待審核");
     if (type === "markReq")  return _handleMarkReq(data);
     if (type === "markRead") return _handleMarkRead(data);
     return _capture("apply", data, "待處理");
@@ -1581,6 +1647,7 @@ function _capture(key, data, defaultStatus) {
 
   var okMsg = key === "issue"    ? "問題回報已提交，多謝！管理員會盡快跟進。"
             : key === "feedback" ? "意見已收到，多謝你！"
+            : key === "appstore" ? "作品已提交審核，多謝！"
             : "登記已提交，管理員會盡快接入。";
   return _json({ status: "success", message: sheetOk ? okMsg : (okMsg + "（寫入 Sheet 失敗，已改以 Email 通知）") });
 }
@@ -1614,9 +1681,10 @@ function _emailAll(key, map, extras, ts, rawData) {
   var subject =
     key === "issue"    ? "🐛 [Scout Admin] 問題回報 — " + _s(map["標題"])
   : key === "feedback" ? "💬 [Scout Admin] 意見回饋（" + _s(map["類型"]) + "）"
+  : key === "appstore" ? "📮 [Scout Admin] 新作品投稿 — " + _s(map["作品名稱"])
   : "📥 [Scout Admin] 新旅團登記 — " + _s(map["旅團名稱"]);
 
-  var body = "請到 Scout Admin APP 查看並處理（資料已同步登記到 Google Sheet）。\\n\\n━━━━━━━━━━━━━━━━━━\\n";
+  var body = "請到對應系統查看並處理（資料已同步登記到 Google Sheet）。\\n\\n━━━━━━━━━━━━━━━━━━\\n";
   for (var i = 0; i < cfg.headers.length; i++) {
     var h = cfg.headers[i];
     if (h === "編號" || h === "狀態") continue;
@@ -1633,7 +1701,6 @@ function _emailAll(key, map, extras, ts, rawData) {
 
 // ---------- 已閱 / 未閱 寫回 ----------
 function _handleMarkRead(data) {
-  if (!_checkKey(data)) return _json({ status: "error", message: "API KEY 錯誤" });
   var rowId = (data.id || "").toString().trim();
   var put   = data.status === "read" ? "已閱" : "未閱";
   if (!rowId) return _json({ status: "error", message: "缺少編號" });
@@ -1644,7 +1711,6 @@ function _handleMarkRead(data) {
 
 // ---------- 申請審核狀態寫回 ----------
 function _handleMarkReq(data) {
-  if (!_checkKey(data)) return _json({ status: "error", message: "API KEY 錯誤" });
   var rowId = (data.id || "").toString().trim();
   var put   = (data.status || "待處理").toString().trim();
   if (!rowId) return _json({ status: "error", message: "缺少編號" });
@@ -1663,9 +1729,9 @@ function setupApiKey() {
   var msg =
     "你的 Scout Admin 後台 API KEY：\\n\\n" + key + "\\n\\n" +
     "用法：\\n" +
-    "1) 把上面這條 KEY 貼進 Scout Admin「⚙️ 設定」分頁（或直接點下面的連結）。\\n" +
-    "2) 也可把它加進 Vercel 環境變數留底（名稱例如 SCOUT_ADMIN_KEY）。\\n\\n" +
-    "一鍵填好（會在瀏覽器儲存 KEY）：\\nhttps://scout-admin-blue.vercel.app/?key=" + key;
+    "1) 把上面這條 Key 加進 Scout Admin 的 Vercel 環境變數，名稱 SCOUT_ADMIN_KEY（保護後台讀取，不落瀏覽器）。\\n" +
+    "2) 也可在 Scout Admin「⚙️ 設定」填同一條（本機後備，多裝置時可用）。\\n\\n" +
+    "一鍵填好（本機後備）：\\nhttps://scout-admin-blue.vercel.app/?key=" + key;
   try { MailApp.sendEmail({ to: ADMIN_EMAIL, subject: "🔑 [Scout Admin] 後台 API KEY", body: msg }); Logger.log("已寄出 API KEY 到 " + ADMIN_EMAIL); }
   catch (e) { Logger.log(msg); }
   Logger.log("API_KEY = " + key);
@@ -1748,7 +1814,7 @@ function doGet(e) {
   var action = (p.action || "").toString().trim();
   if (action === "list") {
     if (!_checkKey(p)) return _json({ status: "error", message: "缺少或錯誤的 API KEY" });
-    return _json({ status: "ok", applications: _readSheet("apply"), issues: _readSheet("issue"), feedbacks: _readSheet("feedback") });
+    return _json({ status: "ok", applications: _readSheet("apply"), issues: _readSheet("issue"), feedbacks: _readSheet("feedback"), appstore: _readSheet("appstore") });
   }
   return _json({ status: "ok", message: "Scout Admin Web App 正常運行" });
 }
@@ -1771,7 +1837,9 @@ let state = {
   requests: [],
   issues: [],
   feedbacks: [],
+  appstore: [],
   filter: 'all',
+  appStoreFilter: 'all',
   issueFilter: 'all',
   feedbackFilter: 'all',
   settings: { apikey: '' }
@@ -1788,12 +1856,14 @@ function load() {
       state.requests = d.requests || [];
       state.issues = d.issues || [];
       state.feedbacks = d.feedbacks || [];
+      state.appstore  = d.appstore || [];
       state.settings = d.settings || { apikey: '' };
     }
   } catch(e){}
   // 遷移舊資料：把舊的問題／回饋「流程狀態」接到未閱，舊申請擋住缺旅團名的空行
   state.issues = state.issues.filter(x => x && x.title);
   state.feedbacks = state.feedbacks.filter(x => x && x.content);
+  state.appstore  = state.appstore.filter(x => x && x.name);
   state.issues.forEach(x => { if (x.status !== 'read') x.status = 'unread'; });
   state.feedbacks.forEach(x => { if (x.status !== 'read') x.status = 'unread'; });
   refreshAll();
@@ -1804,6 +1874,7 @@ function save() {
     requests: state.requests,
     issues: state.issues,
     feedbacks: state.feedbacks,
+    appstore: state.appstore,
     settings: state.settings
   }));
 }
@@ -1818,6 +1889,7 @@ function switchTab(id, btn) {
   btn.classList.add('active');
   if (id === 'issues')   renderIssues();
   if (id === 'feedback') renderFeedbacks();
+  if (id === 'appstore') renderAppStore();
   if (id === 'gs')      renderGsTab();
   if (id === 'docs')    renderDoc(currentDoc);
   if (id === 'settings') loadSettings();
@@ -1842,7 +1914,7 @@ function renderRequests() {
   });
   list.sort((a,b) => {
     const o = { pending:0, done:1, rejected:2 };
-    return (o[a.status]||9)-(o[b.status]||9) || new Date(b.createdAt)-new Date(a.createdAt);
+    return (o[a.status]||9)-(o[b.status]||9) || dateSortable(b.createdAt)-dateSortable(a.createdAt);
   });
   const el = document.getElementById('requestList');
   el.innerHTML = list.length
@@ -2132,7 +2204,7 @@ function renderIssues() {
   list.sort((a,b) => {
     const ra = issueIsRead(a) ? 1 : 0;
     const rb = issueIsRead(b) ? 1 : 0;
-    return (ra-rb) || (new Date(b.createdAt)-new Date(a.createdAt));
+    return (ra-rb) || (dateSortable(b.createdAt)-dateSortable(a.createdAt));
   });
   const el = document.getElementById('issueList');
   el.innerHTML = list.length
@@ -2257,7 +2329,7 @@ function renderFeedbacks() {
   list.sort((a,b) => {
     const ra = feedbackIsRead(a) ? 1 : 0;
     const rb = feedbackIsRead(b) ? 1 : 0;
-    return (ra-rb) || (new Date(b.createdAt)-new Date(a.createdAt));
+    return (ra-rb) || (dateSortable(b.createdAt)-dateSortable(a.createdAt));
   });
   const el = document.getElementById('feedbackList');
   el.innerHTML = list.length
@@ -2361,26 +2433,142 @@ function updateFeedbackStats() {
 }
 
 // ============================================================
+// APP STORE（作品投稿）
+// ============================================================
+function setAppStoreFilter(f, btn) {
+  state.appStoreFilter = f;
+  document.querySelectorAll('#tab-appstore .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAppStore();
+}
+
+function appStoreStatus(r) {
+  const s = String(r.status || '');
+  if (s === '已上架' || s === '上架' || s === 'done' || s === 'approved') return 'done';
+  if (s === '已拒絕' || s === '拒絕' || s === 'rejected') return 'rejected';
+  return 'pending';
+}
+
+function renderAppStore() {
+  const q = (document.getElementById('appstoreSearch')?.value || '').toLowerCase();
+  let list = state.appstore.filter(r => {
+    const st = appStoreStatus(r);
+    const mf = state.appStoreFilter === 'all' ? true : (state.appStoreFilter === st);
+    const ms = !q || [r.name, r.url, r.author, r.page, r.category, r.description, r.tags]
+      .join(' ').toLowerCase().includes(q);
+    return mf && ms;
+  });
+  list.sort((a,b) => dateSortable(b.createdAt) - dateSortable(a.createdAt));
+  const el = document.getElementById('appstoreList');
+  el.innerHTML = list.length
+    ? list.map(buildAppStoreCard).join('')
+    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的作品投稿</div>';
+  updateAppStoreStats();
+}
+
+function buildAppStoreCard(r) {
+  const st = appStoreStatus(r);
+  const bmap = { pending:'badge-pending', done:'badge-done', rejected:'badge-rejected' };
+  const btxt = { pending:'待審核', done:'已上架', rejected:'已拒絕' };
+  return `
+<div class="app-card ${st}" id="scard_${escHtml(r.id)}">
+  <div class="app-card-top">
+    <div class="app-meta">
+      <div class="app-troop">📮 ${escHtml(r.name || '（無名稱）')}</div>
+      <div class="app-detail">
+        <strong>作品連結：</strong><a href="${escHtml(r.url || '#')}" target="_blank" rel="noopener" style="word-break:break-all">${escHtml(r.url || '—')}</a><br>
+        <strong>作者：</strong>${escHtml(r.author || '（無作者）')}　<strong>類型：</strong>${escHtml(r.page || '—')}　<strong>分類：</strong>${escHtml(r.category || '—')}<br>
+        <strong>簡介：</strong><span style="white-space:pre-wrap">${escHtml(r.description || '')}</span><br>
+        ${r.tags ? `<strong>標籤：</strong><code>${escHtml(r.tags)}</code><br>` : ''}
+        <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <span class="badge ${bmap[st]}">${btxt[st]}</span>
+      <div class="app-actions">
+        <button class="btn btn-danger" onclick="deleteAppStore('${escJs(r.id)}')">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function updateAppStoreStats() {
+  const s = state.appstore;
+  document.getElementById('astatPending').textContent = s.filter(r=>appStoreStatus(r)==='pending').length;
+  document.getElementById('astatDone').textContent    = s.filter(r=>appStoreStatus(r)==='done').length;
+  document.getElementById('astatTotal').textContent   = s.length;
+}
+
+function deleteAppStore(id) {
+  if (!confirm('確定刪除這筆作品投稿？')) return;
+  state.appstore = state.appstore.filter(x => x.id !== id);
+  save(); renderAppStore(); toast('🗑 已刪除');
+}
+
+// ============================================================
 // SYNC FROM GOOGLE SHEET（Apps Script ?action=list）
 function sheetDate(v){
   if (v == null || v === '') return '';
   const d = new Date(v);
   return isNaN(d) ? String(v) : d.toLocaleString('zh-HK');
 }
+// 排序用：把各種時間格式（ISO、zh-HK「20/9/2026 上午10:00:00」…）轉毫秒
+function dateSortable(v) {
+  if (v == null || v === '') return 0;
+  if (v instanceof Date) { const t = v.getTime(); return isNaN(t) ? 0 : t; }
+  const t = Date.parse(String(v));
+  if (!isNaN(t)) return t;
+  const mm = String(v).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(上午|下午)?\s*(\d{1,2}):(\d{2}):(\d{2})/);
+  if (!mm) return 0;
+  let h = parseInt(mm[5], 10) || 0;
+  if (mm[4] === '下午' && h < 12) h += 12;
+  if (mm[4] === '上午' && h === 12) h = 0;
+  const mi = parseInt(mm[6], 10) || 0;
+  const ss = parseInt(mm[7], 10) || 0;
+  return new Date(parseInt(mm[3],10), parseInt(mm[2],10)-1, parseInt(mm[1],10), h, mi, ss).getTime();
+}
+
+
+// 用 /api/admin 代理（Key 只在 Vercel 環境變數）。回傳 {ok, data}。
+// 失敗（未部署代理／無 JSON）時回 {ok:false}，交由呼叫端退回直連。
+async function viaProxy(method, action, payload) {
+  try {
+    const res = method === 'GET'
+      ? await fetch('/api/admin?action=' + encodeURIComponent(action), { method: 'GET', cache: 'no-store' })
+      : await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('json')) return { ok: false };
+    const data = await res.json();
+    return { ok: true, data };
+  } catch (e) { return { ok: false }; }
+}
 
 async function syncFromSheet() {
-  const apikey = getApiKey();
-  if (!apikey) {
-    toast('🔑 請先在「⚙️ 設定」填入 API KEY（或照 Apps Script 分頁教學建立）');
-  }
   toast('🔄 同步中…');
+  // 1) 優先走 Vercel 代理（Key 在 server，最安全）
+  let used = 'proxy', data = null;
+  const proxied = await viaProxy('GET', 'list');
+  if (proxied.ok) data = proxied.data;
+  else {
+    // 2) 退回本機 Key 直連
+    const apikey = getApiKey();
+    if (!apikey) { toast('❌ 同步失敗：代理不可用，且未設本機 API KEY。請部署 /api/admin 並設 SCOUT_ADMIN_KEY，或到「⚙️ 設定」填 Key。'); return; }
+    used = 'direct';
+    try {
+      const res = await fetch(WEBAPP_URL + '?action=list&apikey=' + encodeURIComponent(apikey), { method: 'GET' });
+      data = await res.json();
+    } catch (err) { console.error(err); }
+  }
+  if (!data) { toast('❌ 同步失敗：無法讀取 Google Sheet。'); return; }
   try {
-    const url = WEBAPP_URL + '?action=list' + (apikey ? '&apikey=' + encodeURIComponent(apikey) : '');
-    const res  = await fetch(url, { method: 'GET' });
-    const data = await res.json();
     if (data.status !== 'ok') throw new Error(data.message || 'Sheet 端回應異常');
 
-    let addA = 0, addI = 0, addF = 0;
+    let addA = 0, addI = 0, addF = 0, addS = 0;
 
     (data.applications || []).forEach(row => {
       const troopId   = String(row['旅團號'] ?? '').trim();
@@ -2454,8 +2642,45 @@ async function syncFromSheet() {
       addF++;
     });
 
+    (data.appstore || []).forEach(row => {
+
+      const name = String(row['作品名稱'] ?? '').trim();
+      if (!name) return;
+
+      const id = String(row['編號'] || '');
+
+      const dupById   = id && state.appstore.some(a => a.id === id);
+
+      const createdAt = sheetDate(row['提交時間']);
+
+      const dupByComp = !id && state.appstore.some(a => a.name === name && a.createdAt === createdAt);
+
+      if (dupById || dupByComp) return;
+      state.appstore.unshift({
+
+        id: id || newLocalId(),
+        name,
+
+        url:         String(row['作品連結'] ?? ''),
+
+        author:      String(row['作者名稱'] ?? ''),
+
+        page:        String(row['作品類型'] ?? ''),
+
+        category:    String(row['分類'] ?? ''),
+
+        description: String(row['作品簡介'] ?? ''),
+
+        tags:        String(row['標籤'] ?? ''),
+
+        status:      String(row['狀態'] ?? '待審核'),
+        createdAt
+      });
+      addS++;
+    });
+
     save(); refreshAll();
-    toast(`✅ 同步完成：旅團 +${addA}、問題 +${addI}、回饋 +${addF}`);
+    toast(`✅ 同步完成：旅團 +${addA}、問題 +${addI}、回饋 +${addF}、作品 +${addS}`);
   } catch (err) {
     console.error('sync failed', err);
     toast('❌ 同步失敗：' + (err.message || err));
@@ -2472,15 +2697,22 @@ function getApiKey() {
 }
 
 async function pushReqStatusRemote(id, status) {
-  const apikey = getApiKey();
-  if (!id || !apikey) return;
+  if (!id) return;
   const label = status === 'rejected' ? '已拒絕' : (status === 'done' ? '已接入' : '待處理');
+  const payload = { type: 'markReq', id, status: label };
+  // 1) 優先走 Vercel 代理（Key 在 server）
+  const proxied = await viaProxy('POST', 'markReq', payload);
+  if (proxied.ok && proxied.data && proxied.data.status === 'ok') return;
+  if (proxied.ok && proxied.data && proxied.data.status === 'error') { console.log('markReq 失敗', proxied.data.message); return; }
+  // 2) 退回本機 Key 直連
+  const apikey = getApiKey();
+  if (!apikey) return;
   try {
     await fetch(WEBAPP_URL, {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ type: 'markReq', id, status: label, apikey })
+      body: JSON.stringify({ ...payload, apikey })
     });
   } catch (e) { console.log('markReq 寫回失敗', e); }
 }
@@ -2492,6 +2724,14 @@ function pushRequestStatus(id) {
 }
 
 async function pushMarkRead(status, id) {
+  // 1) 優先走 Vercel 代理（Key 在 server）
+  const proxied = await viaProxy('POST', 'markRead', { type: 'markRead', status, id });
+  if (proxied.ok && proxied.data && proxied.data.status === 'ok') { toast('🔄 已標記（已寫回 Google Sheet）'); return; }
+  if (proxied.ok && proxied.data && proxied.data.status === 'error') {
+    toast('⚠️ 寫回 Sheet 失敗：' + (proxied.data.message || 'API KEY 錯誤'));
+    return;
+  }
+  // 2) 退回本機 Key 直連
   const apikey = getApiKey();
   if (!apikey) {
     toast(`⚠️ 本機已標記，但尚未寫回 Google Sheet（未設 API KEY）。`);
@@ -2527,11 +2767,12 @@ function updateStats() {
   const troops  = state.requests.filter(r=>r.status==='done').length;
   const issueOpen = state.issues.filter(r=>!issueIsRead(r)).length;
   const fbOpen    = state.feedbacks.filter(r=>!feedbackIsRead(r)).length;
+  const appOpen   = state.appstore.filter(r=>appStoreStatus(r)==='pending').length;
   document.getElementById('statPending').textContent = pending;
   document.getElementById('statDone').textContent    = done;
   document.getElementById('statRejected').textContent= rejected;
   document.getElementById('statTroops').textContent  = troops;
-  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已接入 ${done} | 旅團 ${troops} | 問題未閱 ${issueOpen} | 回饋未閱 ${fbOpen}`;
+  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已接入 ${done} | 旅團 ${troops} | 問題未閱 ${issueOpen} | 回饋未閱 ${fbOpen} | 作品待審 ${appOpen}`;
 }
 
 // ============================================================
@@ -2546,13 +2787,13 @@ function saveSettings() {
   toast(state.settings.apikey ? '💾 API KEY 已本機儲存（僅存於這部裝置）' : '💾 已清除 API KEY');
   refreshAll();
 }
-function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.settings={apikey:''}; refreshAll(); toast('🗑 已清除'); }
+function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.appstore=[]; state.settings={apikey:''}; refreshAll(); toast('🗑 已清除'); }
 
 // ============================================================
 // EXPORT / IMPORT
 // ============================================================
 function exportData() {
-  const blob=new Blob([JSON.stringify({requests:state.requests,issues:state.issues,feedbacks:state.feedbacks,settings:state.settings},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({requests:state.requests,issues:state.issues,feedbacks:state.feedbacks,appstore:state.appstore,settings:state.settings},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scout-admin-backup.json'; a.click();
 }
 function importData(evt) {
@@ -2561,7 +2802,7 @@ function importData(evt) {
   reader.onload=e=>{
     try {
       const d=JSON.parse(e.target.result);
-      state.requests=d.requests||[]; state.issues=d.issues||[]; state.feedbacks=d.feedbacks||[]; state.settings=d.settings||{apikey:''};
+      state.requests=d.requests||[]; state.issues=d.issues||[]; state.feedbacks=d.feedbacks||[]; state.appstore=d.appstore||[]; state.settings=d.settings||{apikey:''};
       save(); refreshAll(); toast('📥 匯入成功');
     } catch(err){ alert('匯入失敗：'+err.message); }
   };
@@ -2656,7 +2897,7 @@ function toast(msg){ const el=document.getElementById('toast'); el.textContent=m
 // ============================================================
 // REFRESH ALL
 // ============================================================
-function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); }
+function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); renderAppStore(); }
 
 // ============================================================
 // KEY BOOTSTRAP（?key= 或 #key= 自動帶入 API KEY）
@@ -2678,7 +2919,7 @@ function bootstrapKeyFromUrl() {
 // ============================================================
 // BOOT with demo data
 // ============================================================
-window.addEventListener('DOMContentLoaded',()=>{
+window.addEventListener('DOMContentLoaded', () => {
   load();
   bootstrapKeyFromUrl();
   renderGsTab();
