@@ -376,6 +376,17 @@
     </div>
 
     <div class="card">
+      <div class="card-header"><div class="card-title">⚡ 一行 widget（v1.1 推薦 — 最少改動接入）</div></div>
+      <div class="note">不想逐個 APP 貼兩大段表單？改用<strong>浮動按鈕 widget</strong>：一行 <code>&lt;script&gt;</code> 同時內建 🐛 問題回報 + 💬 意見回饋兩個表單（右下角浮動「回報 · 意見」按鈕）。APP <strong>完全不需要後端</strong>，一行貼在 <code>&lt;/body&gt;</code> 前即可。</div>
+      <div class="gs-block">
+        <button class="json-copy-btn" onclick="copyText(WIDGET_SNIPPET)">複製</button>
+        <span id="widgetSnippet"></span>
+      </div>
+      <div class="note" style="margin-top:10px;margin-bottom:0">🔗 或者用<strong>零改動獨立回報頁</strong> — 一行代碼都不用貼，分享連結 / QR 即可（<code>?app=</code> 後面換成 APP 名）：<br>
+        <code>https://scout-admin-blue.vercel.app/report.html?app=圖書館</code></div>
+    </div>
+
+    <div class="card">
       <div class="card-header"><div class="card-title">📋 Google Sheet 欄位說明</div></div>
       <div class="note">Script 會在<strong>第一次收到資料時自動建立工作表和標題欄</strong>，無需手動建立。<br>⚠️ <strong>v1.1 升級提醒：</strong>問題回報 / 意見回饋功能需要先把上方「Apps Script 代碼」重新貼到 Google Sheet 的 Apps Script 並<strong>重新部署（編輯部署 → 版本：新版本）</strong>才會生效；舊的申請功能不受影響。</div>
 
@@ -1507,6 +1518,11 @@ async function submitScoutApply() {
 <\/script>`;
 
 // ============================================================
+// 一行 widget 嵌入片段（浮動回報 / 回饋按鈕）
+// ============================================================
+const WIDGET_SNIPPET = '<script src="https://scout-admin-blue.vercel.app/widget.js" data-app="你的APP名"><\/script>';
+
+// ============================================================
 // 問題回報表單代碼（嵌入各 APP）
 // ============================================================
 const FRONTEND_ISSUE_CODE = `<!-- ============================================================
@@ -2209,6 +2225,7 @@ function renderGsTab() {
   document.getElementById('frontendCodeSpan').textContent     = FRONTEND_CODE;
   document.getElementById('issueCodeSpan').textContent        = FRONTEND_ISSUE_CODE;
   document.getElementById('feedbackCodeSpan').textContent     = FRONTEND_FEEDBACK_CODE;
+  document.getElementById('widgetSnippet').textContent        = WIDGET_SNIPPET;
 }
 
 // ============================================================

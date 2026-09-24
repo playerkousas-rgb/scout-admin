@@ -252,13 +252,26 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 
 **不需要事先在 Admin 登記任何 APP 的 URL。** 接收端固定，任何 APP 貼上表單即自動接入。
 
-每開發一個新 APP，在其設定 / 幫助頁面加入三份表單：
+### 推薦做法：一行 widget（改動最少）
+
+每個 APP 只要在 `</body>` 前加一行，就同時擁有 🐛 問題回報 + 💬 意見回饋浮動按鈕（不需要後端）：
+
+```html
+<script src="https://scout-admin-blue.vercel.app/widget.js" data-app="APP名"></script>
+```
+
+或用**零改動**的獨立回報頁（分享連結 / QR 即可，適合圖書館這類沒有後端的系統）：
+
+```
+https://scout-admin-blue.vercel.app/report.html?app=APP名
+```
+
+### 備選做法：貼完整表單
 
 1. 前往 **Scout Admin APP → 📜 Apps Script 分頁**
-2. 逐一「複製」並貼入新 APP：
-   - **📋 前端申請表單** — 旅團接入申請（欄位已齊全，URL 已預設）
-   - **🐛 問題回報表單** — 貼上後把 `SOURCE_APP` 改成新 APP 名稱
-   - **💬 意見回饋表單** — 同上，改 `SOURCE_APP`
+2. 找到三份表單代碼，逐一「複製」並貼入新 APP：
+   - **📋 前端申請表單** — 旅團接入申請（欄位已齊全，URL 已預設；有後端的才需要）
+   - **🐛 問題回報表單 / 💬 意見回饋表單** — 貼上後把 `SOURCE_APP` 改成新 APP 名稱
 3. 完成。提交會自動寫入 Google Sheet 並 Email 通知你
 
 ---
