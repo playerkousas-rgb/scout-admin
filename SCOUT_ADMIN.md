@@ -257,10 +257,13 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 每個 APP 只要在 `</body>` 前加一行，就同時擁有 🐛 問題回報 + 💬 意見回饋浮動按鈕（不需要後端）：
 
 ```html
-<script src="https://scout-admin-blue.vercel.app/widget.js" data-app="APP名"></script>
+<script src="https://scout-admin-blue.vercel.app/widget.js"></script>
 ```
 
-或用**零改動**的獨立回報頁（分享連結 / QR 即可，適合圖書館這類沒有後端的系統）：
+- **來源免填**：預設自動帶入所在網頁的網址（`location.hostname`，通常就是該 APP 的 Vercel 域名）— 收到回報即知是哪個項目，**不用報名字、不用登記**
+- 要覆蓋才加：`data-app="Vercel項目名"`（例如用項目名取代自訂網域）
+- **新 APP 不用向 Admin 登記任何東西**；將刪除的 APP 也不用從任何清單移除
+- 或用**零改動**的獨立回報頁（分享連結 / QR 即可）：
 
 ```
 https://scout-admin-blue.vercel.app/report.html?app=APP名

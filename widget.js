@@ -2,7 +2,12 @@
  * Scout Admin — 問題回報 / 意見回饋 浮動表單 widget（v1.1）
  *
  * 嵌入方式（一行搞定，APP 不需要有任何後端）：
- *   <script src="https://scout-admin-blue.vercel.app/widget.js" data-app="你的APP名"><\/script>
+ *   <script src="https://scout-admin-blue.vercel.app/widget.js"><\/script>
+ *
+ * 「來源」預設自動帶入所在網頁的網址（location.hostname —
+ * 通常就是你 Vercel 項目的域名，一眼認得是邊個 APP）。
+ * 想手動指定（例如用 Vercel 項目名覆蓋自訂網域）才加：
+ *   <script src="https://scout-admin-blue.vercel.app/widget.js" data-app="vs_portal"><\/script>
  *
  * 或用獨立回報頁（完全不用改 APP，分享連結即可）：
  *   https://scout-admin-blue.vercel.app/report.html?app=你的APP名
@@ -17,9 +22,14 @@
   var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec';
 
   var cur = document.currentScript;
+  var ADMIN_HOSTS = { 'scout-admin-blue.vercel.app': 1, 'localhost': 1, '127.0.0.1': 1 };
+  // 來源優先序：data-app 手動指定 > ?app= 查詢參數 > 自動帶入所在網頁 hostname
+  //（hostname 通常就是 Vercel 項目域名 — 對管理員而言比自訂名字更有用）
+  // Admin 自己的域名不自動採用（避免 report.html 錄成 scout-admin 自己）
   var SOURCE_APP = (cur && cur.getAttribute('data-app')) ||
     (typeof location !== 'undefined' && new URLSearchParams(location.search).get('app')) ||
-    '';
+    (typeof location !== 'undefined' && /^https?:$/.test(location.protocol) &&
+      location.hostname && !ADMIN_HOSTS[location.hostname] ? location.hostname : '');
   var AUTO_OPEN = !!(cur && cur.getAttribute('data-auto'));
 
   // ---------- 樣式 ----------

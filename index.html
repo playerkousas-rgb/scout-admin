@@ -377,7 +377,7 @@
 
     <div class="card">
       <div class="card-header"><div class="card-title">⚡ 一行 widget（v1.1 推薦 — 最少改動接入）</div></div>
-      <div class="note">不想逐個 APP 貼兩大段表單？改用<strong>浮動按鈕 widget</strong>：一行 <code>&lt;script&gt;</code> 同時內建 🐛 問題回報 + 💬 意見回饋兩個表單（右下角浮動「回報 · 意見」按鈕）。APP <strong>完全不需要後端</strong>，一行貼在 <code>&lt;/body&gt;</code> 前即可。</div>
+      <div class="note">不想逐個 APP 貼兩大段表單？改用<strong>浮動按鈕 widget</strong>：一行 <code>&lt;script&gt;</code> 同時內建 🐛 問題回報 + 💬 意見回饋兩個表單（右下角浮動「回報 · 意見」按鈕）。APP <strong>完全不需要後端</strong>，一行貼在 <code>&lt;/body&gt;</code> 前即可。<br><strong>來源免填</strong>：預設自動帶入所在網頁網址（= 你 Vercel 項目域名），收到回報一眼認得是哪個 APP；要覆蓋才加 <code>data-app="項目名"</code>。<strong>新 APP 不用在這裡登記任何東西</strong>。</div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(WIDGET_SNIPPET)">複製</button>
         <span id="widgetSnippet"></span>
@@ -1519,8 +1519,9 @@ async function submitScoutApply() {
 
 // ============================================================
 // 一行 widget 嵌入片段（浮動回報 / 回饋按鈕）
+// 來源自動帶入所在網頁 hostname（= Vercel 域名），data-app 可省略
 // ============================================================
-const WIDGET_SNIPPET = '<script src="https://scout-admin-blue.vercel.app/widget.js" data-app="你的APP名"><\/script>';
+const WIDGET_SNIPPET = '<script src="https://scout-admin-blue.vercel.app/widget.js"><\/script>';
 
 // ============================================================
 // 問題回報表單代碼（嵌入各 APP）
