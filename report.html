@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>回報問題 · 意見回饋 — Scout</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    font-family: 'Segoe UI','PingFang HK','Noto Sans HK',sans-serif;
+    background: #f4f1ec; color: #1a1a1a; padding: 24px;
+  }
+  .card {
+    background: #fff; border: 1px solid #e2ddd5; border-radius: 14px;
+    padding: 36px 28px; max-width: 460px; width: 100%;
+    box-shadow: 0 2px 12px rgba(0,0,0,.10);
+  }
+  h1 { font-size: 1.3rem; color: #8B0000; margin: 0 0 6px; }
+  .app-chip {
+    display: inline-block; background: #fff8e1; border: 1px solid #ffe082;
+    color: #5d4037; border-radius: 20px; padding: 4px 14px;
+    font-size: .85rem; font-weight: 600; margin: 10px 0 4px;
+  }
+  p { color: #6b6b6b; font-size: .88rem; line-height: 1.7; }
+  .hint { font-size: .78rem; color: #999; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>⚜️ 問題回報 · 意見回饋</h1>
+    <div class="app-chip" id="appChip">載入中…</div>
+    <p>遇到問題或有建議？<br>按右下角的「🐛💬 回報 · 意見」按鈕即可提交，管理員會盡快處理。</p>
+    <div class="hint">Scout Admin — 統一回報入口</div>
+  </div>
+
+<script>
+  // 來源 APP：由 ?app= 決定（例：report.html?app=圖書館）
+  (function () {
+    var app = new URLSearchParams(location.search).get('app') || '';
+    document.getElementById('appChip').textContent = app ? '來源 APP：' + app : '來源 APP：未指定';
+    document.title = (app ? app + ' — ' : '') + '回報問題 · 意見回饋';
+  })();
+</script>
+<script src="widget.js" data-app="" data-auto="1"></script>
+</body>
+</html>

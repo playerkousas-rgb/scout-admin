@@ -46,6 +46,9 @@
   .badge-pending  { background:#fff3e0; color:var(--orange); border:1px solid #ffcc80; }
   .badge-done     { background:#e8f5e9; color:var(--green);  border:1px solid #a5d6a7; }
   .badge-rejected { background:#fce4ec; color:#c62828;       border:1px solid #ef9a9a; }
+  .badge-blue     { background:#e3f2fd; color:#1565c0;       border:1px solid #90caf9; }
+  .badge-muted    { background:#eeeeee; color:#666666;       border:1px solid #cccccc; }
+  .badge-gold     { background:#fff8e1; color:#8a6d00;       border:1px solid #ffe082; }
 
   .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
   @media(max-width:640px){ .stats-row{grid-template-columns:repeat(2,1fr);} }
@@ -144,6 +147,8 @@
 
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('requests',this)">📥 新申請</button>
+    <button class="tab-btn" onclick="switchTab('issues',this)">🐛 問題回報</button>
+    <button class="tab-btn" onclick="switchTab('feedback',this)">💬 意見回饋</button>
     <button class="tab-btn" onclick="switchTab('troops',this)">📋 旅團總覽</button>
     <button class="tab-btn" onclick="switchTab('json',this)">🔧 JSON / TS 產生器</button>
     <button class="tab-btn" onclick="switchTab('gs',this)">📜 Apps Script</button>
@@ -163,7 +168,10 @@
     <div class="card">
       <div class="card-header">
         <div class="card-title">📥 旅團接入申請</div>
-        <button class="btn btn-gold" onclick="showAddModal()">＋ 手動新增</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
+          <button class="btn btn-gold" onclick="showAddModal()">＋ 手動新增</button>
+        </div>
       </div>
       <div class="filter-bar">
         <input type="text" id="searchInput" placeholder="搜尋旅團名稱、編號…" oninput="renderRequests()" />
@@ -173,6 +181,64 @@
         <button class="filter-btn" onclick="setFilter('rejected',this)">已拒絕</button>
       </div>
       <div class="app-list" id="requestList"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 1b: ISSUES ===== -->
+  <div class="section" id="tab-issues">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="istatNew">0</div><div class="stat-lbl">待處理</div></div>
+      <div class="stat-card"><div class="stat-num" id="istatWorking" style="color:var(--blue)">0</div><div class="stat-lbl">處理中</div></div>
+      <div class="stat-card"><div class="stat-num" id="istatResolved" style="color:var(--green)">0</div><div class="stat-lbl">已解決</div></div>
+      <div class="stat-card"><div class="stat-num" id="istatTotal" style="color:var(--gold)">0</div><div class="stat-lbl">總回報</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🐛 問題回報</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
+          <button class="btn btn-gold" onclick="showAddIssueModal()">＋ 手動新增</button>
+        </div>
+      </div>
+      <div class="note">各 APP 用戶提交的問題回報。在 📜 Apps Script 分頁把「問題回報表單」貼入各 APP 後，回報會自動送到 Google Sheet 並 Email 通知你，再按「🔄 同步」載入本頁。處理狀態在本頁維護。</div>
+      <div class="filter-bar">
+        <input type="text" id="issueSearch" placeholder="🔍 搜尋標題 / 來源 APP / 旅團號…" oninput="renderIssues()" />
+        <button class="filter-btn active" onclick="setIssueFilter('all',this)">全部</button>
+        <button class="filter-btn" onclick="setIssueFilter('new',this)">待處理</button>
+        <button class="filter-btn" onclick="setIssueFilter('working',this)">處理中</button>
+        <button class="filter-btn" onclick="setIssueFilter('resolved',this)">已解決</button>
+        <button class="filter-btn" onclick="setIssueFilter('closed',this)">已關閉</button>
+      </div>
+      <div class="app-list" id="issueList"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 1c: FEEDBACK ===== -->
+  <div class="section" id="tab-feedback">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="fstatNew">0</div><div class="stat-lbl">新回饋</div></div>
+      <div class="stat-card"><div class="stat-num" id="fstatReviewing" style="color:var(--blue)">0</div><div class="stat-lbl">檢視中</div></div>
+      <div class="stat-card"><div class="stat-num" id="fstatAdopted" style="color:var(--green)">0</div><div class="stat-lbl">已採納</div></div>
+      <div class="stat-card"><div class="stat-num" id="fstatTotal" style="color:var(--gold)">0</div><div class="stat-lbl">總回饋</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💬 意見回饋</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
+          <button class="btn btn-gold" onclick="showAddFeedbackModal()">＋ 手動新增</button>
+        </div>
+      </div>
+      <div class="note">用戶的建議、稱讚與批評。把 📜 Apps Script 分頁的「意見回饋表單」貼入各 APP 即可收集，按「🔄 同步」載入。處理狀態在本頁維護（新回饋 → 檢視中 → 已採納 / 不採納）。</div>
+      <div class="filter-bar">
+        <input type="text" id="feedbackSearch" placeholder="🔍 搜尋內容 / 來源 APP / 旅團號…" oninput="renderFeedbacks()" />
+        <button class="filter-btn active" onclick="setFeedbackFilter('all',this)">全部</button>
+        <button class="filter-btn" onclick="setFeedbackFilter('new',this)">新回饋</button>
+        <button class="filter-btn" onclick="setFeedbackFilter('reviewing',this)">檢視中</button>
+        <button class="filter-btn" onclick="setFeedbackFilter('adopted',this)">已採納</button>
+        <button class="filter-btn" onclick="setFeedbackFilter('declined',this)">不採納</button>
+      </div>
+      <div class="app-list" id="feedbackList"></div>
     </div>
   </div>
 
@@ -292,8 +358,39 @@
     </div>
 
     <div class="card">
+      <div class="card-header"><div class="card-title">🐛 問題回報表單代碼（嵌入各 APP）— v1.1 新增</div></div>
+      <div class="note">複製貼入任何 APP 的「回報問題 / 幫助」頁面。貼上後只需把代碼內的 <code>SOURCE_APP</code> 改成該 APP 名稱。用戶提交會寫入 Sheet「問題回報」工作表並 Email 通知你，到對應分頁按「🔄 同步」載入。</div>
+      <div class="gs-block">
+        <button class="json-copy-btn" onclick="copyText(FRONTEND_ISSUE_CODE)">複製</button>
+        <span id="issueCodeSpan"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">💬 意見回饋表單代碼（嵌入各 APP）— v1.1 新增</div></div>
+      <div class="note">複製貼入任何 APP 的設定 / 關於頁面。同樣只需改 <code>SOURCE_APP</code>。用戶提交會寫入 Sheet「意見回饋」工作表並 Email 通知你。</div>
+      <div class="gs-block">
+        <button class="json-copy-btn" onclick="copyText(FRONTEND_FEEDBACK_CODE)">複製</button>
+        <span id="feedbackCodeSpan"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">⚡ 一行 widget（v1.1 推薦 — 最少改動接入）</div></div>
+      <div class="note">不想逐個 APP 貼兩大段表單？改用<strong>浮動按鈕 widget</strong>：一行 <code>&lt;script&gt;</code> 同時內建 🐛 問題回報 + 💬 意見回饋兩個表單（右下角浮動「回報 · 意見」按鈕）。APP <strong>完全不需要後端</strong>，一行貼在 <code>&lt;/body&gt;</code> 前即可。<br><strong>來源免填</strong>：預設自動帶入所在網頁網址（= 你 Vercel 項目域名），收到回報一眼認得是哪個 APP；要覆蓋才加 <code>data-app="項目名"</code>。<strong>新 APP 不用在這裡登記任何東西</strong>。</div>
+      <div class="gs-block">
+        <button class="json-copy-btn" onclick="copyText(WIDGET_SNIPPET)">複製</button>
+        <span id="widgetSnippet"></span>
+      </div>
+      <div class="note" style="margin-top:10px;margin-bottom:0">🔗 或者用<strong>零改動獨立回報頁</strong> — 一行代碼都不用貼，分享連結 / QR 即可（<code>?app=</code> 後面換成 APP 名）：<br>
+        <code>https://scout-admin-blue.vercel.app/report.html?app=圖書館</code></div>
+    </div>
+
+    <div class="card">
       <div class="card-header"><div class="card-title">📋 Google Sheet 欄位說明</div></div>
-      <div class="note">Script 會在<strong>第一次收到申請時自動建立工作表和標題欄</strong>，無需手動建立。</div>
+      <div class="note">Script 會在<strong>第一次收到資料時自動建立工作表和標題欄</strong>，無需手動建立。<br>⚠️ <strong>v1.1 升級提醒：</strong>問題回報 / 意見回饋功能需要先把上方「Apps Script 代碼」重新貼到 Google Sheet 的 Apps Script 並<strong>重新部署（編輯部署 → 版本：新版本）</strong>才會生效；舊的申請功能不受影響。</div>
+
+      <div class="section-label">工作表 ① — 申請記錄</div>
       <div style="overflow-x:auto">
         <table class="troop-table">
           <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
@@ -305,7 +402,43 @@
             <tr><td>E</td><td>API Key</td><td>旅團的 API Key</td></tr>
             <tr><td>F</td><td>接入 APP</td><td>vsbadge / scoutsystem / 兩者</td></tr>
             <tr><td>G</td><td>備注</td><td>選填</td></tr>
-            <tr><td>H</td><td>狀態</td><td>自動填「待處理」</td></tr>
+            <tr><td>H</td><td>狀態</td><td>自動填「待處理」（審核狀態以本 APP 為準）</td></tr>
+            <tr><td>I</td><td>編號</td><td>系統自動產生，供同步去重用</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-label" style="margin-top:18px">工作表 ② — 問題回報（v1.1）</div>
+      <div style="overflow-x:auto">
+        <table class="troop-table">
+          <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
+            <tr><td>B</td><td>來源 APP</td><td>如 vsbadge</td></tr>
+            <tr><td>C</td><td>旅團號</td><td>選填</td></tr>
+            <tr><td>D</td><td>標題</td><td>必填</td></tr>
+            <tr><td>E</td><td>問題詳情</td><td>必填</td></tr>
+            <tr><td>F</td><td>嚴重度</td><td>低 / 中 / 高 / 緊急</td></tr>
+            <tr><td>G</td><td>聯絡方式</td><td>選填</td></tr>
+            <tr><td>H</td><td>狀態</td><td>自動填「待處理」（進度以本 APP 為準）</td></tr>
+            <tr><td>I</td><td>編號</td><td>系統自動產生</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-label" style="margin-top:18px">工作表 ③ — 意見回饋（v1.1）</div>
+      <div style="overflow-x:auto">
+        <table class="troop-table">
+          <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
+            <tr><td>B</td><td>來源 APP</td><td>如 vsbadge</td></tr>
+            <tr><td>C</td><td>旅團號</td><td>選填</td></tr>
+            <tr><td>D</td><td>類型</td><td>建議 / 讚 / 批評 / 其他</td></tr>
+            <tr><td>E</td><td>內容</td><td>必填</td></tr>
+            <tr><td>F</td><td>聯絡方式</td><td>選填</td></tr>
+            <tr><td>G</td><td>狀態</td><td>自動填「新回饋」（進度以本 APP 為準）</td></tr>
+            <tr><td>H</td><td>編號</td><td>系統自動產生</td></tr>
           </tbody>
         </table>
       </div>
@@ -400,6 +533,116 @@
   </div>
 </div>
 
+<!-- ===== ISSUE MODAL ===== -->
+<div id="issueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto">
+  <div style="background:#fff;max-width:560px;margin:40px auto;border-radius:14px;padding:28px;position:relative">
+    <button onclick="closeIssueModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:20px" id="issueModalTitle">新增問題回報</div>
+    <input type="hidden" id="im_id" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label>來源 APP</label>
+        <input type="text" id="im_source" placeholder="vsbadge / scoutsystem / …" />
+      </div>
+      <div class="form-group">
+        <label>旅團號</label>
+        <input type="text" id="im_troopId" placeholder="選填，如 0082" />
+      </div>
+      <div class="form-group full">
+        <label>標題 *</label>
+        <input type="text" id="im_title" placeholder="例：打卡紀錄無法儲存" />
+      </div>
+      <div class="form-group full">
+        <label>問題詳情 *</label>
+        <textarea id="im_desc" placeholder="發生了什麼？如何重現？"></textarea>
+      </div>
+      <div class="form-group">
+        <label>嚴重度</label>
+        <select id="im_severity">
+          <option value="低">低</option>
+          <option value="中" selected>中</option>
+          <option value="高">高</option>
+          <option value="緊急">緊急</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>聯絡方式</label>
+        <input type="text" id="im_contact" placeholder="選填，電郵 / 電話" />
+      </div>
+      <div class="form-group">
+        <label>狀態</label>
+        <select id="im_status">
+          <option value="new">待處理</option>
+          <option value="working">處理中</option>
+          <option value="resolved">已解決</option>
+          <option value="closed">已關閉</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>管理員備註</label>
+        <input type="text" id="im_note" placeholder="選填" />
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeIssueModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveIssueModal()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FEEDBACK MODAL ===== -->
+<div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto">
+  <div style="background:#fff;max-width:560px;margin:40px auto;border-radius:14px;padding:28px;position:relative">
+    <button onclick="closeFeedbackModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:20px" id="feedbackModalTitle">新增意見回饋</div>
+    <input type="hidden" id="fm_id" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label>來源 APP</label>
+        <input type="text" id="fm_source" placeholder="vsbadge / scoutsystem / …" />
+      </div>
+      <div class="form-group">
+        <label>旅團號</label>
+        <input type="text" id="fm_troopId" placeholder="選填，如 0082" />
+      </div>
+      <div class="form-group">
+        <label>類型</label>
+        <select id="fm_type">
+          <option value="建議">建議</option>
+          <option value="讚">讚</option>
+          <option value="批評">批評</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>狀態</label>
+        <select id="fm_status">
+          <option value="new">新回饋</option>
+          <option value="reviewing">檢視中</option>
+          <option value="adopted">已採納</option>
+          <option value="declined">不採納</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>內容 *</label>
+        <textarea id="fm_content" placeholder="用戶的建議、稱讚或批評…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>聯絡方式</label>
+        <input type="text" id="fm_contact" placeholder="選填，電郵 / 電話" />
+      </div>
+      <div class="form-group">
+        <label>管理員備註</label>
+        <input type="text" id="fm_note" placeholder="選填" />
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeFeedbackModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveFeedbackModal()">💾 儲存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // MD 說明書內容
@@ -410,7 +653,7 @@ const DOCS = {
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 旅團接入管理中心 說明書
 
-> 版本：1.0 | 作者：系統管理員
+> 版本：1.1 | 作者：系統管理員 | 新增：🐛 問題回報、💬 意見回饋、🔄 Sheet 同步
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -423,15 +666,18 @@ Scout Admin 是一個**靜態管理後台**，用於：
 2. 查看和審核申請
 3. 自動產生各 APP 所需的 JSON / TypeScript 設定格式
 4. 讓你一鍵複製貼入各 APP 的設定檔完成接入
+5. 收集各 APP 用戶的**問題回報**（v1.1 新增）
+6. 收集各 APP 用戶的**意見回饋**（v1.1 新增）
+7. 一鍵從 Google Sheet **同步**最新申請 / 回報 / 回饋（v1.1 新增）
 
 **不需要伺服器、不需要資料庫。** 申請資料存在你的 Google Sheet，審核狀態存在瀏覽器 localStorage。
 
 > ⚠️ **給其他開發者 / Agent 看的重要說明**
 >
 > Scout Admin APP 是**純靜態 HTML**，部署在 Vercel 上。
-> **它沒有任何後端 API 端點**，不存在 `/api/submit`、`/api/register` 或任何伺服器路由。
+> **它沒有任何後端 API 端點**，不存在 \`/api/submit\`、\`/api/register\` 或任何伺服器路由。
 >
-> 申請的唯一接收端是 **Google Apps Script Web App**（URL 已固定寫死在代碼內），並非 `scout-admin-blue.vercel.app` 的任何路徑。不需要、也不應修改任何 `ADMIN_API_URL` 類的變數。
+> 申請的唯一接收端是 **Google Apps Script Web App**（URL 已固定寫死在代碼內），並非 \`scout-admin-blue.vercel.app\` 的任何路徑。不需要、也不應修改任何 \`ADMIN_API_URL\` 類的變數。
 
 ---
 
@@ -442,7 +688,7 @@ Scout Admin 是一個**靜態管理後台**，用於：
 │           Scout Admin APP（你的後台）            │
 │     https://scout-admin-blue.vercel.app/         │
 │                                                  │
-│  📥 新申請  📋 旅團總覽  🔧 產生器  📜 Script  │
+│  📥 申請  🐛 問題回報  💬 意見回饋  📋 總覽  🔧 產生器  📜 Script │
 └────────────────────┬────────────────────────────┘
                      │ 資料來自
                      ▼
@@ -481,6 +727,41 @@ Scout Admin 是一個**靜態管理後台**，用於：
 - 勾了 **vsbadge** → \`troops.json\` 片段
 - 勾了 **scoutsystem** → \`troops.ts\` 片段 + Vercel 環境變數
 - 兩個都勾 → 兩者都顯示
+
+**🔄 同步 Sheet**：從 Google Sheet 拉取各 APP 提交的申請（按編號 / 旅團去重，已存在的不會重複匯入）。
+
+---
+
+### 🐛 問題回報（v1.1 新增）
+
+收集各 APP 用戶提交的問題。流程：各 APP 貼上「問題回報表單」→ 用戶提交 → 寫入 Sheet「問題回報」+ Email 通知 → 你在本分頁按「🔄 同步」載入 → 處理。
+
+| 操作 | 說明 |
+|------|------|
+| 🔄 同步 Sheet | 載入 Google Sheet 最新回報 |
+| ＋ 手動新增 | 電話 / 聊天收到的問題直接登記 |
+| ▶ 處理中 / ✔ 已解決 / ✕ 關閉 | 更新處理進度 |
+| ↩ 重開 | 已解決 / 已關閉的問題重新打開 |
+| ✏️ 編輯 / 🗑 刪除 | 修改或移除記錄（可加管理員備註） |
+
+**篩選**：全部 / 待處理 / 處理中 / 已解決 / 已關閉；可按標題、來源 APP、旅團號搜尋。
+**欄位**：來源 APP、旅團號（選填）、標題、問題詳情、嚴重度（低 / 中 / 高 / 緊急）、聯絡方式。
+
+---
+
+### 💬 意見回饋（v1.1 新增）
+
+收集建議、稱讚與批評。流程與問題回報相同（表單 → Sheet「意見回饋」→ 同步）。
+
+| 操作 | 說明 |
+|------|------|
+| 🔄 同步 Sheet | 載入 Google Sheet 最新回饋 |
+| ＋ 手動新增 | 直接登記 |
+| ▶ 檢視中 / ✔ 已採納 / ✕ 不採納 | 更新處理進度 |
+| ↩ 重設 | 回到「新回饋」 |
+| ✏️ 編輯 / 🗑 刪除 | 修改或移除記錄（可加管理員備註） |
+
+**類型**：💡 建議 / 👍 讚 / 👎 批評 / 📝 其他。
 
 ---
 
@@ -593,14 +874,18 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-## 六、將申請表單加入新 APP
+## 六、將表單加入新 APP（含問題回報 / 意見回饋）
 
-每開發一個新的第 3 級元件，都要在 APP 設定頁面加入申請表單：
+**不需要事先在 Admin 登記任何 APP 的 URL。** 接收端 URL 固定寫死在表單代碼裡，任何 APP 只要貼上表單就會自動送到同一個 Apps Script。
+
+每開發一個新 APP，在其設定 / 幫助頁面加入：
 
 1. 前往 **Scout Admin APP → 📜 Apps Script 分頁**
-2. 找到「前端申請表單代碼」
-3. 點「複製」
-4. 貼入新 APP 設定頁面的 HTML
+2. 找到三份表單代碼，逐一「複製」並貼入新 APP：
+   - **📋 前端申請表單** — 旅團接入申請
+   - **🐛 問題回報表單** — 貼上後把代碼內 \`SOURCE_APP\` 改成新 APP 名稱
+   - **💬 意見回饋表單** — 同上，改 \`SOURCE_APP\`
+3. 完成。提交會自動寫入 Google Sheet 並 Email 通知你
 
 ---
 
@@ -609,8 +894,12 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 | 資料 | 儲存位置 | 說明 |
 |------|---------|------|
 | 申請記錄審核狀態 | 瀏覽器 localStorage | 換瀏覽器需重新匯入 |
-| 原始申請資料 | Google Sheet | 永久保存，不受瀏覽器影響 |
+| 問題回報進度（v1.1） | 瀏覽器 localStorage | 同上 |
+| 意見回饋進度（v1.1） | 瀏覽器 localStorage | 同上 |
+| 原始申請 / 回報 / 回饋 | Google Sheet | 永久保存，不受瀏覽器影響 |
 | Email 通知記錄 | Gmail | 永久保存 |
+
+💡 v1.1 起可在各分頁按 **🔄 同步 Sheet** 直接載入 Sheet 資料，不用再手動抄。
 
 ---
 
@@ -620,8 +909,8 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 |------|------|
 | 執行身分 | 管理員帳號（你） |
 | 存取權限 | 所有人 |
-| 通知 Email | 見 Apps Script `ADMIN_EMAIL` 變數 |
-| Google Sheet 工作表 | 申請記錄 |
+| 通知 Email | 見 Apps Script \`ADMIN_EMAIL\` 變數 |
+| Google Sheet 工作表 | 申請記錄、問題回報、意見回饋 |
 
 **健康檢查**（應回傳 \`{"status":"ok"}\`）：
 打開 Apps Script 分頁複製的 Web App URL 在瀏覽器開啟即可測試。
@@ -630,7 +919,7 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 
 ## 九、Google Sheet 欄位說明
 
-工作表名稱：\`申請記錄\`（第一次收到申請時自動建立）
+### 工作表 ①：\`申請記錄\`（第一次收到申請時自動建立）
 
 | 欄 | 欄位名稱 | 說明 |
 |----|---------|------|
@@ -642,10 +931,46 @@ Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
 | F | 接入 APP | vsbadge / scoutsystem / 兩者 |
 | G | 備注 | 選填 |
 | H | 狀態 | 自動填「待處理」 |
+| I | 編號 | 系統自動產生，供同步去重（v1.1） |
+
+### 工作表 ②：\`問題回報\`（v1.1）
+
+| 欄 | 欄位名稱 | 說明 |
+|----|---------|------|
+| A | 提交時間 | 自動填入 |
+| B | 來源 APP | 如 vsbadge |
+| C | 旅團號 | 選填 |
+| D | 標題 | 必填 |
+| E | 問題詳情 | 必填 |
+| F | 嚴重度 | 低 / 中 / 高 / 緊急 |
+| G | 聯絡方式 | 選填 |
+| H | 狀態 | 自動填「待處理」 |
+| I | 編號 | 系統自動產生 |
+
+### 工作表 ③：\`意見回饋\`（v1.1）
+
+| 欄 | 欄位名稱 | 說明 |
+|----|---------|------|
+| A | 提交時間 | 自動填入 |
+| B | 來源 APP | 如 vsbadge |
+| C | 旅團號 | 選填 |
+| D | 類型 | 建議 / 讚 / 批評 / 其他 |
+| E | 內容 | 必填 |
+| F | 聯絡方式 | 選填 |
+| G | 狀態 | 自動填「新回饋」 |
+| H | 編號 | 系統自動產生 |
+
+> 處理進度以 Admin APP 本地狀態為準；Sheet 保存原始提交資料。
 
 ---
 
 ## 十、常見問題
+
+**Q：新 APP 要先在 Admin 登記它的 URL 嗎？還是寫好就自動登記？**
+A：**都不用登記。** 接收端是同一個固定的 Apps Script URL（寫死在表單代碼內）。其他 APP 只要把 📜 Apps Script 分頁的表單代碼貼進去，提交就會自動送到你的 Google Sheet，按「🔄 同步」即出現在 Admin。沒有「逐個 APP 登記 URL」這一步——要改的只有表單代碼裡的 \`SOURCE_APP\` 名稱（方便你分辨回報來自哪個 APP）。
+
+**Q：問題回報 / 意見回饋收不到？**
+A：① 先把 📜 Apps Script 分頁的最新代碼重新貼到 Google Sheet 的 Apps Script 並**重新部署**（部署 → 編輯部署 → 版本：新版本）；② 確認各 APP 已貼上對應表單；③ 到分頁按「🔄 同步 Sheet」。注意：v1.1 部署前，舊 Script 不认识 \`type: issue/feedback\`，相關提交不會入表。
 
 **Q：旅團提交後我沒收到 Email？**
 A：檢查 Gmail 垃圾郵件夾。或直接打開 Google Sheet 查看「申請記錄」工作表。
@@ -1193,79 +1518,431 @@ async function submitScoutApply() {
 <\/script>`;
 
 // ============================================================
+// 一行 widget 嵌入片段（浮動回報 / 回饋按鈕）
+// 來源自動帶入所在網頁 hostname（= Vercel 域名），data-app 可省略
+// ============================================================
+const WIDGET_SNIPPET = '<script src="https://scout-admin-blue.vercel.app/widget.js"><\/script>';
+
+// ============================================================
+// 問題回報表單代碼（嵌入各 APP）
+// ============================================================
+const FRONTEND_ISSUE_CODE = `<!-- ============================================================
+  Scout Admin — 問題回報表單（v1.1）
+  嵌入位置：任何旅團 APP 的「回報問題 / 幫助 / 除錯」頁面
+  用法：只需把下方 SOURCE_APP 改成你的 APP 名稱，其餘不用動
+  ============================================================ -->
+
+<div id="scoutIssueWrap" style="
+  background:#fff; border:1px solid #e2ddd5;
+  border-radius:12px; padding:24px;
+  max-width:480px; margin:0 auto;
+  font-family:'Segoe UI','PingFang HK',sans-serif;">
+
+  <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">🐛 回報問題</h3>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">遇到問題？告訴我們，管理員會盡快跟進。</p>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">標題 *</label>
+      <input id="issue_title" placeholder="例：打卡紀錄無法儲存"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">問題詳情 *</label>
+      <textarea id="issue_desc" placeholder="發生了什麼？如何重現？"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.88rem;resize:vertical;min-height:80px"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">嚴重度</label>
+        <select id="issue_severity"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem">
+          <option value="低">低</option>
+          <option value="中" selected>中</option>
+          <option value="高">高</option>
+          <option value="緊急">緊急</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團號（選填）</label>
+        <input id="issue_troopId" placeholder="0082"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+      </div>
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">聯絡方式（選填）</label>
+      <input id="issue_contact" placeholder="電郵 / 電話，方便回覆你"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    </div>
+
+    <button onclick="submitScoutIssue()"
+      style="background:#8B0000;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;margin-top:4px">
+      提交問題回報
+    </button>
+
+    <div id="issue_msg" style="font-size:.85rem;text-align:center;min-height:20px"></div>
+
+  </div>
+</div>
+
+<script>
+const _SCOUT_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
+const SOURCE_APP = "vsbadge"; // ← 改成你的 APP 名稱
+
+async function submitScoutIssue() {
+  var title    = document.getElementById('issue_title').value.trim();
+  var desc     = document.getElementById('issue_desc').value.trim();
+  var severity = document.getElementById('issue_severity').value;
+  var troopId  = document.getElementById('issue_troopId').value.trim();
+  var contact  = document.getElementById('issue_contact').value.trim();
+  var msg      = document.getElementById('issue_msg');
+
+  if (!title || !desc) {
+    msg.style.color = '#c62828';
+    msg.textContent = '⚠️ 請填寫標題和問題詳情（*）';
+    return;
+  }
+
+  msg.style.color = '#888';
+  msg.textContent = '提交中…';
+
+  try {
+    await fetch(_SCOUT_ADMIN_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'issue', sourceApp: SOURCE_APP, title, desc, severity, troopId, contact })
+    });
+    msg.style.color = '#1a7a3c';
+    msg.textContent = '✅ 問題回報已提交，多謝！管理員會盡快跟進。';
+    ['issue_title','issue_desc','issue_troopId','issue_contact']
+      .forEach(id => document.getElementById(id).value = '');
+  } catch (err) {
+    msg.style.color = '#c62828';
+    msg.textContent = '❌ 提交失敗：' + err.message;
+  }
+}
+<\/script>`;
+
+// ============================================================
+// 意見回饋表單代碼（嵌入各 APP）
+// ============================================================
+const FRONTEND_FEEDBACK_CODE = `<!-- ============================================================
+  Scout Admin — 意見回饋表單（v1.1）
+  嵌入位置：任何旅團 APP 的設定 / 關於 / 意見頁面
+  用法：只需把下方 SOURCE_APP 改成你的 APP 名稱，其餘不用動
+  ============================================================ -->
+
+<div id="scoutFeedbackWrap" style="
+  background:#fff; border:1px solid #e2ddd5;
+  border-radius:12px; padding:24px;
+  max-width:480px; margin:0 auto;
+  font-family:'Segoe UI','PingFang HK',sans-serif;">
+
+  <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">💬 意見回饋</h3>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">你的建議和批評，是系統進步的動力。</p>
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:6px">類型</label>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.88rem;cursor:pointer">
+          <input type="radio" name="fb_type" value="建議" checked style="accent-color:#8B0000"> 💡 建議
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.88rem;cursor:pointer">
+          <input type="radio" name="fb_type" value="讚" style="accent-color:#8B0000"> 👍 讚
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.88rem;cursor:pointer">
+          <input type="radio" name="fb_type" value="批評" style="accent-color:#8B0000"> 👎 批評
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.88rem;cursor:pointer">
+          <input type="radio" name="fb_type" value="其他" style="accent-color:#8B0000"> 📝 其他
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">內容 *</label>
+      <textarea id="feedback_content" placeholder="想說什麼就寫什麼…"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.88rem;resize:vertical;min-height:90px"></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團號（選填）</label>
+        <input id="feedback_troopId" placeholder="0082"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+      </div>
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">聯絡方式（選填）</label>
+        <input id="feedback_contact" placeholder="電郵 / 電話"
+          style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+      </div>
+    </div>
+
+    <button onclick="submitScoutFeedback()"
+      style="background:#8B0000;color:#fff;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:.95rem;cursor:pointer;margin-top:4px">
+      提交意見回饋
+    </button>
+
+    <div id="feedback_msg" style="font-size:.85rem;text-align:center;min-height:20px"></div>
+
+  </div>
+</div>
+
+<script>
+const _SCOUT_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
+const SOURCE_APP = "vsbadge"; // ← 改成你的 APP 名稱
+
+async function submitScoutFeedback() {
+  var type    = document.querySelector('input[name="fb_type"]:checked').value;
+  var content = document.getElementById('feedback_content').value.trim();
+  var troopId = document.getElementById('feedback_troopId').value.trim();
+  var contact = document.getElementById('feedback_contact').value.trim();
+  var msg     = document.getElementById('feedback_msg');
+
+  if (!content) {
+    msg.style.color = '#c62828';
+    msg.textContent = '⚠️ 請填寫回饋內容（*）';
+    return;
+  }
+
+  msg.style.color = '#888';
+  msg.textContent = '提交中…';
+
+  try {
+    await fetch(_SCOUT_ADMIN_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'feedback', sourceApp: SOURCE_APP, fbType: type, content, troopId, contact })
+    });
+    msg.style.color = '#1a7a3c';
+    msg.textContent = '✅ 意見已收到，多謝你！';
+    document.getElementById('feedback_content').value = '';
+    document.getElementById('feedback_troopId').value = '';
+    document.getElementById('feedback_contact').value = '';
+  } catch (err) {
+    msg.style.color = '#c62828';
+    msg.textContent = '❌ 提交失敗：' + err.message;
+  }
+}
+<\/script>`;
+
+// ============================================================
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 旅團接入申請接收系統
+// Scout Admin — 申請 / 問題回報 / 意見回饋 接收系統（v1.1）
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
 // 使用方式：
 //   擴充功能 → Apps Script → 貼上 → 儲存
-//   部署 → 新增部署 → 網頁應用程式
-//   執行身分：我 | 存取：所有人
+//   部署 → 編輯部署 → 版本：新版本 → 部署
+//   （首次部署：新增部署 → 網頁應用程式，執行身分：我，存取：所有人）
 // ============================================================
 
-var ADMIN_EMAIL = "playerkousas@hotmail.com";
-var SHEET_NAME  = "申請記錄";
+var ADMIN_EMAIL = \"playerkousas@hotmail.com\";
 
-// ---------- 接收申請 POST ----------
+// 三張工作表的名稱與標題欄（第一次收到資料時自動建立）
+var SHEET_CFG = {
+  apply: {
+    name: \"申請記錄\",
+    headers: [\"提交時間\",\"旅團號\",\"旅團名稱\",\"Apps Script URL\",\"API Key\",\"接入APP\",\"備注\",\"狀態\",\"編號\"]
+  },
+  issue: {
+    name: \"問題回報\",
+    headers: [\"提交時間\",\"來源APP\",\"旅團號\",\"標題\",\"問題詳情\",\"嚴重度\",\"聯絡方式\",\"狀態\",\"編號\"]
+  },
+  feedback: {
+    name: \"意見回饋\",
+    headers: [\"提交時間\",\"來源APP\",\"旅團號\",\"類型\",\"內容\",\"聯絡方式\",\"狀態\",\"編號\"]
+  }
+};
+
+// ---------- 接收 POST（依 type 分流，缺省 type=apply 相容舊表單） ----------
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-
-    var troopId    = (data.troopId    || "").toString().trim();
-    var troopName  = (data.troopName  || "").toString().trim();
-    var backendUrl = (data.backendUrl || "").toString().trim();
-    var apiKey     = (data.apiKey     || "").toString().trim();
-    var apps       = (data.apps || []).join(", ");
-    var note       = (data.note       || "").toString().trim();
-    var ts         = new Date();
-
-    if (!troopId || !troopName) {
-      return _json({ status: "error", message: "旅團號和名稱為必填" });
-    }
-
-    // 自動建立工作表（第一次執行時）
-    var ss    = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_NAME);
-    if (!sheet) {
-      sheet = ss.insertSheet(SHEET_NAME);
-      var hdr = sheet.getRange("A1:H1");
-      hdr.setValues([["提交時間","旅團號","旅團名稱","Apps Script URL","API Key","接入APP","備注","狀態"]]);
-      hdr.setFontWeight("bold");
-      hdr.setBackground("#8B0000");
-      hdr.setFontColor("#ffffff");
-      sheet.setFrozenRows(1);
-    }
-
-    sheet.appendRow([ts, troopId, troopName, backendUrl, apiKey, apps, note, "待處理"]);
-
-    // Email 通知
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: "📥 [Scout Admin] 新旅團申請 — " + troopName + "（" + troopId + "）",
-      body:
-        "有新旅團提交接入申請，請到 Scout Admin APP 查看並處理。\\n\\n" +
-        "━━━━━━━━━━━━━━━━━━\\n" +
-        "旅團號：" + troopId   + "\\n" +
-        "旅團名稱：" + troopName  + "\\n" +
-        "接入 APP：" + apps      + "\\n" +
-        "Apps Script URL：" + backendUrl + "\\n" +
-        "API Key：" + apiKey    + "\\n" +
-        (note ? "備注：" + note + "\\n" : "") +
-        "提交時間：" + ts       + "\\n" +
-        "━━━━━━━━━━━━━━━━━━\\n"
-    });
-
-    return _json({ status: "success", message: "申請已成功提交！管理員將盡快處理。" });
-
+    var type = (data.type || \"apply\").toString().trim();
+    if (type === \"issue\")    return _handleIssue(data);
+    if (type === \"feedback\") return _handleFeedback(data);
+    return _handleApply(data);
   } catch (err) {
-    return _json({ status: "error", message: err.toString() });
+    return _json({ status: \"error\", message: err.toString() });
   }
 }
 
-// ---------- 健康檢查 GET ----------
+// ---------- ① 接入申請 ----------
+function _handleApply(data) {
+  var troopId    = (data.troopId    || \"\").toString().trim();
+  var troopName  = (data.troopName  || \"\").toString().trim();
+  var backendUrl = (data.backendUrl || \"\").toString().trim();
+  var apiKey     = (data.apiKey     || \"\").toString().trim();
+  var apps       = (data.apps || []).join(\", \");
+  var note       = (data.note || \"\").toString().trim();
+  var ts         = new Date();
+
+  if (!troopId || !troopName) {
+    return _json({ status: \"error\", message: \"旅團號和名稱為必填\" });
+  }
+
+  var sheet = _sheet(\"apply\");
+  var id    = Utilities.getUuid();
+  sheet.appendRow([ts, troopId, troopName, backendUrl, apiKey, apps, note, \"待處理\", id]);
+
+  try {
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: \"📥 [Scout Admin] 新旅團申請 — \" + troopName + \"（\" + troopId + \"）\",
+      body:
+        \"有新旅團提交接入申請，請到 Scout Admin APP 查看並處理。\\n\\n\" +
+        \"━━━━━━━━━━━━━━━━━━\\n\" +
+        \"旅團號：\"     + troopId    + \"\\n\" +
+        \"旅團名稱：\"   + troopName  + \"\\n\" +
+        \"接入 APP：\"   + apps       + \"\\n\" +
+        \"Apps Script URL：\" + backendUrl + \"\\n\" +
+        \"API Key：\"    + apiKey     + \"\\n\" +
+        (note ? \"備注：\" + note + \"\\n\" : \"\") +
+        \"提交時間：\"   + ts         + \"\\n\" +
+        \"━━━━━━━━━━━━━━━━━━\\n\"
+    });
+  } catch (mailErr) { /* Email 失敗不影響收單 */ }
+
+  return _json({ status: \"success\", message: \"申請已成功提交！管理員將盡快處理。\" });
+}
+
+// ---------- ② 問題回報 ----------
+function _handleIssue(data) {
+  var title     = (data.title     || \"\").toString().trim();
+  var desc      = (data.desc      || \"\").toString().trim();
+  var sourceApp = (data.sourceApp || \"\").toString().trim();
+  var troopId   = (data.troopId   || \"\").toString().trim();
+  var severity  = (data.severity  || \"中\").toString().trim();
+  var contact   = (data.contact   || \"\").toString().trim();
+  var ts        = new Date();
+
+  if (!title || !desc) {
+    return _json({ status: \"error\", message: \"標題和問題詳情為必填\" });
+  }
+
+  var sheet = _sheet(\"issue\");
+  var id    = Utilities.getUuid();
+  sheet.appendRow([ts, sourceApp, troopId, title, desc, severity, contact, \"待處理\", id]);
+
+  try {
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: \"🐛 [Scout Admin] 問題回報 — \" + title,
+      body:
+        \"收到新的問題回報，請到 Scout Admin APP → 🐛 問題回報 處理。\\n\\n\" +
+        \"━━━━━━━━━━━━━━━━━━\\n\" +
+        \"來源 APP：\" + sourceApp + \"\\n\" +
+        \"標題：\"     + title     + \"\\n\" +
+        \"嚴重度：\"   + severity  + \"\\n\" +
+        \"旅團號：\"   + (troopId || \"—\") + \"\\n\" +
+        \"問題詳情：\\n\" + desc + \"\\n\" +
+        (contact ? \"聯絡方式：\" + contact + \"\\n\" : \"\") +
+        \"提交時間：\" + ts + \"\\n\" +
+        \"━━━━━━━━━━━━━━━━━━\\n\"
+    });
+  } catch (mailErr) { /* Email 失敗不影響收單 */ }
+
+  return _json({ status: \"success\", message: \"問題回報已提交，多謝！管理員會盡快跟進。\" });
+}
+
+// ---------- ③ 意見回饋 ----------
+function _handleFeedback(data) {
+  var content   = (data.content   || \"\").toString().trim();
+  var fbType    = (data.fbType    || \"建議\").toString().trim();
+  var sourceApp = (data.sourceApp || \"\").toString().trim();
+  var troopId   = (data.troopId   || \"\").toString().trim();
+  var contact   = (data.contact   || \"\").toString().trim();
+  var ts        = new Date();
+
+  if (!content) {
+    return _json({ status: \"error\", message: \"回饋內容為必填\" });
+  }
+
+  var sheet = _sheet(\"feedback\");
+  var id    = Utilities.getUuid();
+  sheet.appendRow([ts, sourceApp, troopId, fbType, content, contact, \"新回饋\", id]);
+
+  try {
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: \"💬 [Scout Admin] 意見回饋（\" + fbType + \"）\",
+      body:
+        \"收到新的意見回饋，請到 Scout Admin APP → 💬 意見回饋 處理。\\n\\n\" +
+        \"━━━━━━━━━━━━━━━━━━\\n\" +
+        \"來源 APP：\" + sourceApp + \"\\n\" +
+        \"類型：\"     + fbType    + \"\\n\" +
+        \"旅團號：\"   + (troopId || \"—\") + \"\\n\" +
+        \"內容：\\n\" + content + \"\\n\" +
+        (contact ? \"聯絡方式：\" + contact + \"\\n\" : \"\") +
+        \"提交時間：\" + ts + \"\\n\" +
+        \"━━━━━━━━━━━━━━━━━━\\n\"
+    });
+  } catch (mailErr) { /* Email 失敗不影響收單 */ }
+
+  return _json({ status: \"success\", message: \"意見已收到，多謝你！\" });
+}
+
+// ---------- 取得／建立工作表（含補上舊表缺的欄） ----------
+function _sheet(key) {
+  var cfg   = SHEET_CFG[key];
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(cfg.name);
+  if (!sheet) sheet = ss.insertSheet(cfg.name);
+
+  if (sheet.getLastRow() === 0) {
+    var hdr = sheet.getRange(1, 1, 1, cfg.headers.length);
+    hdr.setValues([cfg.headers]);
+    hdr.setFontWeight(\"bold\");
+    hdr.setBackground(\"#8B0000\");
+    hdr.setFontColor(\"#ffffff\");
+    sheet.setFrozenRows(1);
+  } else {
+    var have = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (have.length < cfg.headers.length) {
+      sheet.getRange(1, have.length + 1, 1, cfg.headers.length - have.length)
+           .setValues([cfg.headers.slice(have.length)]);
+    }
+  }
+  return sheet;
+}
+
+// ---------- 讀取工作表（給 Admin「🔄 同步」用） ----------
+function _readSheet(key) {
+  var cfg   = SHEET_CFG[key];
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(cfg.name);
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var values  = sheet.getDataRange().getValues();
+  var headers = values.shift();
+  return values.map(function (row) {
+    var obj = {};
+    for (var i = 0; i < headers.length; i++) obj[headers[i]] = row[i];
+    return obj;
+  });
+}
+
+// ---------- GET：健康檢查；?action=list 回傳全部資料 ----------
 function doGet(e) {
-  return _json({ status: "ok", message: "Scout Admin Web App 正常運行" });
+  var action = (e && e.parameter && e.parameter.action) || \"\";
+  if (action === \"list\") {
+    return _json({
+      status: \"ok\",
+      applications: _readSheet(\"apply\"),
+      issues:       _readSheet(\"issue\"),
+      feedbacks:    _readSheet(\"feedback\")
+    });
+  }
+  return _json({ status: \"ok\", message: \"Scout Admin Web App 正常運行\" });
 }
 
 // ---------- 工具 ----------
@@ -1280,7 +1957,11 @@ function _json(obj) {
 // ============================================================
 let state = {
   requests: [],
+  issues: [],
+  feedbacks: [],
   filter: 'all',
+  issueFilter: 'all',
+  feedbackFilter: 'all',
   settings: { webappUrl: '' }
 };
 
@@ -1293,6 +1974,8 @@ function load() {
     if (raw) {
       const d = JSON.parse(raw);
       state.requests = d.requests || [];
+      state.issues = d.issues || [];
+      state.feedbacks = d.feedbacks || [];
       state.settings = d.settings || { webappUrl: '' };
     }
   } catch(e){}
@@ -1302,6 +1985,8 @@ function load() {
 function save() {
   localStorage.setItem('scoutAdmin_v2', JSON.stringify({
     requests: state.requests,
+    issues: state.issues,
+    feedbacks: state.feedbacks,
     settings: state.settings
   }));
 }
@@ -1314,6 +1999,8 @@ function switchTab(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + id).classList.add('active');
   btn.classList.add('active');
+  if (id === 'issues')   renderIssues();
+  if (id === 'feedback') renderFeedbacks();
   if (id === 'troops')  renderTroopsTab();
   if (id === 'gs')      renderGsTab();
   if (id === 'docs')    renderDoc(currentDoc);
@@ -1535,8 +2222,11 @@ function renderTroopsTab() {
 // GS TAB
 // ============================================================
 function renderGsTab() {
-  document.getElementById('gsCodeSpan').textContent      = GS_CODE;
-  document.getElementById('frontendCodeSpan').textContent = FRONTEND_CODE;
+  document.getElementById('gsCodeSpan').textContent           = GS_CODE;
+  document.getElementById('frontendCodeSpan').textContent     = FRONTEND_CODE;
+  document.getElementById('issueCodeSpan').textContent        = FRONTEND_ISSUE_CODE;
+  document.getElementById('feedbackCodeSpan').textContent     = FRONTEND_FEEDBACK_CODE;
+  document.getElementById('widgetSnippet').textContent        = WIDGET_SNIPPET;
 }
 
 // ============================================================
@@ -1608,6 +2298,363 @@ function markPending(id){ const r=state.requests.find(r=>r.id===id); if(r){r.sta
 function deleteRequest(id){ if(!confirm('確定刪除？')) return; state.requests=state.requests.filter(r=>r.id!==id); save();refreshAll();toast('🗑 已刪除'); }
 
 // ============================================================
+// ISSUES（問題回報）
+// ============================================================
+const ISSUE_STATUS = {
+  new:      { label:'待處理', badge:'badge-pending' },
+  working:  { label:'處理中', badge:'badge-blue'   },
+  resolved: { label:'已解決', badge:'badge-done'   },
+  closed:   { label:'已關閉', badge:'badge-muted'  }
+};
+const FB_STATUS = {
+  new:       { label:'新回饋', badge:'badge-pending' },
+  reviewing: { label:'檢視中', badge:'badge-blue'   },
+  adopted:   { label:'已採納', badge:'badge-done'   },
+  declined:  { label:'不採納', badge:'badge-muted'  }
+};
+
+function setIssueFilter(f, btn) {
+  state.issueFilter = f;
+  const bar = btn.parentElement;
+  bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderIssues();
+}
+function setFeedbackFilter(f, btn) {
+  state.feedbackFilter = f;
+  const bar = btn.parentElement;
+  bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFeedbacks();
+}
+
+function newLocalId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+function renderIssues() {
+  const q = (document.getElementById('issueSearch')?.value || '').toLowerCase();
+  let list = state.issues.filter(r => {
+    const mf = state.issueFilter === 'all' || r.status === state.issueFilter;
+    const ms = !q || (r.title||'').toLowerCase().includes(q)
+      || (r.sourceApp||'').toLowerCase().includes(q)
+      || (r.troopId||'').toLowerCase().includes(q);
+    return mf && ms;
+  });
+  const o = { new:0, working:1, resolved:2, closed:3 };
+  list.sort((a,b) => (o[a.status]??9)-(o[b.status]??9) || new Date(b.createdAt)-new Date(a.createdAt));
+  const el = document.getElementById('issueList');
+  el.innerHTML = list.length
+    ? list.map(buildIssueCard).join('')
+    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的問題回報</div>';
+  updateIssueStats();
+}
+
+function buildIssueCard(r) {
+  const st = ISSUE_STATUS[r.status] || ISSUE_STATUS.new;
+  const sevColor = { '低':'#6b6b6b', '中':'#c05800', '高':'#c62828', '緊急':'#8B0000' }[r.severity] || '#6b6b6b';
+  let actions = '';
+  if (r.status === 'new')
+    actions = `<button class="btn btn-primary" onclick="markIssue('${r.id}','working')">▶ 處理中</button>
+               <button class="btn btn-success" onclick="markIssue('${r.id}','resolved')">✔ 已解決</button>`;
+  else if (r.status === 'working')
+    actions = `<button class="btn btn-success" onclick="markIssue('${r.id}','resolved')">✔ 已解決</button>
+               <button class="btn btn-ghost" onclick="markIssue('${r.id}','closed')">✕ 關閉</button>`;
+  else
+    actions = `<button class="btn btn-ghost" onclick="markIssue('${r.id}','new')">↩ 重開</button>`;
+  return `
+<div class="app-card ${r.status}" id="icard_${r.id}">
+  <div class="app-card-top">
+    <div class="app-meta">
+      <div class="app-troop">🐛 ${escHtml(r.title || '（無標題）')}</div>
+      <div class="app-detail">
+        <strong>嚴重度：</strong><span style="color:${sevColor};font-weight:700">${escHtml(r.severity || '—')}</span>　
+        <span class="badge ${st.badge}">${st.label}</span><br>
+        <strong>來源 APP：</strong>${escHtml(r.sourceApp || '—')}
+        ${r.troopId ? `　<strong>旅團號：</strong><code>${escHtml(r.troopId)}</code>` : ''}<br>
+        <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
+        ${r.contact ? `<br><strong>聯絡方式：</strong>${escHtml(r.contact)}` : ''}<br>
+        <strong>詳情：</strong><span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.desc || '')}</span>
+        ${r.note ? `<br><strong>管理員備註：</strong><span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.note)}</span>` : ''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <div class="app-actions">
+        ${actions}
+        <button class="btn btn-ghost" onclick="editIssue('${r.id}')">✏️</button>
+        <button class="btn btn-danger" onclick="deleteIssue('${r.id}')">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function showAddIssueModal() {
+  document.getElementById('issueModalTitle').textContent = '新增問題回報';
+  document.getElementById('im_id').value = '';
+  ['im_source','im_troopId','im_title','im_desc','im_contact','im_note'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('im_severity').value = '中';
+  document.getElementById('im_status').value = 'new';
+  document.getElementById('issueModal').style.display='block';
+}
+function editIssue(id) {
+  const r = state.issues.find(x=>x.id===id); if(!r) return;
+  document.getElementById('issueModalTitle').textContent = '編輯問題回報';
+  document.getElementById('im_id').value = id;
+  document.getElementById('im_source').value  = r.sourceApp||'';
+  document.getElementById('im_troopId').value  = r.troopId||'';
+  document.getElementById('im_title').value    = r.title||'';
+  document.getElementById('im_desc').value     = r.desc||'';
+  document.getElementById('im_severity').value = r.severity||'中';
+  document.getElementById('im_contact').value  = r.contact||'';
+  document.getElementById('im_status').value   = ISSUE_STATUS[r.status] ? r.status : 'new';
+  document.getElementById('im_note').value     = r.note||'';
+  document.getElementById('issueModal').style.display='block';
+}
+function closeIssueModal(){ document.getElementById('issueModal').style.display='none'; }
+function saveIssueModal() {
+  const eid = document.getElementById('im_id').value;
+  const rec = {
+    sourceApp: document.getElementById('im_source').value.trim(),
+    troopId:   document.getElementById('im_troopId').value.trim(),
+    title:     document.getElementById('im_title').value.trim(),
+    desc:      document.getElementById('im_desc').value.trim(),
+    severity:  document.getElementById('im_severity').value,
+    contact:   document.getElementById('im_contact').value.trim(),
+    status:    document.getElementById('im_status').value,
+    note:      document.getElementById('im_note').value.trim()
+  };
+  if(!rec.title||!rec.desc){ alert('請填寫標題和問題詳情'); return; }
+  if(eid) {
+    const idx=state.issues.findIndex(x=>x.id===eid);
+    if(idx>=0) Object.assign(state.issues[idx], rec);
+  } else {
+    state.issues.unshift({ id:newLocalId(), ...rec, createdAt:new Date().toLocaleString('zh-HK') });
+  }
+  save(); closeIssueModal(); refreshAll(); toast('✅ 已儲存');
+}
+function markIssue(id, status){
+  const r=state.issues.find(x=>x.id===id);
+  if(r){ r.status=status; save(); refreshAll(); toast('🔄 狀態已更新：'+(ISSUE_STATUS[status]?.label||status)); }
+}
+function deleteIssue(id){ if(!confirm('確定刪除這條問題回報？')) return; state.issues=state.issues.filter(x=>x.id!==id); save();refreshAll();toast('🗑 已刪除'); }
+
+function updateIssueStats() {
+  const s = state.issues;
+  document.getElementById('istatNew').textContent      = s.filter(r=>r.status==='new').length;
+  document.getElementById('istatWorking').textContent  = s.filter(r=>r.status==='working').length;
+  document.getElementById('istatResolved').textContent = s.filter(r=>r.status==='resolved').length;
+  document.getElementById('istatTotal').textContent    = s.length;
+}
+
+// ============================================================
+// FEEDBACK（意見回饋）
+// ============================================================
+function renderFeedbacks() {
+  const q = (document.getElementById('feedbackSearch')?.value || '').toLowerCase();
+  let list = state.feedbacks.filter(r => {
+    const mf = state.feedbackFilter === 'all' || r.status === state.feedbackFilter;
+    const ms = !q || (r.content||'').toLowerCase().includes(q)
+      || (r.sourceApp||'').toLowerCase().includes(q)
+      || (r.troopId||'').toLowerCase().includes(q);
+    return mf && ms;
+  });
+  const o = { new:0, reviewing:1, adopted:2, declined:3 };
+  list.sort((a,b) => (o[a.status]??9)-(o[b.status]??9) || new Date(b.createdAt)-new Date(a.createdAt));
+  const el = document.getElementById('feedbackList');
+  el.innerHTML = list.length
+    ? list.map(buildFeedbackCard).join('')
+    : '<div style="text-align:center;color:var(--muted);padding:32px">沒有符合的意見回饋</div>';
+  updateFeedbackStats();
+}
+
+function buildFeedbackCard(r) {
+  const st = FB_STATUS[r.status] || FB_STATUS.new;
+  const typeBadge = { '建議':'💡', '讚':'👍', '批評':'👎', '其他':'📝' }[r.type] || '📝';
+  let actions = '';
+  if (r.status === 'new')
+    actions = `<button class="btn btn-primary" onclick="markFeedback('${r.id}','reviewing')">▶ 檢視中</button>
+               <button class="btn btn-ghost" onclick="markFeedback('${r.id}','declined')">✕ 不採納</button>`;
+  else if (r.status === 'reviewing')
+    actions = `<button class="btn btn-success" onclick="markFeedback('${r.id}','adopted')">✔ 已採納</button>
+               <button class="btn btn-ghost" onclick="markFeedback('${r.id}','declined')">✕ 不採納</button>`;
+  else
+    actions = `<button class="btn btn-ghost" onclick="markFeedback('${r.id}','new')">↩ 重設</button>`;
+  return `
+<div class="app-card ${r.status==='adopted'?'done':(r.status==='declined'?'rejected':'pending')}" id="fcard_${r.id}">
+  <div class="app-card-top">
+    <div class="app-meta">
+      <div class="app-troop">${typeBadge} ${escHtml(r.type || '其他')} · <span style="font-weight:400;font-size:.9rem;color:var(--muted)">${escHtml(r.sourceApp || '—')}</span></div>
+      <div class="app-detail">
+        <span class="badge ${st.badge}">${st.label}</span>
+        ${r.troopId ? `　<strong>旅團號：</strong><code>${escHtml(r.troopId)}</code>` : ''}<br>
+        <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
+        ${r.contact ? `　<strong>聯絡方式：</strong>${escHtml(r.contact)}` : ''}<br>
+        <span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.content || '')}</span>
+        ${r.note ? `<br><strong>管理員備註：</strong><span style="white-space:pre-wrap;color:var(--text)">${escHtml(r.note)}</span>` : ''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <div class="app-actions">
+        ${actions}
+        <button class="btn btn-ghost" onclick="editFeedback('${r.id}')">✏️</button>
+        <button class="btn btn-danger" onclick="deleteFeedback('${r.id}')">🗑</button>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function showAddFeedbackModal() {
+  document.getElementById('feedbackModalTitle').textContent = '新增意見回饋';
+  document.getElementById('fm_id').value = '';
+  ['fm_source','fm_troopId','fm_content','fm_contact','fm_note'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('fm_type').value = '建議';
+  document.getElementById('fm_status').value = 'new';
+  document.getElementById('feedbackModal').style.display='block';
+}
+function editFeedback(id) {
+  const r = state.feedbacks.find(x=>x.id===id); if(!r) return;
+  document.getElementById('feedbackModalTitle').textContent = '編輯意見回饋';
+  document.getElementById('fm_id').value = id;
+  document.getElementById('fm_source').value  = r.sourceApp||'';
+  document.getElementById('fm_troopId').value  = r.troopId||'';
+  document.getElementById('fm_type').value     = r.type||'建議';
+  document.getElementById('fm_content').value  = r.content||'';
+  document.getElementById('fm_contact').value  = r.contact||'';
+  document.getElementById('fm_status').value   = FB_STATUS[r.status] ? r.status : 'new';
+  document.getElementById('fm_note').value     = r.note||'';
+  document.getElementById('feedbackModal').style.display='block';
+}
+function closeFeedbackModal(){ document.getElementById('feedbackModal').style.display='none'; }
+function saveFeedbackModal() {
+  const eid = document.getElementById('fm_id').value;
+  const rec = {
+    sourceApp: document.getElementById('fm_source').value.trim(),
+    troopId:   document.getElementById('fm_troopId').value.trim(),
+    type:      document.getElementById('fm_type').value,
+    content:   document.getElementById('fm_content').value.trim(),
+    contact:   document.getElementById('fm_contact').value.trim(),
+    status:    document.getElementById('fm_status').value,
+    note:      document.getElementById('fm_note').value.trim()
+  };
+  if(!rec.content){ alert('請填寫回饋內容'); return; }
+  if(eid) {
+    const idx=state.feedbacks.findIndex(x=>x.id===eid);
+    if(idx>=0) Object.assign(state.feedbacks[idx], rec);
+  } else {
+    state.feedbacks.unshift({ id:newLocalId(), ...rec, createdAt:new Date().toLocaleString('zh-HK') });
+  }
+  save(); closeFeedbackModal(); refreshAll(); toast('✅ 已儲存');
+}
+function markFeedback(id, status){
+  const r=state.feedbacks.find(x=>x.id===id);
+  if(r){ r.status=status; save(); refreshAll(); toast('🔄 狀態已更新：'+(FB_STATUS[status]?.label||status)); }
+}
+function deleteFeedback(id){ if(!confirm('確定刪除這條意見回饋？')) return; state.feedbacks=state.feedbacks.filter(x=>x.id!==id); save();refreshAll();toast('🗑 已刪除'); }
+
+function updateFeedbackStats() {
+  const s = state.feedbacks;
+  document.getElementById('fstatNew').textContent       = s.filter(r=>r.status==='new').length;
+  document.getElementById('fstatReviewing').textContent = s.filter(r=>r.status==='reviewing').length;
+  document.getElementById('fstatAdopted').textContent   = s.filter(r=>r.status==='adopted').length;
+  document.getElementById('fstatTotal').textContent     = s.length;
+}
+
+// ============================================================
+// SYNC FROM GOOGLE SHEET（Apps Script ?action=list）
+// ============================================================
+const ISSUE_STATUS_FROM_SHEET = { '待處理':'new', '處理中':'working', '已解決':'resolved', '已關閉':'closed' };
+const FB_STATUS_FROM_SHEET    = { '新回饋':'new', '檢視中':'reviewing', '已採納':'adopted', '不採納':'declined' };
+
+function sheetDate(v){
+  if (v == null || v === '') return '';
+  const d = new Date(v);
+  return isNaN(d) ? String(v) : d.toLocaleString('zh-HK');
+}
+
+async function syncFromSheet() {
+  toast('🔄 同步中…');
+  try {
+    const res  = await fetch(WEBAPP_URL + '?action=list', { method: 'GET' });
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.message || 'Sheet 端回應異常');
+
+    let addA = 0, addI = 0, addF = 0;
+
+    (data.applications || []).forEach(row => {
+      const troopId   = String(row['旅團號'] ?? '').trim();
+      const troopName = String(row['旅團名稱'] ?? '').trim();
+      if (!troopId || !troopName) return;
+      const dup = state.requests.some(r => r.troopId === troopId && r.troopName === troopName);
+      if (dup) return;
+      state.requests.unshift({
+        id: String(row['編號'] || '') || newLocalId(),
+        troopId, troopName,
+        backendUrl: String(row['Apps Script URL'] ?? ''),
+        apiKey:     String(row['API Key'] ?? ''),
+        apps:       String(row['接入APP'] ?? '').split(',').map(s=>s.trim()).filter(Boolean),
+        note:       String(row['備注'] ?? ''),
+        status:     'pending',
+        createdAt:  sheetDate(row['提交時間'])
+      });
+      addA++;
+    });
+
+    (data.issues || []).forEach(row => {
+      const title = String(row['標題'] ?? '').trim();
+      if (!title) return;
+      const id = String(row['編號'] || '');
+      const dupById   = id && state.issues.some(x => x.id === id);
+      const createdAt = sheetDate(row['提交時間']);
+      const dupByComp = !id && state.issues.some(x => x.title === title && x.createdAt === createdAt);
+      if (dupById || dupByComp) return;
+      const sheetStatus = String(row['狀態'] ?? '待處理');
+      state.issues.unshift({
+        id: id || newLocalId(),
+        sourceApp: String(row['來源APP'] ?? ''),
+        troopId:   String(row['旅團號'] ?? ''),
+        title,
+        desc:      String(row['問題詳情'] ?? ''),
+        severity:  String(row['嚴重度'] ?? '中'),
+        contact:   String(row['聯絡方式'] ?? ''),
+        status:    ISSUE_STATUS_FROM_SHEET[sheetStatus] || 'new',
+        note:      '',
+        createdAt
+      });
+      addI++;
+    });
+
+    (data.feedbacks || []).forEach(row => {
+      const content = String(row['內容'] ?? '').trim();
+      if (!content) return;
+      const id = String(row['編號'] || '');
+      const dupById   = id && state.feedbacks.some(x => x.id === id);
+      const createdAt = sheetDate(row['提交時間']);
+      const dupByComp = !id && state.feedbacks.some(x => x.content === content && x.createdAt === createdAt);
+      if (dupById || dupByComp) return;
+      const sheetStatus = String(row['狀態'] ?? '新回饋');
+      state.feedbacks.unshift({
+        id: id || newLocalId(),
+        sourceApp: String(row['來源APP'] ?? ''),
+        troopId:   String(row['旅團號'] ?? ''),
+        type:      String(row['類型'] ?? '其他'),
+        content,
+        contact:   String(row['聯絡方式'] ?? ''),
+        status:    FB_STATUS_FROM_SHEET[sheetStatus] || 'new',
+        note:      '',
+        createdAt
+      });
+      addF++;
+    });
+
+    save(); refreshAll();
+    toast(`✅ 同步完成：申請 +${addA}、問題 +${addI}、回饋 +${addF}`);
+  } catch (err) {
+    console.error('sync failed', err);
+    toast('❌ 同步失敗：' + (err.message || err));
+  }
+}
+
+// ============================================================
 // STATS
 // ============================================================
 function updateStats() {
@@ -1615,11 +2662,13 @@ function updateStats() {
   const done    = state.requests.filter(r=>r.status==='done').length;
   const total   = state.requests.length;
   const troops  = state.requests.filter(r=>r.status==='done').length;
+  const issueOpen = state.issues.filter(r=>r.status==='new'||r.status==='working').length;
+  const fbOpen    = state.feedbacks.filter(r=>r.status==='new'||r.status==='reviewing').length;
   document.getElementById('statPending').textContent = pending;
   document.getElementById('statDone').textContent    = done;
   document.getElementById('statTotal').textContent   = total;
   document.getElementById('statTroops').textContent  = troops;
-  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已完成 ${done} | 旅團 ${troops}`;
+  document.getElementById('headerStats').textContent = `待處理 ${pending} | 已完成 ${done} | 旅團 ${troops} | 問題 ${issueOpen} | 回饋 ${fbOpen}`;
 }
 
 // ============================================================
@@ -1627,13 +2676,13 @@ function updateStats() {
 // ============================================================
 function loadSettings() { document.getElementById('cfg_url').value=state.settings.webappUrl||''; }
 function saveSettings() { state.settings.webappUrl=document.getElementById('cfg_url').value.trim(); save(); toast('💾 設定已儲存'); }
-function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.settings={webappUrl:''}; refreshAll(); toast('🗑 已清除'); }
+function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.settings={webappUrl:''}; refreshAll(); toast('🗑 已清除'); }
 
 // ============================================================
 // EXPORT / IMPORT
 // ============================================================
 function exportData() {
-  const blob=new Blob([JSON.stringify({requests:state.requests,settings:state.settings},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({requests:state.requests,issues:state.issues,feedbacks:state.feedbacks,settings:state.settings},null,2)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scout-admin-backup.json'; a.click();
 }
 function importData(evt) {
@@ -1642,7 +2691,7 @@ function importData(evt) {
   reader.onload=e=>{
     try {
       const d=JSON.parse(e.target.result);
-      state.requests=d.requests||[]; state.settings=d.settings||{webappUrl:''};
+      state.requests=d.requests||[]; state.issues=d.issues||[]; state.feedbacks=d.feedbacks||[]; state.settings=d.settings||{webappUrl:''};
       save(); refreshAll(); toast('📥 匯入成功');
     } catch(err){ alert('匯入失敗：'+err.message); }
   };
@@ -1737,7 +2786,7 @@ function toast(msg){ const el=document.getElementById('toast'); el.textContent=m
 // ============================================================
 // REFRESH ALL
 // ============================================================
-function refreshAll() { renderRequests(); }
+function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); }
 
 // ============================================================
 // BOOT with demo data
