@@ -49,7 +49,57 @@ const d = w.document;
 setTimeout(async () => {
   try {
     check(d.getElementById('tab-appstore') !== null, 'tab-appstore section 存在');
-    check(d.querySelectorAll('.tab-btn').length >= 8, 'tab 數量 >= 8');
+    check(d.querySelectorAll('.tab-btn').length === 6, 'tab 數量 = 6（已移除 產生器 / 設定）');
+    check(d.getElementById('tab-json') === null, '產生器分頁已刪除');
+    check(d.getElementById('tab-settings') === null, '設定分頁已刪除');
+    check([...d.querySelectorAll('.tab-btn')].every(b => !/產生器|設定/.test(b.textContent)), 'tab 列已無 產生器 / 設定');
+
+    // ---- 統一回報格式 v1：來源系統正規化 + 分流 ----
+    check(w.normSourceKey('scoutlibrary.vercel.app') === 'library', 'normSourceKey 網域 → library');
+    check(w.normSourceKey('VSBADGE') === 'badge', 'normSourceKey vsbadge → badge（專章系統）');
+    check(w.normSourceKey('https://scoutappstore.vercel.app/x') === 'appstore', 'normSourceKey URL → appstore');
+    check(w.sourceLabel('圖書館').includes('圖書館'), 'sourceLabel 圖書館');
+    check(w.sourceLabel('未來新系統X').startsWith('🔹'), '未登記來源原樣顯示（不漏）');
+
+    w.eval(`state.issues = [
+      { id:'i1', sourceApp:'圖書館', title:'借書失敗', desc:'d', severity:'高', status:'unread', createdAt:'2026/9/20 10:00' },
+      { id:'i2', sourceApp:'scoutappstore.vercel.app', title:'商店載入慢', desc:'d', severity:'中', status:'unread', createdAt:'2026/9/21 10:00' },
+      { id:'i3', sourceApp:'支部系統', title:'支部登入問題', desc:'d', severity:'低', status:'read', createdAt:'2026/9/19 10:00' },
+      { id:'i4', sourceApp:'未來新系統X', title:'新系統回報', desc:'d', severity:'中', status:'unread', createdAt:'2026/9/22 10:00' }
+    ];`);
+    w.setIssueSource('all');
+    check(d.querySelectorAll('#issueSrcChips .src-chip').length >= 8, '來源膠囊已產生（全部系統 + 各系統）');
+    check(d.getElementById('issueList').innerHTML.includes('借書失敗'), '全部系統：看到圖書館回報');
+    w.setIssueSource('library');
+    check(d.getElementById('issueList').innerHTML.includes('借書失敗') &&
+          !d.getElementById('issueList').innerHTML.includes('商店載入慢'), '來源分流：只看圖書館');
+    w.setIssueSource('appstore');
+    check(d.getElementById('issueList').innerHTML.includes('商店載入慢'), '來源分流：APP STORE（網域自動歸類）');
+    w.setIssueSource('@未來新系統x');
+    check(d.getElementById('issueList').innerHTML.includes('新系統回報'), '來源分流：未登記新系統也能單獨看');
+    w.setIssueSource('all');
+
+    w.eval(`state.feedbacks = [
+      { id:'f1', sourceApp:'進度追蹤', type:'建議', content:'想要匯出', status:'unread', createdAt:'2026/9/20 10:00' },
+      { id:'f2', sourceApp:'區系統', type:'讚', content:'好用', status:'read', createdAt:'2026/9/18 10:00' }
+    ];`);
+    w.setFeedbackSource('progress');
+    check(d.getElementById('feedbackList').innerHTML.includes('想要匯出') &&
+          !d.getElementById('feedbackList').innerHTML.includes('好用'), '意見回饋也能按來源分流');
+    w.setFeedbackSource('all');
+
+    // 各系統一行接入代碼
+    w.renderGsTab();
+    const snip = d.getElementById('sourceSnippets').textContent;
+    check(['圖書館','APP STORE','支部系統','進度追蹤','旅系統','區系統','專章系統'].every(n => snip.includes('data-app="' + n + '"')),
+      '各系統一行接入代碼齊全');
+
+    // 說明書已更新
+    w.renderDoc('scout');
+    const doc = d.getElementById('docBody').textContent;
+    check(doc.includes('統一回報格式') && doc.includes('支部系統') && doc.includes('2.4'), '說明書已更新到 v2.4 統一回報格式');
+    check(/不用改 Apps Script/.test(doc), '說明書講明加新系統不用改後端');
+
 
     // 直接 render
     w.eval(`state.appstore = [

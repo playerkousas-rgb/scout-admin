@@ -1,5 +1,10 @@
 /*!
- * Scout Admin — 問題回報 / 意見回饋 浮動表單 widget（v1.1）
+ * Scout Admin — 統一回報 widget（v2.0）問題回報 / 意見回饋
+ *
+ * 【統一回報格式 v1】
+ * 圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…
+ * 全部系統共用這一個 widget、同一個 payload、同一個接收端、同一組 Sheet 欄位。
+ * 新系統上線只要貼這一行並改 data-app，後台、Apps Script、Sheet 一律不用改。
  *
  * 嵌入方式（一行搞定，APP 不需要有任何後端）：
  *   <script src="https://scout-admin-blue.vercel.app/widget.js"><\/script>
@@ -21,6 +26,37 @@
 
   var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec';
 
+  // ---------- 來源系統登記表（與後台 index.html 的 SOURCE_APPS 對齊） ----------
+  // 填 data-app 時可用正式名、英文代號或網域，都會統一成同一個名稱。
+  // 未登記的來源也照送、照收（後台顯示原樣名稱）。
+  var SOURCE_ALIASES = {
+    '圖書館':     ['library', 'scoutlibrary', 'scout-library', 'scoutlibrary.vercel.app'],
+    'APP STORE':  ['appstore', 'app store', 'app-store', 'scoutappstore', 'scoutappstore.vercel.app', '商店'],
+    '支部系統':   ['branch', 'branchsystem', 'scoutbranch', '支部'],
+    '進度追蹤':   ['progress', 'progresstracker', 'scoutprogress', '進度'],
+    '旅系統':     ['troop', 'troopsystem', 'scoutsystem', '旅團系統'],
+    '區系統':     ['district', 'districtsystem', 'scoutdistrict', '區'],
+    '專章系統':   ['badge', 'badgesystem', 'vsbadge', '專章']
+  };
+
+  function normSource(raw) {
+    var v = String(raw == null ? '' : raw).trim();
+    if (!v) return '';
+    var low = v.toLowerCase();
+    var p = low.indexOf('://'); if (p >= 0) low = low.slice(p + 3);
+    var sl = low.indexOf('/');  if (sl >= 0) low = low.slice(0, sl);
+    if (low.indexOf('www.') === 0) low = low.slice(4);
+    var host = low.split('.')[0];
+    for (var canon in SOURCE_ALIASES) {
+      if (canon.toLowerCase() === low) return canon;
+      var al = SOURCE_ALIASES[canon];
+      for (var i = 0; i < al.length; i++) {
+        if (al[i].toLowerCase() === low || al[i].toLowerCase() === host) return canon;
+      }
+    }
+    return v; // 未登記：原樣保留
+  }
+
   var cur = document.currentScript;
   var ADMIN_HOSTS = { 'scout-admin-blue.vercel.app': 1, 'localhost': 1, '127.0.0.1': 1 };
   // 來源優先序：data-app 手動指定 > ?app= 查詢參數 > 自動帶入所在網頁 hostname
@@ -30,6 +66,7 @@
     (typeof location !== 'undefined' && new URLSearchParams(location.search).get('app')) ||
     (typeof location !== 'undefined' && /^https?:$/.test(location.protocol) &&
       location.hostname && !ADMIN_HOSTS[location.hostname] ? location.hostname : '');
+  SOURCE_APP = normSource(SOURCE_APP);
   var AUTO_OPEN = !!(cur && cur.getAttribute('data-auto'));
 
   // ---------- 樣式 ----------

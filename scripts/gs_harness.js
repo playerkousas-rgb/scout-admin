@@ -5,7 +5,7 @@ const vm = require('vm');
 // 從 index.html 抽出內嵌的 GS_CODE（自給自足，不需外部 temp 檔）
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const i = html.indexOf('const GS_CODE = `') + 'const GS_CODE = `'.length;
-const j = html.indexOf('`;\n\n// ============================================================\n// STATE', i);
+const j = html.indexOf('\n`;\n', i); // GS_CODE 模板字串結尾
 const code = html.slice(i, j);
 
 const NAME2KEY = { '申請記錄':'apply', '問題回報':'issue', '意見回饋':'feedback', '作品投稿':'appstore' };
@@ -118,6 +118,29 @@ const key = sandbox.setupApiKey();
 check(typeof key==='string'&&key.startsWith('scout-'),'setupApiKey gen');
 check(scriptProps.API_KEY===key,'key saved');
 check(emails.length===1&&emails[0].subject.includes('API KEY'),'setupApiKey emails');
+
+// ==== 統一回報格式 v1：來源正規化 + type 別名 + 未知 type 不漏單 ====
+emails.length=0;
+const SRCCOL = () => state.issue.headers.indexOf('來源APP');
+r = post({type:'issue', sourceApp:'scoutlibrary.vercel.app', title:'圖書館壞了', desc:'借書失敗'});
+check(r.status==='success','library issue ok');
+check(state.issue.rows[state.issue.rows.length-1][SRCCOL()]==='圖書館','來源正規化 scoutlibrary.vercel.app → 圖書館');
+
+r = post({type:'問題回報', sourceApp:'BRANCH', title:'支部系統問題', desc:'x'});
+check(r.status==='success','中文 type 別名 ok');
+check(state.issue.rows[state.issue.rows.length-1][SRCCOL()]==='支部系統','來源正規化 BRANCH → 支部系統');
+
+r = post({type:'feedback', sourceApp:'https://scoutprogress.vercel.app/abc', fbType:'建議', content:'進度追蹤想要匯出'});
+check(state.feedback.rows[state.feedback.rows.length-1][state.feedback.headers.indexOf('來源APP')]==='進度追蹤','來源正規化 URL → 進度追蹤');
+
+r = post({sourceApp:'區系統', title:'沒寫 type 的回報', desc:'應該進問題回報'});
+check(r.status==='success','未知/缺 type 自動判斷');
+check(state.issue.rows[state.issue.rows.length-1][state.issue.headers.indexOf('標題')]==='沒寫 type 的回報','缺 type + 有 title → issue');
+check(state.issue.rows[state.issue.rows.length-1][SRCCOL()]==='區系統','來源 區系統 保留');
+
+r = post({type:'意見', sourceApp:'未來新系統X', content:'新系統照樣收'});
+check(state.feedback.rows[state.feedback.rows.length-1][state.feedback.headers.indexOf('來源APP')]==='未來新系統X','未登記來源原樣保留（不漏單）');
+check(state.issue.headers.length===state.issue.headers.length,'欄位數不變（無需改 Sheet）');
 
 console.log(fails===0?'ALL GAS OK':(fails+' FAILURES'));
 process.exit(fails?1:0);

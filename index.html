@@ -100,6 +100,16 @@
   .filter-btn { padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:#fff; font-size:.8rem; cursor:pointer; font-weight:600; color:var(--muted); transition:all .2s; }
   .filter-btn.active { background:var(--red); color:#fff; border-color:var(--red); }
 
+  /* 來源系統膠囊（統一回報格式：所有系統同一看板，按來源分流） */
+  .src-bar { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
+  .src-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:20px; border:1px solid var(--border);
+              background:#fff; font-size:.8rem; font-weight:600; color:var(--muted); cursor:pointer; transition:all .2s; }
+  .src-chip:hover { border-color:var(--gold); color:var(--text); }
+  .src-chip.active { background:#2d2a26; border-color:#2d2a26; color:#fff; }
+  .src-chip .src-total { font-weight:500; opacity:.65; font-size:.74rem; }
+  .src-chip .src-badge { background:var(--red); color:#fff; border-radius:10px; padding:1px 7px; font-size:.7rem; font-weight:700; }
+  .src-chip.active .src-badge { background:var(--gold); color:#2d2a26; }
+
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   @media(max-width:580px){ .form-grid{grid-template-columns:1fr;} }
   .form-group { display:flex; flex-direction:column; gap:6px; }
@@ -197,10 +207,8 @@
     <button class="tab-btn" onclick="switchTab('issues',this)">🐛 問題回報</button>
     <button class="tab-btn" onclick="switchTab('feedback',this)">💬 意見回饋</button>
     <button class="tab-btn" onclick="switchTab('appstore',this)">📮 作品投稿</button>
-    <button class="tab-btn" onclick="switchTab('json',this)">🔧 產生器</button>
     <button class="tab-btn" onclick="switchTab('gs',this)">📜 Apps Script</button>
     <button class="tab-btn" onclick="switchTab('docs',this)">📖 說明書</button>
-    <button class="tab-btn" onclick="switchTab('settings',this)">⚙️ 設定</button>
   </div>
 
   <!-- ===== TAB 1: REQUESTS ===== -->
@@ -247,7 +255,8 @@
           <button class="btn btn-gold" onclick="showAddIssueModal()">＋ 手動新增</button>
         </div>
       </div>
-      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後整張卡<strong>灰字沉到底</strong>。用戶可匿名，或留底姓名／聯絡。<strong>填報不用 Key，任何人都可交</strong>；只有「讀取清單」與「寫回已閱狀態」這類碰得到後台資料的動作才受 API KEY 保護。</div>
+      <div class="note">全部系統（圖書館、APP STORE、支部／進度／旅／區／專章系統…）用<strong>同一格式</strong>回報，這裡按<strong>來源系統</strong>分流。<strong>最新在最頂</strong>，點「✔ 已閱」後整張卡<strong>灰字沉到底</strong>。用戶可匿名，或留底姓名／聯絡。<strong>填報不用 Key，任何人都可交</strong>；只有「讀取清單」與「寫回已閱狀態」這類碰得到後台資料的動作才受 API KEY 保護。</div>
+      <div class="src-bar" id="issueSrcChips"></div>
       <div class="filter-bar">
         <input type="text" id="issueSearch" placeholder="🔍 搜尋標題 / 姓名 / 來源 / 內容…" oninput="renderIssues()" />
         <button class="filter-btn active" onclick="setIssueFilter('all',this)">全部</button>
@@ -273,7 +282,8 @@
           <button class="btn btn-gold" onclick="showAddFeedbackModal()">＋ 手動新增</button>
         </div>
       </div>
-      <div class="note">前端直接看 TICK：<strong>最新在最頂</strong>，點「✔ 已閱」後灰字沉底。用戶可匿名，或留底姓名／聯絡。填報不用 Key；只有讀取清單、寫回已閱這類後台動作才受 API KEY 保護。</div>
+      <div class="note">全部系統用<strong>同一格式</strong>回饋，這裡按<strong>來源系統</strong>分流。<strong>最新在最頂</strong>，點「✔ 已閱」後灰字沉底。用戶可匿名，或留底姓名／聯絡。填報不用 Key；只有讀取清單、寫回已閱這類後台動作才受 API KEY 保護。</div>
+      <div class="src-bar" id="feedbackSrcChips"></div>
       <div class="filter-bar">
         <input type="text" id="feedbackSearch" placeholder="🔍 搜尋內容 / 姓名 / 來源…" oninput="renderFeedbacks()" />
         <button class="filter-btn active" onclick="setFeedbackFilter('all',this)">全部</button>
@@ -310,60 +320,15 @@
     </div>
   </div>
 
-  <!-- ===== TAB 3: JSON / TS GENERATOR ===== -->
-  <div class="section" id="tab-json">
-    <div class="card">
-      <div class="card-header"><div class="card-title">🔧 單一旅團設定產生器</div></div>
-      <div class="note">填旅團名稱、URL、API KEY 即時預覽。旅團號可留空（留空時環境變數名未定）。</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>旅團名稱</label>
-          <input type="text" id="g_name" placeholder="第 82 旅" oninput="generateAll()" />
-        </div>
-        <div class="form-group">
-          <label>旅團號（選填，如 0082）</label>
-          <input type="text" id="g_id" placeholder="0082" oninput="generateAll()" />
-        </div>
-        <div class="form-group full">
-          <label>Apps Script URL</label>
-          <input type="text" id="g_url" placeholder="https://script.google.com/macros/s/…/exec" oninput="generateAll()" />
-        </div>
-        <div class="form-group full">
-          <label>API Key</label>
-          <input type="text" id="g_key" placeholder="ak_xxxxxxxx 或 vs_xxxxxxxx" oninput="generateAll()" />
-        </div>
-      </div>
-      <hr class="divider" />
-
-      <div class="section-label">🔥 vsbadge — troops.json 新增片段</div>
-      <div class="json-block">
-        <button class="json-copy-btn" onclick="copyText(document.getElementById('gen_vs').textContent)">複製</button>
-        <span id="gen_vs">— 請填入上方資料 —</span>
-      </div>
-
-      <div class="section-label" style="margin-top:18px">🏠 scoutsystem — troops.ts 新增片段</div>
-      <div class="ts-block">
-        <button class="json-copy-btn" onclick="copyText(document.getElementById('gen_ts').textContent)">複製</button>
-        <span id="gen_ts">— 請填入上方資料 —</span>
-      </div>
-
-      <div class="section-label" style="margin-top:18px">🔑 Vercel 環境變數（scoutsystem 專用）</div>
-      <div class="ts-block">
-        <button class="json-copy-btn" onclick="copyText(document.getElementById('gen_env').textContent)">複製</button>
-        <span id="gen_env">— 請填入上方資料 —</span>
-      </div>
-    </div>
-  </div>
-
   <!-- ===== TAB 4: APPS SCRIPT ===== -->
   <div class="section" id="tab-gs">
     <div class="card">
-      <div class="card-header"><div class="card-title">📜 接收 Apps Script（旅團登記＋問題回報＋意見回饋＋作品投稿）</div></div>
+      <div class="card-header"><div class="card-title">📜 接收 Apps Script v2.4（旅團登記＋問題回報＋意見回饋＋作品投稿）</div></div>
       <div class="note">
         ⚠️ <strong>需要你重新部署一次才生效。</strong>把下方代碼整段貼到 Google Sheet → 擴充功能 → Apps Script → 儲存 → 部署 →「管理部署」→ <strong>編輯</strong> → 版本選「<strong>新版本</strong>」→ 部署（網址不變）。<br>
         <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<strong>Key 保護的是「讀取／已閱／審核」這類後台動作；任何人提交（旅團登記、問題、回饋、作品投稿）都不需要 Key。</strong><br>
         核心保證：欄位對不上自動加欄、Email 附全部欄位＋原始 JSON 備份，資料不漏。<br>
-        改動：①旅團號改為可選；②<strong>已閱／審核寫回</strong>（markRead / markReq）；③<strong>list 讀取受 API KEY 保護</strong>（防個人資料外洩）；④新增<strong>作品投稿</strong>工作表，接收 SCOUT APP STORE 投稿。
+        <strong>v2.4 改動（統一回報格式 v1）：</strong>①<strong>來源系統自動正規化</strong>（library／scoutlibrary.vercel.app → 圖書館，vsbadge → 專章系統…）；②<strong>type 別名／中文／寫錯／沒寫都收得到</strong>（自動判斷去問題回報還是意見回饋，絕不漏單）；③<strong>工作表與欄位完全不變</strong>——支部系統、進度追蹤、旅系統、區系統、專章系統之後上線，<strong>這份代碼不用再改</strong>，也不用加表加欄。
       </div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(GS_CODE)">複製備份</button>
@@ -410,6 +375,16 @@
     </div>
 
     <div class="card">
+      <div class="card-header"><div class="card-title">🧩 各系統一行接入代碼（統一回報格式 v1）</div></div>
+      <div class="note">
+        <strong>所有系統共用同一格式、同一接收端、同一組 Sheet 欄位</strong>，唯一分別只有 <code>data-app</code>（來源系統）。<br>
+        新系統上線 = 貼下面對應那一行，<strong>不用改 Apps Script、不用加工作表、不用改欄位、不用碰 Supabase</strong>。<br>
+        沒登記的來源也照收不誤（後台會顯示 🔹 原樣名稱）；要讓它有正式名稱／圖示，只需在 index.html 的 <code>SOURCE_APPS</code> 加一行。
+      </div>
+      <div id="sourceSnippets"></div>
+    </div>
+
+    <div class="card">
       <div class="card-header"><div class="card-title">📋 Google Sheet 欄位說明</div></div>
       <div class="note">Script 會在<strong>第一次收到資料時自動建立工作表、自動補齊標題欄</strong>（舊表會<strong>自動在右側補上「姓名」「聯絡方式」欄</strong>），無需手動加。<br>⚠️ <strong>升級提醒：</strong>把上方 Apps Script 代碼貼上後要<strong>重新部署</strong>（管理部署 → 編輯 → 版本：新版本）才會生效。「狀態」欄由前端寫回（審核狀態／已閱），開 Sheet 也能看到。</div>
 
@@ -436,7 +411,7 @@
           <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
           <tbody>
             <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
-            <tr><td>B</td><td>來源 APP</td><td>如 vsbadge</td></tr>
+            <tr><td>B</td><td>來源APP</td><td>來源系統（圖書館／APP STORE／支部系統／進度追蹤／旅系統／區系統／專章系統…），由 GS 自動對齊成統一名稱</td></tr>
             <tr><td>C</td><td>旅團號</td><td>選填</td></tr>
             <tr><td>D</td><td>標題</td><td>必填</td></tr>
             <tr><td>E</td><td>問題詳情</td><td>必填</td></tr>
@@ -455,7 +430,7 @@
           <thead><tr><th>欄</th><th>欄位名稱</th><th>說明</th></tr></thead>
           <tbody>
             <tr><td>A</td><td>提交時間</td><td>自動填入</td></tr>
-            <tr><td>B</td><td>來源 APP</td><td>如 vsbadge</td></tr>
+            <tr><td>B</td><td>來源APP</td><td>來源系統，同上（自動對齊統一名稱）</td></tr>
             <tr><td>C</td><td>旅團號</td><td>選填</td></tr>
             <tr><td>D</td><td>類型</td><td>建議 / 讚 / 批評 / 其他</td></tr>
             <tr><td>E</td><td>內容</td><td>必填</td></tr>
@@ -499,42 +474,7 @@
     </div>
   </div>
 
-  <!-- ===== TAB 6: SETTINGS ===== -->
-  <div class="section" id="tab-settings">
-    <div class="card">
-      <div class="card-header"><div class="card-title">🔑 API KEY（保護後台讀取）</div></div>
-      <div class="note">API KEY 用於<strong>後台抓取 Sheet</strong>（<code>?action=list</code>，含 TICK 裡的姓名／聯絡方式等<strong>個人資料</strong>），防止外人讀走。<br>
-        Key 由 <strong>GS 自己產生</strong>：Apps Script 貼上最新代碼後，在編輯器上方選「<code>setupApiKey</code>」→ 執行 → 授權，就會自動生一組 Key、存進腳本屬性，並 E-mail 給你（信裡有「一鍵填好」連結，點開就會自動填寫下方這欄）。<br>
-        未設 Key 時系統照常收單，只是讀取不設防。</div>
-      <div class="form-grid">
-        <div class="form-group full">
-          <label>API KEY（儲存在本機 localStorage，不會寫進任何代碼）</label>
-          <input type="password" id="cfg_apikey" placeholder="scout-****-****-****" autocomplete="off" />
-        </div>
-      </div>
-      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="saveSettings()">💾 儲存 API KEY</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">🔄 同步 Sheet</div></div>
-      <div class="note">手動從 Google Sheet 拉取最新旅團登記／問題回報／意見回饋。讀取需要 API KEY（見上方）。</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-success" onclick="syncFromSheet()">🔄 立即同步</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><div class="card-title">📤 匯出 / 匯入</div></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-success" onclick="exportData()">📤 匯出備份 JSON</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📥 匯入備份 JSON</button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
-        <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清除所有本地資料</button>
-      </div>
-    </div>
-  </div>
+<datalist id="sourceAppList"></datalist>
 
 </div><!-- /container -->
 
@@ -590,7 +530,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>來源 APP</label>
-        <input type="text" id="im_source" placeholder="vsbadge / scoutsystem / …" />
+        <input type="text" id="im_source" list="sourceAppList" placeholder="圖書館 / 支部系統 / …" />
       </div>
       <div class="form-group">
         <label>旅團號</label>
@@ -649,7 +589,7 @@
     <div class="form-grid">
       <div class="form-group">
         <label>來源 APP</label>
-        <input type="text" id="fm_source" placeholder="vsbadge / scoutsystem / …" />
+        <input type="text" id="fm_source" list="sourceAppList" placeholder="圖書館 / 支部系統 / …" />
       </div>
       <div class="form-group">
         <label>旅團號</label>
@@ -701,529 +641,344 @@
 // ============================================================
 const DOCS = {
   scout: {
-    title: '📖 Scout Admin APP 說明書',
+    title: '📖 Scout Admin 說明書（統一回報格式 v2.4）',
     filename: 'SCOUT_ADMIN.md',
-    content: `# Scout Admin — 旅團接入管理中心 說明書
+    content: `# Scout Admin — 統一回報 · 旅團接入管理中心 說明書
 
-> 版本：2.3 | 作者：系統管理員
-> 本次大改：**後台加 SUPER KEY 密碼門**（進後台要先輸入密碼；密碼存 Vercel 環境變數 **SUPER_KEY**，server 端比對，登入後 24 小時 session）、旅團登記簡化為「旅團名 + URL + API KEY」、問題回報／意見回饋改成 TICK 看板（已閱灰字沉底）、新增 SCOUT APP STORE「作品投稿」分頁與工作表、後台讀取加 API KEY 保護
+> 版本：2.4 | 作者：系統管理員
+> 本次大改：
+> ① **統一回報格式 v1**：所有系統（圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…）用**同一個 payload、同一個接收端、同一組工作表欄位**回報，唯一分別只有 \`sourceApp\`（來源系統）
+> ② 後台「問題回報 / 意見回饋」加**來源系統膠囊**：一眼看到每個系統各有幾條未閱，點一下只看該系統
+> ③ Apps Script v2.4：**來源名稱自動正規化**、**type 別名／中文／漏寫也收得到**、**工作表與欄位完全不變**
+> ④ 移除已無用的「🔧 產生器」與「⚙️ 設定」分頁
+> ⑤ 保留：SUPER KEY 密碼門、API KEY 只留 Vercel 環境變數、已閱／審核寫回 Sheet
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
 
-## 〇、SUPER KEY 密碼門（v2.3 新增）
+## 〇、統一回報格式 v1（本次核心）
 
-**任何人開後台網址都要先輸入密碼**（Vercel 環境變數 **SUPER_KEY** 的值）才看得到資料。
+### 設計目標
 
-- 密碼**只存在 Vercel 環境變數**，由 /api/admin 代理在 **server 端比對**，不會送進瀏覽器
-- 登入成功後拿到 24 小時的簽名 session token（存本機）；「同步」「已閱」「審核寫回」都靠它
-- 繞不開：無 token 直接打 /api/admin 讀取會被 **401** 擋掉
-- **改密碼**＝回 Vercel 改 **SUPER_KEY** 的值再部署；舊 session 全部失效，所有人重新登入
-- 用戶端（widget／回報表單／作品投稿）照舊**不用登入、不用 Key**
-- 本地開發（沒有 /api/admin 代理）不會被擋，維持直連模式
+> 之後每加一個系統（支部系統、進度追蹤、旅系統、區系統、專章系統…），
+> **不用改 Apps Script、不用加工作表、不用加欄位、不用改後台資料庫（Supabase 等）、不用改後台代碼。**
+
+### 怎樣做到
+
+| 層 | 做法 | 加新系統要做什麼 |
+|----|------|-----------------|
+| 用戶端 | 全部系統貼**同一行 widget**，只有 \`data-app\` 不同 | 貼一行 |
+| 傳輸 | 全部送**同一個 Apps Script Web App**，同一個 JSON 格式 | 不用做 |
+| 儲存 | 仍然是原本那 4 張工作表、原本那些欄位；系統分辨靠既有的**「來源APP」欄** | **不用做** |
+| 後端 | GS 自動把來源名稱對齊（\`library\` / \`scoutlibrary.vercel.app\` → \`圖書館\`） | 不用做（要正式中文名才加一行別名） |
+| 後台 | TICK 看板自動長出該系統的**來源膠囊**與未閱數 | 不用做（要圖示／排序才加一行 \`SOURCE_APPS\`） |
+
+**一句話**：新系統 = 一行 \`data-app\`，其他全部照舊。
+
+### 統一 payload（兩邊格式對齊，永遠只有這些欄位）
+
+問題回報：
+
+\`\`\`json
+{
+  "type": "issue",
+  "sourceApp": "圖書館",
+  "title": "借書紀錄無法儲存",
+  "desc": "按儲存後沒有反應",
+  "severity": "高",
+  "troopId": "0082",
+  "name": "",
+  "contact": ""
+}
+\`\`\`
+
+意見回饋：
+
+\`\`\`json
+{
+  "type": "feedback",
+  "sourceApp": "圖書館",
+  "fbType": "建議",
+  "content": "想要夜間模式",
+  "troopId": "",
+  "name": "",
+  "contact": ""
+}
+\`\`\`
+
+- \`sourceApp\` 以外的欄位，**所有系統一模一樣**
+- \`name\`、\`contact\`、\`troopId\` 一律**選填**（可匿名）
+- 提交**不需要 API KEY、不需要登入**
+
+### 容錯（不漏單保證）
+
+| 情況 | 系統行為 |
+|------|---------|
+| \`type\` 寫成 \`bug\`／\`問題回報\`／\`suggestion\`／\`意見\` | 自動對應到 issue／feedback |
+| \`type\` 沒寫或認不出 | 有 \`title\`/\`desc\` → 問題回報；有 \`content\` → 意見回饋；否則 → 旅團登記 |
+| \`sourceApp\` 寫網域或英文（\`scoutappstore.vercel.app\`） | 自動對齊成 \`APP STORE\` |
+| \`sourceApp\` 是未登記的新系統 | **原樣保留**，後台顯示 \`🔹 名稱\`，照樣分流、照樣統計 |
+| 送來沒見過的欄位 | Sheet 自動加欄；Email 一定附全部欄位＋原始 JSON 備份 |
+
+### 已登記的來源系統
+
+| 系統 | 正式名稱（存進 Sheet） | 可用別名 |
+|------|----------------------|---------|
+| 📚 | 圖書館 | library, scoutlibrary, scoutlibrary.vercel.app |
+| 🛍️ | APP STORE | appstore, scoutappstore, scoutappstore.vercel.app, 商店 |
+| 🏢 | 支部系統 | branch, branchsystem, 支部 |
+| 📈 | 進度追蹤 | progress, progresstracker, 進度 |
+| ⚜️ | 旅系統 | troop, troopsystem, scoutsystem |
+| 🗺️ | 區系統 | district, districtsystem, 區 |
+| 🎖️ | 專章系統 | badge, badgesystem, vsbadge, 專章 |
+
+> 要新增／改名：\`index.html\` 的 \`SOURCE_APPS\`（後台顯示）＋ Apps Script 的 \`SOURCE_ALIASES\`（儲存名稱）各加一行即可。**不加也能用。**
+
+### 三種接入方式（任選一，全部同一格式）
+
+1. **一行 widget**（推薦）
+   \`\`\`html
+   <script src="https://scout-admin-blue.vercel.app/widget.js" data-app="支部系統"><\/script>
+   \`\`\`
+   右下角浮動「🐛💬 回報 · 意見」按鈕，APP 不需要任何後端。不寫 \`data-app\` 會自動用網址判斷。
+2. **貼表單代碼**：後台「📜 Apps Script」分頁的問題回報／意見回饋表單，只改 \`SOURCE_APP\`。
+3. **零改動獨立回報頁**：\`https://scout-admin-blue.vercel.app/report.html?app=支部系統\`（分享連結或 QR 即可）。
+
+後台「📜 Apps Script → 🧩 各系統一行接入代碼」已經幫每個系統生好可複製的那一行。
 
 ---
 
 ## 一、這是什麼
 
-Scout Admin 是**純靜態後台**（部署在 Vercel，沒有自己的後端）。它的唯一接收端是固定的 **Google Apps Script Web App**（URL 已寫死在代碼內）。功能：
+Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫**。唯一的接收端是固定的 **Google Apps Script Web App**（URL 已寫死在 widget／表單／代理內）。
+
+功能：
 
 1. 接收旅團登記（旅團名、URL、API KEY；旅團號選填）
-2. 一鍵產生各 APP 需要的設定格式，你把 API KEY 放進 **Vercel 環境變數**即可
-3. 前端直接看「問題回報」「意見回饋」TICK：最新在最頂，點「✔ 已閱」灰字沉底
-4. TICK 可匿名，或留底姓名／聯絡方式
-5. 接收 **SCOUT APP STORE**（scoutappstore.vercel.app）送來的「作品投稿」，照抄到 Sheet「作品投稿」＋ Email 通知，不漏單
-6. 已閱／審核狀態寫回 Google Sheet，換裝置「🔄 同步」也一致
-7. **SUPER KEY 密碼門**：進後台先輸密碼（Vercel 環境變數 **SUPER_KEY**），拿 24 小時 session
+2. **統一回報看板**：所有系統的問題回報／意見回饋，按來源系統分流
+3. TICK 看板：最新在最頂，點「✔ 已閱」整張卡灰字沉底；可匿名或留底姓名／聯絡
+4. 接收 **SCOUT APP STORE** 的「作品投稿」
+5. 已閱／審核狀態寫回 Google Sheet，換裝置「🔄 同步」也一致
+6. **SUPER KEY 密碼門**：進後台先輸密碼，拿到 24 小時 session 才看得到資料
 
-> ⚠️ 給其他開發者／Agent：**SUPER KEY 密碼門保護「誰能進後台」**、**API KEY 保護「後台讀取清單」（含個人資料）**；所有提交（旅團登記、問題、回饋、作品投稿）都**不需 Key、不需登入**，照常接收，確保用戶交得到。
+> ⚠️ **SUPER KEY 保護「誰能進後台」**；**API KEY 保護後台「讀取清單」（含個人資料）**。
+> 所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key、不需登入**，確保用戶一定交得到。
 
----
+### 後台分頁（v2.4）
 
-## 二、要先做一次（重要）
+| 分頁 | 用途 |
+|------|------|
+| 🏛️ 旅團登記 | 旅團接入申請、審核、複製設定 |
+| 🐛 問題回報 | 全系統問題 TICK（來源膠囊分流） |
+| 💬 意見回饋 | 全系統意見 TICK（來源膠囊分流） |
+| 📮 作品投稿 | SCOUT APP STORE 投稿（狀態在 Sheet 改） |
+| 📜 Apps Script | 最新 GS 代碼、各系統一行接入代碼、表單代碼、欄位說明 |
+| 📖 說明書 | 本文件（可下載 MD） |
 
-把 📜 Apps Script 分頁的 **最新代碼**整段貼到 Apps Script → 儲存 → 部署 → 管理部署 → 編輯 → 版本「新版本」→ 部署（網址不變）。
-
-API KEY 由 **GS 自己產生**：編輯器上方選函式「setupApiKey」→ 執行 → 授權，就會自動生 Key、存進腳本屬性，並 E-mail 給你。把這條 Key 加進 **本專案 Vercel 環境變數 **SCOUT_ADMIN_KEY****（後台讀取走 /api/admin 代理，Key 不落瀏覽器）；信裡另附「一鍵填好」連結，點開會把 Key 帶入後台「⚙️ 設定」當本機後備。
-
----
-
-## 三、旅團登記（簡化）
-
-旅團只要提供三項：**旅團名、URL、API KEY**（旅團號選填，有就填，用來生成 TROOP_編號_APIKEY 環境變數名）。
-
-> 欄位對不上也不怕：GS 收到「沒見過的欄位」會**自動加欄**存進 Sheet；Email 一定附上**全部欄位＋原始 JSON 備份**，確保不漏。
-
-- 登記表單貼在旅團 APP 設定頁，提交即寫入 Sheet「申請記錄」＋ Email 通知你
-- 你在後台按「🔄 同步 Sheet」載入 → 審核（✅ 接入 / ❌ 拒絕）→ 展開卡片複製對應設定
-- **API KEY 一律放 Vercel 環境變數**，不寫進 JSON
+> 🗑️ 已移除：**🔧 產生器**（旅團卡片展開即可複製設定，重複功能）、**⚙️ 設定**（API KEY 已改由 Vercel 環境變數 \`SCOUT_ADMIN_KEY\` 注入，本機再填一次只會製造混亂；備份也不需要，正本永遠在 Google Sheet）。
 
 ---
 
-## 四、問題回報／意見回饋（TICK 看板）
+## 二、SUPER KEY 密碼門
 
-- 前端直接看 TICK：**未閱最新在最頂**；點「✔ 已閱」→ 整張卡**灰字沉到底**
-- 可匿名（姓名、聯絡方式都選填），也可留底姓名＋聯絡
-- 已閱／未閱可反悔（↩ 未閱）；狀態寫回 Sheet，開 Sheet 也看得到、換裝置同步
-- 用戶端可用：一行 widget（浮動按鈕）、貼表單代碼、或獨立回報頁 report.html?app=APP名
-
----
-
-## 六、設定格式
-
-vsbadge 用 troops.json（鍵＝旅團號；留空則用旅團名當鍵）：
-{
-  "troops": { "0082": { "name": "第82旅", "backend": "https://…/exec" } }
-}
-
-scoutsystem 用 lib/troops.ts 片段（同旅團號為 key／id）。
-
-Vercel 環境變數：Name = TROOP_0082_APIKEY，Value = 旅團的 API Key（旅團號留空時自行命名）。
+| 項目 | 說明 |
+|------|------|
+| 密碼存在哪 | **只**存 Vercel 環境變數 \`SUPER_KEY\`；由 \`/api/admin\` 在 server 端比對（timing-safe） |
+| 登入後 | 24 小時簽名 session token（存本機 localStorage） |
+| 繞不開 | 無 token 直接打 \`/api/admin\` 的 list／寫回 → **401** |
+| 防暴力猜解 | 同一 IP 15 分鐘內錯 5 次 → 鎖 15 分鐘 |
+| **改密碼** | Vercel → Settings → Environment Variables 改 \`SUPER_KEY\` → 重新部署（舊 session 全失效） |
+| 登出 | 右上角「🚪 登出」 |
+| 本地開發 | 沒有 \`/api/admin\` 代理時不擋；\`SUPER_KEY\` 未設時會提示「⚠️ 未設 SUPER_KEY」 |
+| 用戶端 | widget、回報表單、作品投稿**完全不受影響**（不用登入、不用 Key） |
 
 ---
 
-## 五、作品投稿（SCOUT APP STORE）
+## 三、升級到 v2.4 要做的事
 
-- Scout APP STORE（scoutappstore.vercel.app）的投稿會<strong>多送一份</strong>到這裡，寫進 Sheet「作品投稿」＋ Email 通知，不影響商店本身
-- 後台「📮 作品投稿」分頁：最新在最頂、可搜尋／篩選；狀態唯讀（改狀態回 Sheet 改，再「🔄 同步」）
+1. **重新部署本專案**（後台新版）
+2. **更新 Apps Script**（拿到 v2.4 的來源正規化與容錯）：
+   - 後台 **📜 Apps Script** 分頁 → 複製最新代碼 → 貼上取代舊碼 → 儲存
+   - 部署 → **管理部署** → **編輯** → 版本選「**新版本**」→ 部署（網址不變）
+3. 確認 Vercel 環境變數：\`SUPER_KEY\`（後台密碼）、\`SCOUT_ADMIN_KEY\`（GS 產生的 API KEY）
+4. 其他系統照「統一回報格式」貼一行 widget
 
-## 七、Google Sheet 工作表
+> ⚠️ **不需要**新增工作表、不需要改欄位、不需要改任何資料庫。舊資料完全相容。
 
-- ① 申請記錄：提交時間 / 旅團號(選) / 旅團名稱 / URL / API Key / 備注 / 狀態 / 編號
-- ② 問題回報：… / 聯絡方式 / 姓名 / 狀態(未閱/已閱) / 編號
-- ③ 意見回饋：來源APP / 旅團號 / 類型 / 內容 / 聯絡方式 / 姓名 / 狀態 / 編號
-- ④ 作品投稿：提交時間 / 作品名稱 / 作品連結 / 作者名稱 / 作品類型 / 分類 / 作品簡介 / 標籤 / 狀態 / 編號
+### API KEY（由 GS 自己產生）
 
-工作表、標題欄會自動建立；舊表缺的「姓名」欄會自動在右側補上。
+1. Apps Script 編輯器上方選函式 \`setupApiKey\` → 執行 → 首次會要授權
+2. 它會產生 \`scout-…\` 的 Key、存進腳本屬性 \`API_KEY\`、E-mail 給 \`ADMIN_EMAIL\`
+3. 把這條 Key 加進 Vercel 環境變數 **\`SCOUT_ADMIN_KEY\`** → 重新部署
+4. \`resetApiKey()\` 可重新產生（舊 Key 作廢）
+
+> 健康檢查網址不需 Key；\`?action=list\` 需 Key。
 
 ---
 
-## 八、常見問題
+## 四、旅團登記（簡化版）
+
+旅團只需提供三項：**旅團名、URL、API KEY**（旅團號選填）。
+
+| 欄位 | 必填 | 說明 |
+|------|------|------|
+| 旅團名稱 | ✓ | 如 第82旅 |
+| URL | ✓ | 旅團的 Apps Script 後端 URL |
+| API Key | ✓ | 旅團 API Key → 你在 Vercel 加入 |
+| 旅團號 | 選填 | 有就填（0082），用來生成 \`TROOP_0082_APIKEY\` 環境變數名 |
+
+流程：旅團提交 → 寫入 Sheet「申請記錄」＋ Email → 後台「🔄 同步 Sheet」→ 審核（✅ 接入 / ❌ 拒絕）→ **展開卡片直接複製** vsbadge JSON／troops.ts／Vercel 環境變數片段。
+
+---
+
+## 五、問題回報 / 意見回饋（統一 TICK 看板）
+
+- 頂部「**來源系統膠囊**」：🌐 全部系統 + 每個系統的總數與**未閱紅點**；點一下只看該系統
+- **未閱最新在最頂**；點「✔ 已閱」→ 卡變灰字、沉到底；可「↩ 未閱」反悔
+- 可匿名，也可留底姓名 + 聯絡方式
+- 已閱／未閱寫回 Google Sheet（不需 Key），換裝置「🔄 同步」一致
+- 搜尋同時比對來源正式名稱與原始字串
+
+---
+
+## 六、作品投稿（SCOUT APP STORE）
+
+- 商店的投稿會**多送一份**過來，寫進 Sheet「作品投稿」＋ Email 通知
+- 後台「📮 作品投稿」：最新在最頂、可搜尋／篩選（待審核／已上架／已拒絕）
+- 狀態**唯讀**：去 Sheet 改，改完按「🔄 同步」
+- APP STORE 的**問題回報／意見回饋**則與其他系統一樣走統一格式，進 TICK 看板
+
+---
+
+## 七、Google Sheet 工作表（v2.4 完全不變）
+
+### ① 申請記錄（旅團登記）
+
+| 欄 | 欄位名稱 |
+|----|---------|
+| A | 提交時間 |
+| B | 旅團號（選填） |
+| C | 旅團名稱 |
+| D | URL |
+| E | API Key |
+| F | 備注 |
+| G | 狀態（待處理／已接入／已拒絕） |
+| H | 編號 |
+
+### ② 問題回報（全系統共用）
+
+| 欄 | 欄位名稱 |
+|----|---------|
+| A | 提交時間 |
+| B | 來源APP（＝來源系統，自動對齊統一名稱） |
+| C | 旅團號 |
+| D | 標題 |
+| E | 問題詳情 |
+| F | 嚴重度 |
+| G | 聯絡方式（選填） |
+| H | 姓名（選填，可匿名） |
+| I | 狀態（未閱／已閱） |
+| J | 編號 |
+
+### ③ 意見回饋（全系統共用）
+
+| 欄 | 欄位名稱 |
+|----|---------|
+| A | 提交時間 |
+| B | 來源APP（＝來源系統） |
+| C | 旅團號 |
+| D | 類型 |
+| E | 內容 |
+| F | 聯絡方式（選填） |
+| G | 姓名（選填，可匿名） |
+| H | 狀態（未閱／已閱） |
+| I | 編號 |
+
+### ④ 作品投稿（SCOUT APP STORE）
+
+| 欄 | 欄位名稱 |
+|----|---------|
+| A | 提交時間 |
+| B | 作品名稱 |
+| C | 作品連結 |
+| D | 作者名稱 |
+| E | 作品類型（page） |
+| F | 分類 |
+| G | 作品簡介 |
+| H | 標籤 |
+| I | 狀態（待審核／已上架／已拒絕，在 Sheet 改） |
+| J | 編號 |
+
+---
+
+## 八、資料儲存說明
+
+| 資料 | 儲存位置 |
+|------|---------|
+| 原始登記 / 回報 / 回饋 / 作品投稿 | Google Sheet 四張工作表（正本） |
+| 已閱／審核狀態（正式） | Google Sheet「狀態」欄（\`markRead\`／\`markReq\` 寫回，不需 Key） |
+| 後台快取 | 瀏覽器 localStorage（可隨時「🔄 同步」重建） |
+| Email 通知 | Gmail |
+| 後台入口保護 | Vercel 環境變數 \`SUPER_KEY\` ＋ 本機 24 小時 session token |
+| 後台讀取保護 | Vercel 環境變數 \`SCOUT_ADMIN_KEY\`（經 \`/api/admin\` 注入）＋ GS 腳本屬性 |
+
+---
+
+## 九、Apps Script Web App 資訊
+
+| 項目 | 說明 |
+|------|------|
+| URL | \`https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec\` |
+| 執行身分 | 你（管理員帳號） |
+| 存取權限 | 所有人（**寫入開放**，用戶才交得到；**讀取清單需 Key**） |
+| POST 分流 | \`issue\`／\`feedback\`／\`appstore\`／\`apply\`（預設）／\`markReq\`／\`markRead\` — **皆不需 Key**，且支援別名與自動判斷 |
+| GET | \`?action=list\`（**需 \`apikey\`**）回傳四張工作表 |
+| 健康檢查 | 直接開網址應回 \`{"status":"ok"}\` |
+| 生成 API KEY | 執行 \`setupApiKey()\`；\`resetApiKey()\` 重設 |
+| 不漏保證 | 未知欄位自動加欄；Email 附全部欄位＋原始 JSON 備份；完全無資料才略過 |
+| 前端代理 | \`/api/admin\`：GET \`?action=ping\`／POST \`login\`／GET \`?action=list\`／POST \`markRead\`、\`markReq\`（需 \`x-scout-session\`） |
+
+---
+
+## 十、加一個新系統的完整流程（例：支部系統）
+
+1. 在支部系統的頁面 \`</body>\` 前貼：
+   \`\`\`html
+   <script src="https://scout-admin-blue.vercel.app/widget.js" data-app="支部系統"><\/script>
+   \`\`\`
+2. 完。
+
+真的完了 —— 不用開工作表、不用加欄位、不用改 Apps Script、不用改後台、不用改任何資料庫。
+（想要它在後台有專屬圖示／固定排序，才在 \`index.html\` 的 \`SOURCE_APPS\` 加一行。）
+
+---
+
+## 十一、常見問題
+
+**Q：之後加新系統，要改 Google Sheet 或資料庫嗎？**
+A：**不用。** 來源系統靠既有的「來源APP」欄分辨，工作表、欄位、代碼全部不變。
+
+**Q：新系統的名稱寫錯／寫了英文或網域？**
+A：GS 會自動對齊到正式名稱；對不上就原樣保留，後台照樣收、照樣分流（顯示 🔹 名稱）。
 
 **Q：同步失敗、提示 API KEY？**
-A：先照第二節執行 setupApiKey（Apps Script），再把 E-mail 裡的 Key（或點一鍵連結）帶入後台「⚙️ 設定」。
+A：執行 \`setupApiKey()\`，把 Email 裡的 Key 加進 Vercel \`SCOUT_ADMIN_KEY\`，重新部署。
 
-**Q：旅團號留空會怎樣？**
-A：照常登記。Vercel 環境變數名你自行命名；vsbadge JSON 以旅團名當鍵。
+**Q：「⚙️ 設定」分頁去了哪裡？**
+A：已刪除。API KEY 現在只放 Vercel 環境變數（不落瀏覽器）；匯出備份也不需要，正本在 Google Sheet，按「🔄 同步」即可重建。
 
-**Q：收不到 TICK？**
-A：✅ 已重新部署最新代碼；✅ 各 APP 已貼新表單（含 SOURCE_APP）；✅ 後台按「🔄 同步」。
+**Q：「🔧 產生器」去了哪裡？**
+A：已刪除。旅團登記卡片展開就能直接複製 vsbadge JSON／troops.ts／Vercel 環境變數，功能重複。
 
-**Q：換了瀏覽器記錄不見？**
-A：原始資料都在 Sheet，重新「🔄 同步」即可；或匯出／匯入備份 JSON（API KEY 也要重填）。`
-  },
+**Q：點「✔ 已閱」後另一個裝置看不到？**
+A：已閱會寫回 Sheet，另一裝置按「🔄 同步」即一致。
 
-  _unused_maintainer: {
-    title: '🔀 Router MAINTAINER.md',
-    filename: 'MAINTAINER.md',
-    content: `# 旅團轉駁中心 (Troop Service Hub) — 維護手冊（僅供作者）
+**Q：後台密碼忘記了／想換？**
+A：密碼＝Vercel 環境變數 \`SUPER_KEY\` 的值；改值 → 重新部署，舊 session 全部作廢。
 
-> ⚠️ 給你自己維護用，不對外。對各旅團來說，他們只是用了你的某些系統，不知道背後連著這個中心。
-> schema 3 / 與「區轉駁器」同等 level、同一套 schema。
-
----
-
-## 一、這是什麼
-
-整個「旅團 Portal」系統的運轉核心 / 轉駁器。本質：一份 **registry.json**（外掛清單 + 接入名單），透過 Vercel 包成乾淨 API 端點供各旅團平台讀取。
-
-\`\`\`
-你開發新系統 ──► 在 registry.json 加一段 ──► 推上 GitHub ──► Vercel 自動部署
-      │
-      各旅團 Portal 讀 /api/registry ◄──────────────────────────────┘
-      │
-      旅團在「外掛市集」看到 ──► 自行決定安裝 / 給誰看
-\`\`\`
-
----
-
-## 二、分級系統（核心）★
-
-| 級別 | 意思 | 誰部署 | 旅團要幹什麼 |
-| --- | --- | --- | --- |
-| **第 2 級** | 即插即用（共用系統） | **你**（1 份完整系統） | 啟用即用，什麼都不做 |
-| **第 3 級** | 需單位自設後台（接法B） | **你**（共用前端）+ **各旅團**（各設後端） | 建後端 + 填申請表單 |
-
----
-
-## 三、日後維護：常見動作 ★
-
-### A) 新增第2級（即插即用）插件
-
-\`\`\`json
-{
-  "id": "games",
-  "title": "旅團遊戲庫",
-  "icon": "🎲",
-  "url": "https://your-games.example.com",
-  "tier": 2,
-  "needsUnitBackend": false,
-  "status": "active"
-}
-\`\`\`
-
-\`npm run validate\` → \`git push\`。旅團啟用即用。
-
----
-
-### B) 新增第3級（接法B）插件
-
-\`plugins\` 先登記（**url 留空**）：
-
-\`\`\`json
-{
-  "id": "troop_attendance",
-  "title": "集會點名系統",
-  "icon": "📝",
-  "url": "",
-  "tier": 3,
-  "needsUnitBackend": true,
-  "status": "active"
-}
-\`\`\`
-
----
-
-### C) 某旅團要用第3級插件
-
-#### C-1：旅團提交申請
-
-旅團透過 APP 內嵌的申請表單提交資料（旅團號、名稱、Apps Script URL、API Key、接入APP）。
-
-- 自動寫入管理員 Google Sheet「申請記錄」工作表
-- 自動寄 Email 通知管理員
-
-#### C-2：管理員在 Scout Admin APP 處理
-
-前往 https://scout-admin-blue.vercel.app/ → 📥 新申請：
-
-1. 確認資料
-2. 點「✅ 標記完成」
-3. 展開申請卡 → 複製輸出
-
-\`\`\`
-接入 vsbadge    → 複製 troops.json 片段 → 貼入 vsbadge repo
-接入 scoutsystem → 複製 troops.ts 片段  → 貼入 lib/troops.ts
-                 → 複製 Vercel env var  → Vercel Dashboard 設定
-\`\`\`
-
-#### C-3：更新 Registry（若有需要）
-
-\`\`\`json
-{
-  "id": "82",
-  "name": "第82旅",
-  "installs": ["troop_lib", "troop_attendance"],
-  "endpoints": {
-    "troop_attendance": "https://troop-attendance.vercel.app"
-  }
-}
-\`\`\`
-
-> ⚠️ \`endpoints\` 填的是**你的共用前端** URL，不是旅團的後端 URL！
-
----
-
-### D) 旅團用第2級插件
-
-啟用即用，不用碰轉駁器。
-
-### E) 下架插件
-
-\`"status": "active"\` 改成 \`"disabled"\` → push。
-
-### F) 緊急停服
-
-把 registry 改成 \`{"schema":3,"plugins":[],"units":[]}\` 再 push。
-
----
-
-## 四、Registry 欄位字典
-
-### \`plugins[]\`
-
-| 欄位 | 必填 | 說明 |
-| --- | --- | --- |
-| \`id\` | ✓ | 唯一代號，永不更名 |
-| \`url\` | tier2 必填，tier3 留空 | 第2級填共用網址；第3級留空 |
-| \`tier\` | ✓ | 2 或 3 |
-| \`needsUnitBackend\` | ✓ | tier2=false，tier3=true |
-
-### \`units[]\`
-
-| 欄位 | 必填 | 說明 |
-| --- | --- | --- |
-| \`id\` | ✓ | 旅團代碼 |
-| \`installs\` | | 已安裝的插件 id 列表 |
-| \`endpoints\` | tier3 必填 | 插件 id → **共用前端** URL |
-
-> ⚠️ **絕對不要** 在 Registry 中放旅團的後端 URL（如 GAS URL）。Registry 是公開 API。
-
----
-
-## 五、安全設計規範
-
-1. **後端 URL 絕對不進 Registry**（用 Vercel 環境變數）
-2. **後端必須驗證 \`?u=\` 參數**（防止跨旅團資料混亂）
-3. **可選 API Key 雙重驗證**
-
----
-
-## 六、旅團接入通知系統（Scout Admin APP）★
-
-| 組件 | 說明 |
-|------|------|
-| Scout Admin APP | 管理員查看申請、產生 JSON/TS | https://scout-admin-blue.vercel.app/ |
-| Apps Script Web App | 接收 POST → 寫 Sheet → 寄 Email |
-| 前端申請表單 | 嵌入各旅團 APP，從 Scout Admin 📜 Apps Script 分頁複製 |
-
-### 各 APP 設定格式
-
-**vsbadge \`troops.json\`**
-\`\`\`json
-{
-  "troops": {
-    "0082": {
-      "name": "第 82 旅",
-      "backend": "https://script.google.com/macros/s/XXXXXX/exec",
-      "apikey": "vs_xxxxxxxxxxxxxxxxxxxxxxxx"
-    }
-  }
-}
-\`\`\`
-
-**scoutsystem \`lib/troops.ts\`**
-\`\`\`typescript
-{
-  key: 'troop_0082',
-  id: '0082',
-  name: '第82旅',
-  webAppUrl: 'https://script.google.com/macros/s/XXXXXX/exec',
-  status: 'active',
-},
-\`\`\`
-
-**Vercel 環境變數**
-\`\`\`
-TROOP_0082_APIKEY=ak_xxxxxxxxxxxxxxxxxxxxxxxx
-\`\`\`
-
----
-
-## 七、元件開發者完整檢查清單
-
-**後端（Apps Script）**
-- [ ] \`initializeSheets()\` 自動建立工作表
-- [ ] \`getApiKey()\` 自動生成 API Key（格式：\`vs_\` 或 \`ak_\` + 24位隨機字元）
-- [ ] \`doGet\` 支援 \`action=health\` 健康檢查
-
-**前端**
-- [ ] 有旅團選擇功能（無 \`u\` 參數時顯示）
-- [ ] 從 \`troops.json\` 讀取旅團列表
-- [ ] 支援 \`u\`、\`role\`、\`ymis\`、\`embed=1\` 參數
-
-**申請接入**
-- [ ] APP 設定頁面嵌入申請表單（從 Scout Admin APP 複製）
-
-**文件**
-- [ ] \`HOW_TO_ADD_TROOP.md\`
-- [ ] \`DEPLOY_GUIDE_FOR_TROOPS.md\`
-- [ ] README 說明兩種使用方式`
-  },
-
-  _unused_dualtrack: {
-    title: '⚙️ Router 第3級雙軌制規範',
-    filename: 'ROUTER_TIER3_DUALTRACK.md',
-    content: `# Router 第 3 級元件雙軌制規範
-
-> 所有第 3 級元件均支援「獨立使用」或「接入主系統」兩種模式
-> Router 只需登記一次，之後新旅團透過申請流程接入即可使用
-
----
-
-## 核心概念
-
-\`\`\`
-Router（登記一次）
-      │
-      ├─ 旅團 A ──→ 填申請表單 → Scout Admin APP 審核 → 加入設定檔 → 完
-      ├─ 旅團 B ──→ 填申請表單 → Scout Admin APP 審核 → 加入設定檔 → 完
-      └─ 旅團 C ──→ 兩種使用模式都可用
-\`\`\`
-
-**Router 不需要知道任何旅團的 backend URL 或 API Key。**
-
----
-
-## 雙軌制說明
-
-### 軌道 A：獨立使用
-
-\`\`\`
-旅團打開前端 URL → 選擇旅團 → 查找 troops.json → 取得 backend + apikey → 連接後端
-\`\`\`
-
-### 軌道 B：接入主系統
-
-\`\`\`
-主系統卡片 → iframe 帶入 ?u=0082&role=leader&ymis=... → 查找 troops.json → 連接後端
-\`\`\`
-
-### 雙軌並存
-
-兩種模式不衝突，同一個旅團可以同時使用兩種方式。
-
----
-
-## 旅團接入完整流程
-
-### 第 1 步：旅團建立後端（約 10 分鐘）
-
-1. 建立 Google Sheet
-2. 貼上 \`Code.gs\`（元件提供）
-3. 執行 \`initializeSheets()\` → 自動生成 API Key
-4. 部署 Apps Script → 複製 URL
-
-### 第 2 步：旅團提交申請表單
-
-在旅團 APP 設定頁面，填寫並提交接入申請。
-提交後自動通知管理員（Email + Google Sheet）。
-
-### 第 3 步：管理員在 Scout Admin APP 審核
-
-前往 https://scout-admin-blue.vercel.app/ → 📥 新申請
-
-1. 確認資料 → 點「✅ 標記完成」
-2. 展開申請卡 → 複製輸出格式
-
-| 接入 APP | 複製什麼 | 貼到哪裡 |
-|---------|---------|---------|
-| vsbadge | \`troops.json\` 片段 | vsbadge repo |
-| scoutsystem | \`troops.ts\` 片段 | \`lib/troops.ts\` |
-| scoutsystem | Vercel env var | Vercel Dashboard |
-
-### 第 4 步：git push → 自動部署 → 旅團立即可用
-
----
-
-## 各 APP 設定格式規範
-
-### vsbadge — \`troops.json\`
-\`\`\`json
-{
-  "troops": {
-    "0082": {
-      "name": "第 82 旅",
-      "backend": "https://script.google.com/macros/s/XXXXXX/exec",
-      "apikey": "vs_xxxxxxxxxxxxxxxxxxxxxxxx"
-    }
-  }
-}
-\`\`\`
-
-### scoutsystem — \`lib/troops.ts\`
-\`\`\`typescript
-{
-  key: 'troop_0082',
-  id: '0082',
-  name: '第82旅',
-  webAppUrl: 'https://script.google.com/macros/s/XXXXXX/exec',
-  // API Key → Vercel env: TROOP_0082_APIKEY
-  status: 'active',
-},
-\`\`\`
-
-### scoutsystem — Vercel 環境變數
-\`\`\`
-Name:  TROOP_0082_APIKEY
-Value: ak_xxxxxxxxxxxxxxxxxxxxxxxx
-\`\`\`
-
-> ⚠️ API Key 永遠不出現在 Git 追蹤的檔案中。
-
----
-
-## 在新 APP 加入申請表單
-
-1. 前往 **Scout Admin APP → 📜 Apps Script 分頁**
-2. 複製「前端申請表單代碼」
-3. 貼入 APP 設定頁面
-
-**表單已預設連接到 Apps Script Web App，無需修改任何 URL。**
-
----
-
-## Router 登記（只做一次）
-
-\`\`\`json
-{
-  "id": "vs_badge_tracker",
-  "title": "深資童軍進度追蹤 (Tier 3)",
-  "icon": "🔥",
-  "tier": 3,
-  "path": "https://vsbadge.vercel.app/",
-  "roles": ["member", "leader"],
-  "needsTroopBackend": true,
-  "description": "基於第11版訓練綱要的四級進度追蹤系統。支援獨立使用或接入主系統。"
-}
-\`\`\`
-
-**之後有 100 個旅團要用，Router 也不需要再改任何東西。**
-
----
-
-## 主系統需要配合的參數
-
-\`\`\`
-?u={旅團編號}&role={用戶角色}&ymis={成員YMIS}&from=portal&embed=1
-\`\`\`
-
-**主系統不需要帶入 backend 和 apikey，前端自動從 troops.json 查找。**
-
----
-
-## 安全性
-
-| 層級 | 保護對象 | 機制 |
-|------|---------|------|
-| Google Sheet 密碼 | 擋人 | 只有 Sheet 擁有者能修改 |
-| API Key | 擋爬蟲 | 沒有 Key 就不能用 Apps Script API |
-| troops.json | 旅團設定 | 只有管理員能更新 |
-| Vercel 環境變數 | API Key | 不進 Git，只有你能看 |
-
----
-
-## 元件開發者檢查清單
-
-**後端（Apps Script）**
-- [ ] \`initializeSheets()\` 自動建立工作表
-- [ ] \`getApiKey()\` 自動生成 API Key
-- [ ] \`doGet\` 支援 \`action=health\` 健康檢查
-- [ ] 所有端點驗證 \`apiKey\` 參數
-
-**前端**
-- [ ] 有旅團選擇功能（無 \`u\` 參數時顯示）
-- [ ] 從 \`troops.json\` 讀取旅團列表
-- [ ] 支援 \`u\`、\`role\`、\`ymis\`、\`embed=1\` 參數
-
-**申請接入**
-- [ ] APP 設定頁面嵌入申請表單（從 Scout Admin APP 複製）
-- [ ] 申請表單已連接 Apps Script Web App
-
-**文件**
-- [ ] \`HOW_TO_ADD_TROOP.md\`（管理員操作）
-- [ ] \`DEPLOY_GUIDE_FOR_TROOPS.md\`（旅團建後端教學）
-- [ ] README 說明兩種使用方式
-
----
-
-## 一句話總結
-
-> Router 登記一次 = 全平台可用
-> 旅團填申請表單 = 管理員收 Email
-> Scout Admin APP = 一鍵產生 JSON/TS
-> git push = 旅團立即能用
-> Scout Admin APP：https://scout-admin-blue.vercel.app/`
+**Q：想修改通知 Email？**
+A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新版本）。
+`
   }
 };
 
@@ -1419,7 +1174,10 @@ const FRONTEND_ISSUE_CODE = `<!-- ==============================================
 
 <script>
 const _SCOUT_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
-const SOURCE_APP = "vsbadge"; // ← 改成你的 APP 名稱
+// ← 改成你的來源系統名稱（統一回報格式 v1）：
+//    圖書館 / APP STORE / 支部系統 / 進度追蹤 / 旅系統 / 區系統 / 專章系統
+//    寫英文代號或網域（library、scoutlibrary.vercel.app…）也可以，後端會自動對齊。
+const SOURCE_APP = "圖書館";
 
 async function submitScoutIssue() {
   var title    = document.getElementById('issue_title').value.trim();
@@ -1532,7 +1290,10 @@ const FRONTEND_FEEDBACK_CODE = `<!-- ===========================================
 
 <script>
 const _SCOUT_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
-const SOURCE_APP = "vsbadge"; // ← 改成你的 APP 名稱
+// ← 改成你的來源系統名稱（統一回報格式 v1）：
+//    圖書館 / APP STORE / 支部系統 / 進度追蹤 / 旅系統 / 區系統 / 專章系統
+//    寫英文代號或網域（library、scoutlibrary.vercel.app…）也可以，後端會自動對齊。
+const SOURCE_APP = "圖書館";
 
 async function submitScoutFeedback() {
   var type    = document.querySelector('input[name="fb_type"]:checked').value;
@@ -1575,8 +1336,17 @@ async function submitScoutFeedback() {
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 旅團登記 / 問題回報 / 意見回饋 / 作品投稿 接收系統（v2.2）
+// Scout Admin — 統一回報接收系統（v2.4）
+//   旅團登記 / 問題回報 / 意見回饋 / 作品投稿
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
+//
+// 【v2.4 重點：統一回報格式，加新系統不用再改這份代碼】
+//   圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…
+//   全部用同一個 payload、同一個接收端、同一組工作表欄位，
+//   唯一分別只有 sourceApp（來源系統）這個字串。
+//   ‧ 工作表／欄位：完全不變（不用新增表、不用加欄、不用改後台資料庫）
+//   ‧ 來源名稱自動正規化（library / scoutlibrary.vercel.app → 圖書館）
+//   ‧ type 寫錯、用中文、甚至沒寫，都會自動判斷去向，絕不漏單
 //
 // 【部署】
 //   擴充功能 → Apps Script → 貼上 → 儲存
@@ -1633,16 +1403,69 @@ var FIELD_MAP = {
 // 系統欄位：不要自動加進 Sheet
 var IGNORE_KEYS = { type: 1, apikey: 1 };
 
+// ---------- 統一回報格式：type 別名（寫錯／用中文也收得到） ----------
+var TYPE_ALIASES = {
+  "issue": "issue", "bug": "issue", "report": "issue", "problem": "issue",
+  "問題": "issue", "問題回報": "issue", "回報": "issue",
+  "feedback": "feedback", "suggestion": "feedback", "suggest": "feedback", "comment": "feedback",
+  "意見": "feedback", "意見回饋": "feedback", "回饋": "feedback",
+  "appstore": "appstore", "submission": "appstore", "作品投稿": "appstore", "投稿": "appstore",
+  "apply": "apply", "register": "apply", "旅團登記": "apply", "登記": "apply",
+  "markread": "markRead", "markreq": "markReq"
+};
+
+// ---------- 統一回報格式：來源系統正規化（新系統照收，不用改這裡） ----------
+// 每個系統只要在 sourceApp 填任何一個別名（或直接填網域），都會統一存成同一個名。
+var SOURCE_ALIASES = {
+  "圖書館":     ["library", "scoutlibrary", "scout-library", "scoutlibrary.vercel.app"],
+  "APP STORE":  ["appstore", "app store", "app-store", "scoutappstore", "scoutappstore.vercel.app", "商店"],
+  "支部系統":   ["branch", "branchsystem", "scoutbranch", "支部"],
+  "進度追蹤":   ["progress", "progresstracker", "scoutprogress", "進度"],
+  "旅系統":     ["troop", "troopsystem", "scoutsystem", "旅團系統"],
+  "區系統":     ["district", "districtsystem", "scoutdistrict", "區"],
+  "專章系統":   ["badge", "badgesystem", "vsbadge", "專章"]
+};
+
+function _normType(raw) {
+  var t = _s(raw).trim();
+  if (!t) return "";
+  return TYPE_ALIASES[t.toLowerCase()] || TYPE_ALIASES[t] || t;
+}
+
+function _normSource(raw) {
+  var v = _s(raw).trim();
+  if (!v) return "";
+  var low = v.toLowerCase();
+  var p = low.indexOf("://"); if (p >= 0) low = low.slice(p + 3);
+  var sl = low.indexOf("/");  if (sl >= 0) low = low.slice(0, sl);
+  if (low.indexOf("www.") === 0) low = low.slice(4);
+  var host = low.split(".")[0];
+  for (var canon in SOURCE_ALIASES) {
+    if (canon.toLowerCase() === low) return canon;
+    var al = SOURCE_ALIASES[canon];
+    for (var i = 0; i < al.length; i++) {
+      if (al[i].toLowerCase() === low || al[i].toLowerCase() === host) return canon;
+    }
+  }
+  return v; // 未登記的來源：原樣保留（照收不誤）
+}
+
 // ---------- POST 分流 ----------
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var type = (data.type || "apply").toString().trim();
+    var type = _normType(data.type);
+
+    if (type === "markReq")  return _handleMarkReq(data);
+    if (type === "markRead") return _handleMarkRead(data);
     if (type === "issue")    return _capture("issue",    data, "未閱");
     if (type === "feedback") return _capture("feedback", data, "未閱");
     if (type === "appstore") return _capture("appstore", data, "待審核");
-    if (type === "markReq")  return _handleMarkReq(data);
-    if (type === "markRead") return _handleMarkRead(data);
+    if (type === "apply")    return _capture("apply",    data, "待處理");
+
+    // type 認不出／沒寫 → 按內容猜，確保任何新系統都不會漏單
+    if (data.title || data.desc || data.description || data.severity) return _capture("issue", data, "未閱");
+    if (data.content || data.fbType) return _capture("feedback", data, "未閱");
     return _capture("apply", data, "待處理");
   } catch (err) {
     return _json({ status: "error", message: err.toString() });
@@ -1668,6 +1491,9 @@ function _capture(key, data, defaultStatus) {
       if (data[aliases[a]] !== undefined && data[aliases[a]] !== null) { map[header] = _s(data[aliases[a]]); break; }
     }
   }
+
+  // 統一回報格式：來源系統名稱正規化（欄位不變，只是把名字寫成統一那個）
+  if (map["來源APP"] !== undefined) map["來源APP"] = _normSource(map["來源APP"]);
 
   // 未知欄位 → 收集進 extras（稍後自動加欄）
   var consumed = {};
@@ -1779,9 +1605,9 @@ function setupApiKey() {
   var msg =
     "你的 Scout Admin 後台 API KEY：\\n\\n" + key + "\\n\\n" +
     "用法：\\n" +
-    "1) 把上面這條 Key 加進 Scout Admin 的 Vercel 環境變數，名稱 SCOUT_ADMIN_KEY（保護後台讀取，不落瀏覽器）。\\n" +
-    "2) 也可在 Scout Admin「⚙️ 設定」填同一條（本機後備，多裝置時可用）。\\n\\n" +
-    "一鍵填好（本機後備）：\\nhttps://scout-admin-blue.vercel.app/?key=" + key;
+    "把上面這條 Key 加進 Scout Admin 的 Vercel 環境變數，名稱 SCOUT_ADMIN_KEY\\n" +
+    "（Vercel → 專案 Settings → Environment Variables → 加完重新部署）。\\n" +
+    "Key 只留在 server，由 /api/admin 代理注入，瀏覽器永遠看不到。\\n";
   try { MailApp.sendEmail({ to: ADMIN_EMAIL, subject: "🔑 [Scout Admin] 後台 API KEY", body: msg }); Logger.log("已寄出 API KEY 到 " + ADMIN_EMAIL); }
   catch (e) { Logger.log(msg); }
   Logger.log("API_KEY = " + key);
@@ -1881,6 +1707,77 @@ function _json(obj) {
 `;
 
 // ============================================================
+// 統一回報格式 v1 — 來源系統登記表（SOURCE REGISTRY）
+// ------------------------------------------------------------
+// 所有系統（圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、
+// 專章系統…）都用「同一個 payload 格式、同一個 Apps Script 接收端、
+// 同一組 Google Sheet 欄位」回報，唯一分別只有 sourceApp 一個字串。
+//
+//   → 加新系統：在下面加一行（或什麼都不加），貼一行 widget。
+//   → 不用改 Apps Script、不用加工作表、不用改欄位、不用改 Supabase。
+//   → 沒登記的來源也不會漏：照樣收，照樣顯示（🔹 原樣名稱）。
+//
+// aliases：可寫網域、英文代號、舊名；大小寫與 https:// 會自動忽略。
+// ============================================================
+const SOURCE_APPS = [
+  { key:'library',   icon:'📚',  label:'圖書館',   aliases:['library','scoutlibrary','scout-library','scoutlibrary.vercel.app','圖書館'] },
+  { key:'appstore',  icon:'🛍️', label:'APP STORE', aliases:['appstore','app store','scoutappstore','scoutappstore.vercel.app','商店','app-store'] },
+  { key:'branch',    icon:'🏢',  label:'支部系統', aliases:['branch','branchsystem','scoutbranch','支部','支部系統'] },
+  { key:'progress',  icon:'📈',  label:'進度追蹤', aliases:['progress','progresstracker','scoutprogress','進度','進度追蹤'] },
+  { key:'troop',     icon:'⚜️',  label:'旅系統',   aliases:['troop','troopsystem','scoutsystem','旅系統','旅團系統'] },
+  { key:'district',  icon:'🗺️', label:'區系統',   aliases:['district','districtsystem','scoutdistrict','區','區系統'] },
+  { key:'badge',     icon:'🎖️', label:'專章系統', aliases:['badge','badgesystem','vsbadge','專章','專章系統'] }
+];
+
+// 來源字串 → 正規化 key（未登記來源回 '@原樣小寫'，永不丟失）
+function normSourceKey(raw) {
+  let s = String(raw ?? '').trim().toLowerCase();
+  if (!s) return '';
+  s = s.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
+  for (const a of SOURCE_APPS) {
+    if (a.key === s || a.label.toLowerCase() === s) return a.key;
+    if (a.aliases.some(x => x.toLowerCase() === s)) return a.key;
+  }
+  const host = s.split('.')[0];
+  for (const a of SOURCE_APPS) {
+    if (a.key === host || a.aliases.some(x => x.toLowerCase() === host)) return a.key;
+  }
+  return '@' + s;
+}
+function sourceMeta(key) { return SOURCE_APPS.find(a => a.key === key) || null; }
+function sourceLabel(raw) {
+  const k = normSourceKey(raw);
+  if (!k) return '（未標示）';
+  const m = sourceMeta(k);
+  return m ? m.icon + ' ' + m.label : '🔹 ' + String(raw).trim();
+}
+
+// 每個來源的「總數 / 未閱數」；登記過的系統即使 0 筆也會列出
+function sourceCounts(list, isRead) {
+  const map = new Map();
+  SOURCE_APPS.forEach(a => map.set(a.key, { key: a.key, label: a.icon + ' ' + a.label, total: 0, unread: 0 }));
+  list.forEach(r => {
+    const k = normSourceKey(r.sourceApp) || '@（未標示）';
+    if (!map.has(k)) map.set(k, { key: k, label: sourceLabel(r.sourceApp), total: 0, unread: 0 });
+    const c = map.get(k);
+    c.total++;
+    if (!isRead(r)) c.unread++;
+  });
+  return [...map.values()].sort((a, b) => (b.unread - a.unread) || (b.total - a.total) || a.label.localeCompare(b.label));
+}
+
+// 來源膠囊（點一下＝只看該系統）
+function buildSourceChips(list, isRead, cur, handler) {
+  const rows = sourceCounts(list, isRead);
+  const chip = (key, text, active, badge) =>
+    `<button class="src-chip${active ? ' active' : ''}" onclick="${handler}('${key}')">${text}` +
+    (badge ? `<span class="src-badge">${badge}</span>` : '') + `</button>`;
+  const totalUnread = list.filter(r => !isRead(r)).length;
+  return chip('all', '🌐 全部系統', cur === 'all', totalUnread || '') +
+    rows.map(c => chip(c.key, `${c.label} <span class="src-total">${c.total}</span>`, cur === c.key, c.unread || '')).join('');
+}
+
+// ============================================================
 // STATE
 // ============================================================
 let state = {
@@ -1892,6 +1789,8 @@ let state = {
   appStoreFilter: 'all',
   issueFilter: 'all',
   feedbackFilter: 'all',
+  issueSource: 'all',
+  feedbackSource: 'all',
   settings: { apikey: '' }
 };
 
@@ -1942,7 +1841,6 @@ function switchTab(id, btn) {
   if (id === 'appstore') renderAppStore();
   if (id === 'gs')      renderGsTab();
   if (id === 'docs')    renderDoc(currentDoc);
-  if (id === 'settings') loadSettings();
 }
 
 // ============================================================
@@ -1950,7 +1848,7 @@ function switchTab(id, btn) {
 // ============================================================
 function setFilter(f, btn) {
   state.filter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  (btn.parentElement || document).querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderRequests();
 }
@@ -2140,6 +2038,7 @@ function sh(json) {
 // GS TAB
 // ============================================================
 function renderGsTab() {
+  renderSourceSnippets();
   document.getElementById('gsCodeSpan').textContent           = GS_CODE;
   document.getElementById('frontendCodeSpan').textContent     = FRONTEND_CODE;
   document.getElementById('issueCodeSpan').textContent        = FRONTEND_ISSUE_CODE;
@@ -2147,19 +2046,26 @@ function renderGsTab() {
   document.getElementById('widgetSnippet').textContent        = WIDGET_SNIPPET;
 }
 
-// ============================================================
-// JSON GENERATOR TAB
-// ============================================================
-function generateAll() {
-  const id   = document.getElementById('g_id').value.trim();
-  const name = document.getElementById('g_name').value.trim();
-  const url  = document.getElementById('g_url').value.trim();
-  const key  = document.getElementById('g_key').value.trim();
-  const r    = { troopId:id, troopName:name, backendUrl:url, apiKey:key };
-
-  document.getElementById('gen_vs').innerHTML  = name ? sh(buildSingleVsbadge(r)) : '— 請填入旅團名稱 —';
-  document.getElementById('gen_ts').textContent = name ? buildSingleTs(r)          : '— 請填入旅團名稱 —';
-  document.getElementById('gen_env').textContent= name ? buildSingleEnv(r)         : '— 請填入旅團名稱 —';
+// 各系統一行接入代碼（統一回報格式）
+function snippetFor(label) {
+  return '<script src="https://scout-admin-blue.vercel.app/widget.js" data-app="' + label + '"><\/script>';
+}
+function renderSourceDatalist() {
+  const dl = document.getElementById('sourceAppList');
+  if (dl) dl.innerHTML = SOURCE_APPS.map(a => `<option value="${escHtml(a.label)}">`).join('');
+}
+function renderSourceSnippets() {
+  const box = document.getElementById('sourceSnippets');
+  if (!box) return;
+  box.innerHTML = SOURCE_APPS.map(a => `
+    <div class="section-label">${a.icon} ${escHtml(a.label)}</div>
+    <div class="gs-block" style="white-space:pre-wrap">
+      <button class="json-copy-btn" onclick="copyText(snippetFor('${escJs(a.label)}'))">複製</button>
+      <span>${escHtml(snippetFor(a.label))}</span>
+    </div>
+    <div style="font-size:.74rem;color:var(--muted);margin-top:4px">
+      獨立回報頁（免貼代碼）：<code>https://scout-admin-blue.vercel.app/report.html?app=${escHtml(a.label)}</code>
+    </div>`).join('');
 }
 
 // ============================================================
@@ -2240,22 +2146,35 @@ function setFeedbackFilter(f, btn) {
 function newLocalId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function hasServerId(id){ return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(String(id||'')); }
 
+function setIssueSource(key) {
+  state.issueSource = key;
+  renderIssues();
+}
+function setFeedbackSource(key) {
+  state.feedbackSource = key;
+  renderFeedbacks();
+}
+
 function renderIssues() {
   const q = (document.getElementById('issueSearch')?.value || '').toLowerCase();
+  const src = state.issueSource || 'all';
   let list = state.issues.filter(r => {
     const read = issueIsRead(r);
     const mf = state.issueFilter === 'all'
       ? true
       : (state.issueFilter === 'read' ? read : !read);
-    const ms = !q || [r.title,r.sourceApp,r.troopId,r.desc,r.name,r.contact]
+    const msrc = src === 'all' || (normSourceKey(r.sourceApp) || '@（未標示）') === src;
+    const ms = !q || [r.title,r.sourceApp,sourceLabel(r.sourceApp),r.troopId,r.desc,r.name,r.contact]
       .join(' ').toLowerCase().includes(q);
-    return mf && ms;
+    return mf && msrc && ms;
   });
   list.sort((a,b) => {
     const ra = issueIsRead(a) ? 1 : 0;
     const rb = issueIsRead(b) ? 1 : 0;
     return (ra-rb) || (dateSortable(b.createdAt)-dateSortable(a.createdAt));
   });
+  const chips = document.getElementById('issueSrcChips');
+  if (chips) chips.innerHTML = buildSourceChips(state.issues, issueIsRead, src, 'setIssueSource');
   const el = document.getElementById('issueList');
   el.innerHTML = list.length
     ? list.map(buildIssueCard).join('')
@@ -2281,7 +2200,7 @@ function buildIssueCard(r) {
       <div class="app-detail">
         <strong>嚴重度：</strong><span style="color:${sevColor};font-weight:700">${escHtml(r.severity || '—')}</span>　
         ${read ? '<span class="read-chip">已閱</span>' : '<span class="badge badge-pending">未閱</span>'}<br>
-        <strong>來源 APP：</strong>${escHtml(r.sourceApp || '—')}
+        <strong>來源系統：</strong>${escHtml(sourceLabel(r.sourceApp))}
         ${r.troopId ? `　<strong>旅團號：</strong><code>${escHtml(r.troopId)}</code>` : ''}<br>
         <strong>提交時間：</strong>${escHtml(r.createdAt || '—')}
         ${r.contact ? `<br><span class="tick-label">聯絡方式：</span><span class="tick-contact">${escHtml(r.contact)}</span>` : ''}
@@ -2367,20 +2286,24 @@ function updateIssueStats() {
 // ============================================================
 function renderFeedbacks() {
   const q = (document.getElementById('feedbackSearch')?.value || '').toLowerCase();
+  const src = state.feedbackSource || 'all';
   let list = state.feedbacks.filter(r => {
     const read = feedbackIsRead(r);
     const mf = state.feedbackFilter === 'all'
       ? true
       : (state.feedbackFilter === 'read' ? read : !read);
-    const ms = !q || [r.content,r.sourceApp,r.troopId,r.type,r.name,r.contact]
+    const msrc = src === 'all' || (normSourceKey(r.sourceApp) || '@（未標示）') === src;
+    const ms = !q || [r.content,r.sourceApp,sourceLabel(r.sourceApp),r.troopId,r.type,r.name,r.contact]
       .join(' ').toLowerCase().includes(q);
-    return mf && ms;
+    return mf && msrc && ms;
   });
   list.sort((a,b) => {
     const ra = feedbackIsRead(a) ? 1 : 0;
     const rb = feedbackIsRead(b) ? 1 : 0;
     return (ra-rb) || (dateSortable(b.createdAt)-dateSortable(a.createdAt));
   });
+  const chips = document.getElementById('feedbackSrcChips');
+  if (chips) chips.innerHTML = buildSourceChips(state.feedbacks, feedbackIsRead, src, 'setFeedbackSource');
   const el = document.getElementById('feedbackList');
   el.innerHTML = list.length
     ? list.map(buildFeedbackCard).join('')
@@ -2401,7 +2324,7 @@ function buildFeedbackCard(r) {
 <div class="app-card ${read ? 'tick-read' : 'pending'}" id="fcard_${escHtml(r.id)}">
   <div class="app-card-top">
     <div class="app-meta">
-      <div class="app-troop">${typeBadge} ${escHtml(r.type || '其他')} · <span style="font-weight:400;font-size:.9rem;color:inherit">${escHtml(r.sourceApp || '—')}</span></div>
+      <div class="app-troop">${typeBadge} ${escHtml(r.type || '其他')} · <span style="font-weight:400;font-size:.9rem;color:inherit">${escHtml(sourceLabel(r.sourceApp))}</span></div>
       <div class="app-detail">
         ${read ? '<span class="read-chip">已閱</span>' : '<span class="badge badge-pending">未閱</span>'}
         ${r.troopId ? `　<strong>旅團號：</strong><code>${escHtml(r.troopId)}</code>` : ''}<br>
@@ -2744,7 +2667,7 @@ async function syncFromSheet() {
   else {
     // 2) 退回本機 Key 直連（僅限代理不可達的本地開發情境）
     const apikey = getApiKey();
-    if (!apikey) { toast('❌ 同步失敗：代理不可用，且未設本機 API KEY。請部署 /api/admin 並設 SCOUT_ADMIN_KEY，或到「⚙️ 設定」填 Key。'); return; }
+    if (!apikey) { toast('❌ 同步失敗：/api/admin 代理不可用，且未設本機後備 Key。請部署本專案並在 Vercel 設 SCOUT_ADMIN_KEY。'); return; }
     used = 'direct';
     try {
       const res = await fetch(WEBAPP_URL + '?action=list&apikey=' + encodeURIComponent(apikey), { method: 'GET' });
@@ -2965,40 +2888,6 @@ function updateStats() {
 }
 
 // ============================================================
-// SETTINGS
-// ============================================================
-function loadSettings() {
-  document.getElementById('cfg_apikey').value = state.settings.apikey || '';
-}
-function saveSettings() {
-  state.settings.apikey = (document.getElementById('cfg_apikey').value || '').trim();
-  save();
-  toast(state.settings.apikey ? '💾 API KEY 已本機儲存（僅存於這部裝置）' : '💾 已清除 API KEY');
-  refreshAll();
-}
-function clearAllData() { if(!confirm('確定清除所有本地資料？')) return; localStorage.removeItem('scoutAdmin_v2'); state.requests=[]; state.issues=[]; state.feedbacks=[]; state.appstore=[]; state.settings={apikey:''}; refreshAll(); toast('🗑 已清除'); }
-
-// ============================================================
-// EXPORT / IMPORT
-// ============================================================
-function exportData() {
-  const blob=new Blob([JSON.stringify({requests:state.requests,issues:state.issues,feedbacks:state.feedbacks,appstore:state.appstore,settings:state.settings},null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scout-admin-backup.json'; a.click();
-}
-function importData(evt) {
-  const file=evt.target.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try {
-      const d=JSON.parse(e.target.result);
-      state.requests=d.requests||[]; state.issues=d.issues||[]; state.feedbacks=d.feedbacks||[]; state.appstore=d.appstore||[]; state.settings=d.settings||{apikey:''};
-      save(); refreshAll(); toast('📥 匯入成功');
-    } catch(err){ alert('匯入失敗：'+err.message); }
-  };
-  reader.readAsText(file);
-}
-
-// ============================================================
 // DOCS
 // ============================================================
 function switchDoc(key, btn) {
@@ -3090,6 +2979,8 @@ function refreshAll() { renderRequests(); renderIssues(); renderFeedbacks(); ren
 
 // ============================================================
 // KEY BOOTSTRAP（?key= 或 #key= 自動帶入 API KEY）
+//   正式環境不需要：Key 在 Vercel 環境變數 SCOUT_ADMIN_KEY，由 /api/admin 注入。
+//   這裡只保留「本地開發／代理不可達」時的本機後備（不再有設定畫面）。
 // ============================================================
 function bootstrapKeyFromUrl() {
   var qp = new URLSearchParams(location.search).get('key');
@@ -3099,9 +2990,7 @@ function bootstrapKeyFromUrl() {
   if (!state.settings.apikey) {
     state.settings.apikey = qp;
     save();
-    var elm = document.getElementById('cfg_apikey');
-    if (elm) elm.value = qp;
-    toast('🔑 已自動帶入 API KEY');
+    toast('🔑 已自動帶入 API KEY（本機後備）');
   }
 }
 
@@ -3110,6 +2999,7 @@ function bootstrapKeyFromUrl() {
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
   load();
+  renderSourceDatalist();
   bootstrapKeyFromUrl();
   renderGsTab();
   renderDoc('scout');
