@@ -6,7 +6,11 @@ const vm = require('vm');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const i = html.indexOf('const GS_CODE = `') + 'const GS_CODE = `'.length;
 const j = html.indexOf('\n`;\n', i); // GS_CODE 模板字串結尾
-const code = html.slice(i, j);
+const raw = html.slice(i, j);
+// 重要：測「使用者按『複製備份』真正拿到、貼進 Apps Script 的那份代碼」
+// （模板字串求值後，\\n 之類的跳脫會還原成 GS 實際執行的內容）
+const code = new Function('return `' + raw + '`')();
+if (/\$\{/.test(raw)) { console.error('FAIL: GS_CODE 內含 ${ 插值，複製出去會壞'); process.exit(1); }
 
 const NAME2KEY = { '申請記錄':'apply', '問題回報':'issue', '意見回饋':'feedback', '作品投稿':'appstore' };
 const state = { apply:{rows:[],headers:[]}, issue:{rows:[],headers:[]}, feedback:{rows:[],headers:[]}, appstore:{rows:[],headers:[]} };
