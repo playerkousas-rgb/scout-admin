@@ -25,6 +25,11 @@
   }
   p { color: #6b6b6b; font-size: .88rem; line-height: 1.7; }
   .hint { font-size: .78rem; color: #999; margin-top: 14px; }
+  .sys-list { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px; }
+  .sys-list a { font-size:.74rem; text-decoration:none; color:#6b6b6b; border:1px solid #e2ddd5;
+                border-radius:16px; padding:4px 10px; background:#faf8f5; }
+  .sys-list a:hover { border-color:#8B0000; color:#8B0000; }
+  .sys-list a.cur { background:#8B0000; border-color:#8B0000; color:#fff; }
 </style>
 </head>
 <body>
@@ -32,15 +37,22 @@
     <h1>⚜️ 問題回報 · 意見回饋</h1>
     <div class="app-chip" id="appChip">載入中…</div>
     <p>遇到問題或有建議？<br>按右下角的「🐛💬 回報 · 意見」按鈕即可提交，管理員會盡快處理。<br>姓名、聯絡方式可不填（匿名）。</p>
-    <div class="hint">Scout Admin — 統一回報入口</div>
+    <div class="sys-list" id="sysList"></div>
+    <div class="hint">Scout Admin — 統一回報入口（所有系統同一格式）</div>
   </div>
 
 <script>
-  // 來源 APP：由 ?app= 決定（例：report.html?app=圖書館）
+  // 來源系統：由 ?app= 決定（例：report.html?app=圖書館）。
+  // 統一回報格式 v1：所有系統共用這一頁，只有 ?app= 不同。
   (function () {
+    var SYSTEMS = ['圖書館', 'APP STORE', '支部系統', '進度追蹤', '旅系統', '區系統', '專章系統'];
     var app = new URLSearchParams(location.search).get('app') || '';
-    document.getElementById('appChip').textContent = app ? '來源 APP：' + app : '來源 APP：未指定';
+    document.getElementById('appChip').textContent = app ? '來源系統：' + app : '來源系統：未指定';
     document.title = (app ? app + ' — ' : '') + '回報問題 · 意見回饋';
+    document.getElementById('sysList').innerHTML = SYSTEMS.map(function (s) {
+      var cur = s.toLowerCase() === app.toLowerCase() ? ' class="cur"' : '';
+      return '<a href="?app=' + encodeURIComponent(s) + '"' + cur + '>' + s + '</a>';
+    }).join('');
   })();
 </script>
 <script src="widget.js" data-app="" data-auto="1"></script>
