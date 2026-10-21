@@ -30,6 +30,10 @@ const WEBAPP_URL = process.env.SCOUT_WEBAPP_URL ||
 const KEY = (process.env.SCOUT_ADMIN_KEY || '').trim();
 const SUPER_KEY = (process.env.SUPER_KEY || '').trim();
 
+// 與 index.html 的 APP_VERSION 對齊。ping 會回這組版本，
+// 前端發現「檔案係新版、代理係舊版」就代表 Vercel 未重新部署。
+const ADMIN_VERSION = '2.5.0';
+
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 小時
 const TOKEN_PEPPER = 'scout-admin/super-key-gate/v1';
 const LOGIN_MAX_FAILS = 5;
@@ -140,6 +144,7 @@ module.exports = async function handle(req, res) {
     if (req.method === 'GET' && action === 'ping') {
       return send(200, {
         ok: true,
+        version: ADMIN_VERSION,
         auth: SUPER_KEY ? 'on' : 'off',
         session: verifyToken(sessionFromReq(req))
       });
@@ -180,9 +185,10 @@ module.exports = async function handle(req, res) {
           webappUrl: WEBAPP_URL,
           adminKey: KEY,
           hasAdminKey: !!KEY,
-          hasSuperKey: !!SUPER_KEY
+          hasSuperKey: !!SUPER_KEY,
+          adminVersion: ADMIN_VERSION
         });
-        return send(200, diag);
+        return send(200, Object.assign({ version: ADMIN_VERSION }, diag));
       } catch (err) {
         return send(502, { ok: false, error: '連通測試失敗：' + (err && err.message ? err.message : err) });
       }

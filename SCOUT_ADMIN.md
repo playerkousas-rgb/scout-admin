@@ -135,7 +135,7 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 > ⚠️ **SUPER KEY 保護「誰能進後台」**；**API KEY 保護後台「讀取清單」（含個人資料）**。
 > 所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key、不需登入**，確保用戶一定交得到。
 
-### 後台分頁（v2.4）
+### 後台分頁（v2.5）
 
 | 分頁 | 用途 |
 |------|------|
@@ -459,3 +459,25 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 
 回應：`{ status:"ok", notified:true, email:"sent"|"failed"|"no-address", to:"…" }`。
 寄信結果同樣寫入 Script Property `LAST_EMAIL_APPLY`，可在 `?action=diag` 查到。
+
+---
+
+## 十六、點樣確認「已經係新版」（v2.5）
+
+三個地方任何一個都可以確認，**唔需要數行數**：
+
+| 位置 | 新版應該見到 | 見到舊值代表 |
+|------|------------|-------------|
+| 後台右上角 | 版本標記 **`v2.5.0 ✔`**（綠色） | 冇版本標記＝Vercel 仍係舊 build；紅色 `v2.5.0 ⚠️ 伺服器 vX` ＝前後端唔一致 |
+| `GET /api/admin?action=ping` | `{"ok":true,"version":"2.5.0","auth":"on"}` | `version` 係舊值或冇這個欄位＝代理未重新部署 |
+| Apps Script | 第 2 行寫 **v2.5**，並搵到 `var GS_VERSION = "2.5";` | 只搵到 `v2.4`、冇 `GS_VERSION`＝仍然係舊 GS |
+| `GET <GS>?action=diag&apikey=…` | `"version":"2.5"`、`capabilities.replyEmail:true` | 冇呢啲欄位＝GS 未更新 |
+
+> 舊版 GS 是 **369 行**、v2.5 是 **589 行**（僅供參考，行數會隨更新變動；請以 `GS_VERSION` 標記為準）。
+> 若瀏覽器仍載入舊頁，按 **Ctrl/Cmd + Shift + R** 強制刷新；必要時在 Vercel 按 **Redeploy**。
+
+### 常見「見到舊版」的三個原因
+
+1. **Vercel 未部署**：合併 PR 後仍要等部署完成（Deployments 最上面一個要係 `Ready` 且對應最新 commit）；
+2. **GS 未「新版本」部署**：貼了代碼但只按「儲存」＝公開網址仍然行舊版本，必須「管理部署 → 編輯 → 新版本 → 部署」；
+3. **瀏覽器快取**：舊 `index.html` 仍在記憶體，強制刷新即可。

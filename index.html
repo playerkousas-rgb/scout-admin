@@ -170,6 +170,9 @@
   .gate-btn:hover { background:var(--red2); }
   .gate-btn:disabled { background:#bba; cursor:not-allowed; opacity:.7; }
   .gate-hint { font-size:.72rem; color:#aaa; margin-top:14px; line-height:1.5; }
+  .ver-tag { font-size:.72rem; font-weight:700; letter-spacing:.3px; padding:4px 9px; border-radius:20px; background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.35); white-space:nowrap; cursor:help; }
+  .ver-tag.bad { background:#ffe0e0; color:#b00020; border-color:#ef9a9a; }
+  .ver-tag.ok  { background:#e8f5e9; color:#1a7a3c; border-color:#a5d6a7; }
   #gateLogout { background:rgba(255,255,255,.14); color:#fff; border:1px solid rgba(255,255,255,.55); border-radius:8px; padding:5px 12px; font-size:.78rem; cursor:pointer; white-space:nowrap; }
   #gateLogout:hover { background:rgba(255,255,255,.3); }
 </style>
@@ -184,6 +187,7 @@
   <div class="logo">⚜️ Scout <span>Admin</span></div>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="hstats" id="headerStats">載入中…</div>
+    <span id="verTag" class="ver-tag" title="後台前端版本（載入自 Vercel 的檔案）">v2.5.0</span>
     <button id="gateLogout" style="display:none" onclick="gateLogout()" title="清除本機 session，回到登入畫面">🚪 登出</button>
   </div>
 </header>
@@ -200,7 +204,7 @@
       <div class="gate-err" id="gateErr"></div>
       <button class="gate-btn" id="gateBtn" type="submit">🔓 登入</button>
     </form>
-    <p class="gate-hint">登入後 24 小時內免再輸入。<br>改密碼：Vercel 環境變數 <b>SUPER_KEY</b> 修改後重新部署。</p>
+    <p class="gate-hint">登入後 24 小時內免再輸入。<br>改密碼：Vercel 環境變數 <b>SUPER_KEY</b> 修改後重新部署。<br>版本：<b>v2.5.0</b>（若見不到版本號，即係載入到舊版快取，請強制刷新）</p>
   </div>
 </div>
 
@@ -672,7 +676,7 @@
 // ============================================================
 const DOCS = {
   scout: {
-    title: '📖 Scout Admin 說明書（統一回報格式 v2.4）',
+    title: '📖 Scout Admin 說明書（統一回報格式 v2.5）',
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 統一回報 · 旅團接入管理中心 說明書
 
@@ -811,7 +815,7 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 > ⚠️ **SUPER KEY 保護「誰能進後台」**；**API KEY 保護後台「讀取清單」（含個人資料）**。
 > 所有提交（旅團登記、問題、回饋、作品投稿、寫回狀態）都**不需 Key、不需登入**，確保用戶一定交得到。
 
-### 後台分頁（v2.4）
+### 後台分頁（v2.5）
 
 | 分頁 | 用途 |
 |------|------|
@@ -841,10 +845,10 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 
 ---
 
-## 三、升級到 v2.4 要做的事
+## 三、升級到 v2.5 要做的事
 
 1. **重新部署本專案**（後台新版）
-2. **更新 Apps Script**（拿到 v2.4 的來源正規化與容錯）：
+2. **更新 Apps Script**（拿到 v2.5 的來源統一、回覆 Email、寄信紀錄）：
    - 後台 **📜 Apps Script** 分頁 → 複製最新代碼 → 貼上取代舊碼 → 儲存
    - 部署 → **管理部署** → **編輯** → 版本選「**新版本**」→ 部署（網址不變）
 3. 確認 Vercel 環境變數：\`SUPER_KEY\`（後台密碼）、\`SCOUT_ADMIN_KEY\`（GS 產生的 API KEY）
@@ -897,7 +901,7 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 
 ---
 
-## 七、Google Sheet 工作表（v2.4 完全不變）
+## 七、Google Sheet 工作表（v2.5 完全不變）
 
 ### ① 申請記錄（旅團登記）
 
@@ -1125,6 +1129,29 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 
 > 通知信**不會**列出環境變數名或技術設定步驟 —— 那些全部由管理員在 Vercel 自己設定，旅團毋須知道。
 
+---
+
+## 十六、點樣確認「已經係新版」（v2.5）
+
+三個地方任何一個都可以確認，**唔需要數行數**：
+
+| 位置 | 新版應該見到 | 見到舊值代表 |
+|------|------------|-------------|
+| 後台右上角 | 版本標記 **\`v2.5.0 ✔\`**（綠色） | 冇版本標記＝Vercel 仍係舊 build；紅色 \`v2.5.0 ⚠️ 伺服器 vX\` ＝前後端唔一致 |
+| \`GET /api/admin?action=ping\` | \`{"ok":true,"version":"2.5.0","auth":"on"}\` | \`version\` 係舊值或冇這個欄位＝代理未重新部署 |
+| Apps Script | 第 2 行寫 **v2.5**，並搵到 \`var GS_VERSION = "2.5";\` | 只搵到 \`v2.4\`、冇 \`GS_VERSION\`＝仍然係舊 GS |
+| \`GET <GS>?action=diag&apikey=…\` | \`"version":"2.5"\`、\`capabilities.replyEmail:true\` | 冇呢啲欄位＝GS 未更新 |
+
+> 舊版 GS 是 **369 行**、v2.5 是 **589 行**（僅供參考，行數會隨更新變動；請以 \`GS_VERSION\` 標記為準）。
+> 若瀏覽器仍載入舊頁，按 **Ctrl/Cmd + Shift + R** 強制刷新；必要時在 Vercel 按 **Redeploy**。
+
+### 常見「見到舊版」的三個原因
+
+1. **Vercel 未部署**：合併 PR 後仍要等部署完成（Deployments 最上面一個要係 \`Ready\` 且對應最新 commit）；
+2. **GS 未「新版本」部署**：貼了代碼但只按「儲存」＝公開網址仍然行舊版本，必須「管理部署 → 編輯 → 新版本 → 部署」；
+3. **瀏覽器快取**：舊 \`index.html\` 仍在記憶體，強制刷新即可。
+
+
 ### API（給其他系統／腳本用）
 
 \`\`\`json
@@ -1148,6 +1175,10 @@ let currentDoc = 'scout';
 //   優先：/api/admin 代理（Key 只在 Vercel 環境變數，server 端注入，瀏覽器不接觸）
 //   退回：未部署代理／本地開發時，用本機 localStorage 的 Key 直連（安全性較低）
 // ============================================================
+// 後台前端版本（＝本檔 index.html 的版本）。
+// 後端 /api/admin?action=ping 會回同一組版本；兩者不一致 ＝ Vercel 未重新部署。
+const APP_VERSION = '2.5.0';
+
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
 
 // ============================================================
@@ -1495,9 +1526,25 @@ async function submitScoutFeedback() {
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 統一回報接收系統（v2.4）
-//   旅團登記 / 問題回報 / 意見回饋 / 作品投稿
+// Scout Admin — 統一回報接收系統（v2.5）
+//   旅團登記 / 問題回報 / 意見回饋 / 作品投稿 / 回覆申請人
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
+//
+// 【版本怎樣認？】本檔第 2 行要寫「v2.5」，開頭亦會有
+//   var GS_VERSION = "2.5";
+//   貼上後在編輯器搜尋 GS_VERSION，搵到就係新版（舊版 v2.4 冇這個常數）。
+//   網址加 ?action=diag（要 API KEY）亦會回 "version":"2.5"。
+//
+// 【v2.5 改動】
+//   ① 4 個 BADGE APP（scoutbadge／vsbadge／cubsbadge／roverbadge）
+//      全部歸入「專章系統」；舊版 scoutbadge 送出的「進度追蹤」亦自動對齊。
+//   ② 申請記錄新增「聯絡 Email」欄（加在最後，編號仍第 8 欄）；
+//      表單冇此欄時自動由 contact／email／備注抽出。
+//   ③ markReq 支援 notify:true → 審核後寄「已接入／已拒絕」通知信給申請人
+//      （只講結果，不列環境變數）。
+//   ④ 寄信失敗不再靜靜吞：回應帶 email / emailError，
+//      並寫入 Script Property LAST_EMAIL / LAST_EMAIL_APPLY。
+//   ⑤ 新增 type:"testEmail"（只寄 ADMIN_EMAIL）同 GET ?action=diag（查寄信紀錄＋配額）。
 //
 // 【v2.4 重點：統一回報格式，加新系統不用再改這份代碼】
 //   圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…
@@ -1523,6 +1570,8 @@ const GS_CODE = `// ============================================================
 //   收到任何「沒見過的欄位」都會自動加欄存進 Sheet；
 //   Email 一定附上全部欄位＋原始 JSON 備份，確保永不漏掉。
 // ============================================================
+
+var GS_VERSION = "2.5"; // ← 版本標記：搵到這行就係 v2.5（舊版 v2.4 冇）
 
 var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
@@ -2050,10 +2099,10 @@ function doGet(e) {
       remainingQuota: _remainingQuota(),
       capabilities: { replyEmail: true, testEmail: true, applyContact: true, sourceOverride: true },
       now: new Date().toLocaleString("zh-HK"),
-      version: "2.5"
+      version: GS_VERSION
     });
   }
-  return _json({ status: "ok", message: "Scout Admin Web App 正常運行", version: "2.5" });
+  return _json({ status: "ok", message: "Scout Admin Web App 正常運行", version: GS_VERSION });
 }
 
 function _s(v) {
@@ -3022,6 +3071,30 @@ function gateLogout() {
   toast('🚪 已登出');
 }
 
+// 版本標記：一眼看出「前端檔案」同「/api/admin 伺服器」是否同一版本
+//（Vercel 未重新部署時，前端會是新版但 ping 仍回舊版）
+function setVerTag(serverVer) {
+  const el = document.getElementById('verTag');
+  if (!el) return;
+  const sv = String(serverVer || '').replace(/^v/i, '').trim();
+  el.className = 'ver-tag';
+  if (!sv) {
+    el.textContent = 'v' + APP_VERSION;
+    el.title = '後台前端版本 v' + APP_VERSION + '（未連到 /api/admin，可能是本地或代理未部署）';
+    return;
+  }
+  if (sv !== APP_VERSION) {
+    el.textContent = 'v' + APP_VERSION + ' ⚠️ 伺服器 v' + sv;
+    el.classList.add('bad');
+    el.title = '前後端版本不一致：Vercel 可能未重新部署。前端 v' + APP_VERSION + '／伺服器 v' + sv;
+    toast('⚠️ 版本不一致：後台前端 v' + APP_VERSION + '、/api/admin v' + sv + '。請在 Vercel 重新部署。');
+  } else {
+    el.textContent = 'v' + APP_VERSION + ' ✔';
+    el.classList.add('ok');
+    el.title = '前後端版本一致：v' + APP_VERSION;
+  }
+}
+
 // 開頁時問 server 一次：密碼門開沒開、本機 token 有沒有效
 async function checkGate() {
   try {
@@ -3029,6 +3102,7 @@ async function checkGate() {
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('json')) throw new Error('proxy unavailable');
     const d = await res.json();
+    setVerTag(d && d.version);
     if (!d || d.auth !== 'on') {
       // 代理沒部署（本地開發）或 SUPER_KEY 未設定 → 不擋，維持舊版行為
       gateAuthOn = false;
@@ -3042,6 +3116,7 @@ async function checkGate() {
   } catch (e) {
     gateAuthOn = false;
     hideGate(); // 代理不可達 → 舊版直連模式
+    setVerTag('');
   }
 }
 
