@@ -1151,6 +1151,19 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 2. **GS 未「新版本」部署**：貼了代碼但只按「儲存」＝公開網址仍然行舊版本，必須「管理部署 → 編輯 → 新版本 → 部署」；
 3. **瀏覽器快取**：舊 \`index.html\` 仍在記憶體，強制刷新即可。
 
+### 🚨 真正的元兇：Vercel 部署的分支不是 \`main\`
+
+2026-10-21 實測：線上網站跑的內容與 GitHub 的 **\`arena/01a0dca5-scout-admin\`（2026-09-26）** 完全一致，
+而不是 \`main\`（\`ping\` 冇 \`version\`、GS 分頁 369 行 v2.4、專章系統只有 4 個別名、\`package.json\` 2.4.0）。
+
+**修正**：Vercel → 該項目 → **Settings → Git → Production Branch** 改成 **\`main\`** → Save →
+**Deployments → ⋯ → Redeploy**。之後右上角見到 \`v2.5.0 ✔\` 即成功。
+（Vercel 選不到 \`main\`？先去 GitHub 刪除那個 arena 分支。）
+
+**不想等 Vercel**：GS 可直接由 GitHub 取 — 開 **\`apps-script/Code.gs\`** → **Raw** → 全選複製 → 貼進 Apps Script。
+這個檔由 \`index.html\` 的 \`GS_CODE\` 自動匯出（\`npm test\` 驗證逐字相同），所以與「複製備份」拿到的是同一份。
+
+
 
 ### API（給其他系統／腳本用）
 
