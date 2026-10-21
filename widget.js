@@ -36,12 +36,24 @@
     '進度追蹤':   ['progress', 'progresstracker', 'scoutprogress', '進度'],
     '旅系統':     ['troop', 'troopsystem', 'scoutsystem', '旅團系統'],
     '區系統':     ['district', 'districtsystem', 'scoutdistrict', '區'],
-    '專章系統':   ['badge', 'badgesystem', 'vsbadge', '專章']
+    '專章系統':   ['badge', 'badgesystem', 'vsbadge', '專章', '專章系統',
+                   'scoutbadge', 'scoutbadge.vercel.app', '童軍支部', '童軍進度追蹤',
+                   'vsbadge.vercel.app', '深資童軍', '深資童軍進度追蹤',
+                   'cubsbadge', 'cubbadge', 'cubsbadge.vercel.app', '幼童軍', '幼童軍進度追蹤',
+                   'roverbadge', 'roverbadge.vercel.app', '樂行童軍', '樂行童軍進度追蹤']
+  };
+
+  // v2.5：4 個 BADGE APP 一律歸入「專章系統」
+  //（scoutbadge 舊版 proxy 送出「進度追蹤」；如日後有獨立進度追蹤系統，刪掉這幾條）
+  var SOURCE_OVERRIDES = {
+    '進度追蹤': '專章系統', '童軍進度追蹤': '專章系統', '幼童軍進度追蹤': '專章系統',
+    '深資童軍進度追蹤': '專章系統', '樂行童軍進度追蹤': '專章系統'
   };
 
   function normSource(raw) {
     var v = String(raw == null ? '' : raw).trim();
     if (!v) return '';
+    if (SOURCE_OVERRIDES[v]) return SOURCE_OVERRIDES[v];
     var low = v.toLowerCase();
     var p = low.indexOf('://'); if (p >= 0) low = low.slice(p + 3);
     var sl = low.indexOf('/');  if (sl >= 0) low = low.slice(0, sl);

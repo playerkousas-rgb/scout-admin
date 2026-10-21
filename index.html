@@ -328,12 +328,12 @@
   <!-- ===== TAB 4: APPS SCRIPT ===== -->
   <div class="section" id="tab-gs">
     <div class="card">
-      <div class="card-header"><div class="card-title">📜 接收 Apps Script v2.4（旅團登記＋問題回報＋意見回饋＋作品投稿）</div></div>
+      <div class="card-header"><div class="card-title">📜 接收 Apps Script v2.5（旅團登記＋問題回報＋意見回饋＋作品投稿＋回覆申請人）</div></div>
       <div class="note">
         ⚠️ <strong>需要你重新部署一次才生效。</strong>把下方代碼整段貼到 Google Sheet → 擴充功能 → Apps Script → 儲存 → 部署 →「管理部署」→ <strong>編輯</strong> → 版本選「<strong>新版本</strong>」→ 部署（網址不變）。<br>
         <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<strong>Key 保護的是「讀取／已閱／審核」這類後台動作；任何人提交（旅團登記、問題、回饋、作品投稿）都不需要 Key。</strong><br>
         核心保證：欄位對不上自動加欄、Email 附全部欄位＋原始 JSON 備份，資料不漏。<br>
-        <strong>v2.4 改動（統一回報格式 v1）：</strong>①<strong>來源系統自動正規化</strong>（library／scoutlibrary.vercel.app → 圖書館，vsbadge → 專章系統…）；②<strong>type 別名／中文／寫錯／沒寫都收得到</strong>（自動判斷去問題回報還是意見回饋，絕不漏單）；③<strong>工作表與欄位完全不變</strong>——支部系統、進度追蹤、旅系統、區系統、專章系統之後上線，<strong>這份代碼不用再改</strong>，也不用加表加欄。
+        <strong>v2.5 改動：</strong>①<strong>4 個 BADGE APP 統一歸入「專章系統」</strong>；②<strong>✉️ 回覆申請人 Email</strong>（申請記錄加「聯絡 Email」欄，審核後一鍵通知）；③寄信失敗唔再靜靜吞（回應帶 <code>email</code>、記錄 <code>LAST_EMAIL</code>）；④<code>?action=diag</code> 查寄信紀錄同配額。<br><strong>v2.4 改動（統一回報格式 v1）：</strong>①<strong>來源系統自動正規化</strong>（library／scoutlibrary.vercel.app → 圖書館，vsbadge → 專章系統…）；②<strong>type 別名／中文／寫錯／沒寫都收得到</strong>（自動判斷去問題回報還是意見回饋，絕不漏單）；③<strong>工作表與欄位完全不變</strong>——支部系統、進度追蹤、旅系統、區系統、專章系統之後上線，<strong>這份代碼不用再改</strong>，也不用加表加欄。
       </div>
       <div class="gs-block">
         <button class="json-copy-btn" onclick="copyText(GS_CODE)">複製備份</button>
@@ -405,7 +405,8 @@
             <tr><td>E</td><td>API Key</td><td>旅團 API Key → 在 Vercel 加入</td></tr>
             <tr><td>F</td><td>備注</td><td>選填</td></tr>
             <tr><td>G</td><td>狀態</td><td>可留空；前端審核寫回（待處理／已接入／已拒絕）</td></tr>
-            <tr><td>H</td><td>編號</td><td>自動產生，供同步去重</td></tr>
+            <tr><td>H</td><td>編號</td><td>自動產生，供同步去重（**位置不變**）</td></tr>
+            <tr><td>I</td><td>聯絡 Email</td><td>v2.5 新增（加在最後）：審核後「✉️ 通知」用的地址；表單無此欄時自動由備注抽出 Email</td></tr>
           </tbody>
         </table>
       </div>
@@ -513,6 +514,10 @@
           <option value="done">已接入</option>
           <option value="rejected">已拒絕</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>聯絡 Email（選填，審核後可一鍵通知）</label>
+        <input type="email" id="m_contact" placeholder="leader@example.com" />
       </div>
       <div class="form-group">
         <label>備注（選填）</label>
@@ -679,6 +684,9 @@ const DOCS = {
 > ④ 移除已無用的「🔧 產生器」與「⚙️ 設定」分頁
 > ⑤ 保留：SUPER KEY 密碼門、API KEY 只留 Vercel 環境變數、已閱／審核寫回 Sheet
 > ⑥ **新增「🧪 一鍵連通測試」**：一頁測完 4 個 BADGE APP ＋ Apps Script 收件端，並可寄一封測試申請確認 Email（見第十二節）
+> ⑦ **Email 可靠性**：寄信失敗唔再靜靜吞、可查 \`LAST_EMAIL\`／剩餘配額（見第十三節）
+> ⑧ **4 個 BADGE APP 統一歸入「🎖️ 專章系統」**（見第十四節）
+> ⑨ **✉️ 回覆申請人 Email**：審核後一鍵通知旅團（見第十五節）
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -1067,6 +1075,60 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 
 > 後台 🧪 連通測試會多兩項：**📧 Email 通知狀態**（上一封成功／失敗原因）同 **今日剩餘寄信配額**。
 > 免費 Gmail 經 Apps Script 寄信上限約 **100 封／日**，爆配額就會全部寄不出。
+
+---
+
+## 十四、來源統一：4 個 BADGE APP ＝ 🎖️ 專章系統（v2.5）
+
+| APP | 它送出的 \`sourceApp\` | 以前後台顯示 | 現在 |
+|-----|--------------------|-------------|------|
+| scoutbadge（童軍支部） | \`進度追蹤\` | 📈 進度追蹤 | 🎖️ 專章系統 |
+| vsbadge（深資童軍） | \`vsbadge\` | 🎖️ 專章系統 | 🎖️ 專章系統 |
+| cubsbadge（幼童軍） | \`cubbadge\` | 🔹 未登記（原樣顯示） | 🎖️ 專章系統 |
+| roverbadge（樂行童軍） | \`roverbadge\` | 🔹 未登記（原樣顯示） | 🎖️ 專章系統 |
+
+做法（**4 個 APP 不需要改任何一行**，全部在收件端做）：
+
+1. \`SOURCE_ALIASES['專章系統']\` 加入 4 個 APP 的名稱、網域、中文全名；
+2. \`SOURCE_OVERRIDES\` 把 scoutbadge 舊版送出的 \`進度追蹤\` 指向 \`專章系統\`
+   （已同時寫入 \`widget.js\`、後台 \`index.html\`、Apps Script 三處）；
+3. 後台 TICK 看板的來源膠囊自動只剩一個「🎖️ 專章系統」。
+
+> ⚠️ 若日後真的上線一個獨立的「進度追蹤」系統，請把三處 \`SOURCE_OVERRIDES\` 裡的
+> \`'進度追蹤'\` 刪掉（其餘別名可保留）。
+
+---
+
+## 十五、✉️ 回覆申請人 Email（v2.5）
+
+以前旅團申請要人手回覆。現在後台「🏛️ 旅團登記」卡片多一個 **✉️ 通知** 按鈕：
+
+| 觸發 | 行為 |
+|------|------|
+| 按「✅ 接入」 | 寫回 Sheet → 問你要不要寄「已開通」通知信 |
+| 按「❌ 拒絕」 | 寫回 Sheet → 問你要不要寄「結果」通知信（可填原因） |
+| 卡片「✉️ 通知」 | 隨時按當時狀態補寄（重發也用這個） |
+
+**收件人怎麼決定**：\`聯絡 Email\` 欄 → 沒有就從 \`備注\` 抓第一個 Email → 都沒有就彈窗請你輸入（留空＝不寄）。
+**完全沒有 Email 時不會假成功**：GS 回 \`email:"no-address"\`，後台提示「請人手回覆」。
+
+### 通知信內容
+
+- **已接入**：附上已登記的旅團號＋要設定的環境變數名（\`TROOP_{編號}_NAME\` / \`_BACKEND\` / \`_APIKEY\`）＋之後怎麼登入；
+- **已拒絕**：列出常見原因（URL／API Key 錯、GS 未設「任何人可存取」、試算表未初始化）＋請重新提交；
+- 可加一段「管理員訊息」（拒絕時最常用）；
+- 寄出成功會在卡片顯示 **✉️ 已通知** 標記。
+
+### API（給其他系統／腳本用）
+
+\`\`\`json
+{ "type": "markReq", "id": "<編號>", "status": "已接入|已拒絕|待處理",
+  "notify": true, "message": "附加說明（選填）" }
+\`\`\`
+
+回應：\`{ status:"ok", notified:true, email:"sent"|"failed"|"no-address", to:"…" }\`。
+寄信結果同樣寫入 Script Property \`LAST_EMAIL_APPLY\`，可在 \`?action=diag\` 查到。
+
 
 
 `
@@ -1460,7 +1522,7 @@ var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
 // 四張工作表（第一次收到資料時自動建立／自動補齊缺的欄位）
 var SHEET_CFG = {
-  apply:    { name: "申請記錄", headers: ["提交時間","旅團號","旅團名稱","URL","API Key","備注","狀態","編號"] },
+  apply:    { name: "申請記錄", headers: ["提交時間","旅團號","旅團名稱","URL","API Key","備注","狀態","編號","聯絡 Email"] },
   issue:    { name: "問題回報", headers: ["提交時間","來源APP","旅團號","標題","問題詳情","嚴重度","聯絡方式","姓名","狀態","編號"] },
   feedback: { name: "意見回饋", headers: ["提交時間","來源APP","旅團號","類型","內容","聯絡方式","姓名","狀態","編號"] },
   appstore: { name: "作品投稿", headers: ["提交時間","作品名稱","作品連結","作者名稱","作品類型","分類","作品簡介","標籤","狀態","編號"] }
@@ -1488,7 +1550,8 @@ var FIELD_MAP = {
   "作品類型": ["page"],
   "分類":     ["category"],
   "作品簡介": ["desc","description"],
-  "標籤":     ["tags"]
+  "標籤":     ["tags"],
+  "聯絡 Email": ["contact", "email", "replyTo", "reply_email"]
 };
 
 // 系統欄位：不要自動加進 Sheet
@@ -1515,7 +1578,11 @@ var SOURCE_ALIASES = {
   "進度追蹤":   ["progress", "progresstracker", "scoutprogress", "進度"],
   "旅系統":     ["troop", "troopsystem", "scoutsystem", "旅團系統"],
   "區系統":     ["district", "districtsystem", "scoutdistrict", "區"],
-  "專章系統":   ["badge", "badgesystem", "vsbadge", "專章"]
+  "專章系統":   ["badge", "badgesystem", "vsbadge", "專章", "專章系統",
+                 "scoutbadge", "scoutbadge.vercel.app", "童軍支部", "童軍進度追蹤",
+                 "vsbadge.vercel.app", "深資童軍", "深資童軍進度追蹤",
+                 "cubsbadge", "cubbadge", "cubsbadge.vercel.app", "幼童軍", "幼童軍進度追蹤",
+                 "roverbadge", "roverbadge.vercel.app", "樂行童軍", "樂行童軍進度追蹤"]
 };
 
 function _normType(raw) {
@@ -1524,9 +1591,18 @@ function _normType(raw) {
   return TYPE_ALIASES[t.toLowerCase()] || TYPE_ALIASES[t] || t;
 }
 
+// v2.5：4 個 BADGE APP 一律歸入「專章系統」。
+// scoutbadge 舊版 proxy 送出的是「進度追蹤」，所以先把這個字串指向專章系統；
+// 若日後有真正獨立的「進度追蹤」系統，把這幾行刪掉即可。
+var SOURCE_OVERRIDES = {
+  "進度追蹤": "專章系統", "童軍進度追蹤": "專章系統", "幼童軍進度追蹤": "專章系統",
+  "深資童軍進度追蹤": "專章系統", "樂行童軍進度追蹤": "專章系統"
+};
+
 function _normSource(raw) {
   var v = _s(raw).trim();
   if (!v) return "";
+  if (SOURCE_OVERRIDES[v]) return SOURCE_OVERRIDES[v];
   var low = v.toLowerCase();
   var p = low.indexOf("://"); if (p >= 0) low = low.slice(p + 3);
   var sl = low.indexOf("/");  if (sl >= 0) low = low.slice(0, sl);
@@ -1588,6 +1664,13 @@ function _capture(key, data, defaultStatus) {
   // 統一回報格式：來源系統名稱正規化（欄位不變，只是把名字寫成統一那個）
   if (map["來源APP"] !== undefined) map["來源APP"] = _normSource(map["來源APP"]);
 
+  // v2.5：旅團接入申請 → 抽出「聯絡 Email」（後台回覆功能用）。
+  // 4 個 BADGE APP 現時把 Email 寫在「備注」，所以先讀獨立欄位、再從備注／note 抓。
+  if (key === "apply" && !_s(map["聯絡 Email"])) {
+    map["聯絡 Email"] = _extractEmail(_s(data["聯絡 Email"]) + " " + _s(data.contact) + " " +
+                                      _s(data.email) + " " + _s(data.note) + " " + _s(map["備注"]));
+  }
+
   // 未知欄位 → 收集進 extras（稍後自動加欄）
   var consumed = {};
   for (var h2 in FIELD_MAP) {
@@ -1645,7 +1728,7 @@ function _appendRowAny(key, map, extras) {
     head = head.concat(toAdd);
   }
 
-  var idHdr = cfg.headers[cfg.headers.length - 1];
+  var idHdr = "編號"; // v2.5：申請記錄尾欄改為「聯絡 Email」，所以固定用「編號」
   var row = [];
   for (var c = 0; c < head.length; c++) {
     var h = head[c];
@@ -1658,8 +1741,26 @@ function _appendRowAny(key, map, extras) {
 // ---------- Email 狀態記錄（給 ?action=diag 查） ----------
 function _rememberEmail(rec) {
   try {
-    PropertiesService.getScriptProperties().setProperty("LAST_EMAIL", JSON.stringify(rec));
+    var props = PropertiesService.getScriptProperties();
+    props.setProperty("LAST_EMAIL", JSON.stringify(rec));
+    // 旅團接入申請分開記一份，方便 ?action=diag 專查「申請通知信」
+    if (rec && (rec.key === "apply" || rec.key === "reply")) {
+      props.setProperty("LAST_EMAIL_APPLY", JSON.stringify(rec));
+    }
   } catch (e) { /* 記錄失敗不影響主流程 */ }
+}
+
+function _lastEmailApply() {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty("LAST_EMAIL_APPLY");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+// 從自由文字抽出第一個 Email（備注／訊息都可能有人手打）
+function _extractEmail(text) {
+  var m = _s(text).match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/);
+  return m ? m[0] : "";
 }
 
 function _lastEmail() {
@@ -1741,13 +1842,104 @@ function _handleMarkRead(data) {
   return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
 }
 
-// ---------- 申請審核狀態寫回 ----------
+// ---------- 申請審核狀態寫回（＋可選：回覆申請人 Email） ----------
+//  payload: { type:"markReq", id, status:"已接入|已拒絕|待處理", notify:true, message:"附加說明（選填）" }
 function _handleMarkReq(data) {
   var rowId = (data.id || "").toString().trim();
   var put   = (data.status || "待處理").toString().trim();
   if (!rowId) return _json({ status: "error", message: "缺少編號" });
   var done  = _writeStatusById("apply", rowId, "狀態", put);
-  return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
+  if (!done) return _json({ status: "error", message: "找不到這條編號" });
+
+  if (!data.notify) return _json({ status: "ok", message: "已更新", notified: false });
+
+  var row = _findApplyRow(rowId);
+  var to  = _applyEmailOf(row);
+  if (!to) {
+    return _json({
+      status: "ok", message: "已更新，但這張申請沒有聯絡 Email（請人手回覆）",
+      notified: false, email: "no-address", reason: "no-email"
+    });
+  }
+  var tpl = _replyApplyEmail(row, put, data.message);
+  try {
+    MailApp.sendEmail({ to: to, subject: _safeSubject(tpl.subject), body: tpl.body, name: "Scout Admin" });
+    _rememberEmail({ ok: true, key: "reply", to: to, status: put, subject: tpl.subject, at: new Date().toISOString() });
+    return _json({ status: "ok", message: "已更新並已通知申請人", notified: true, email: "sent", to: to });
+  } catch (e) {
+    _rememberEmail({ ok: false, key: "reply", to: to, status: put, error: String(e), at: new Date().toISOString() });
+    return _json({ status: "ok", message: "已更新，但通知信寄不出：" + _s(e).slice(0, 120),
+                   notified: false, email: "failed", to: to, error: _s(e).slice(0, 300) });
+  }
+}
+
+// ---------- 找一列申請（回傳 { 欄名: 值 }） ----------
+function _findApplyRow(id) {
+  var sheet = _sheet("apply");
+  if (sheet.getLastRow() < 2) return null;
+  var vals = sheet.getDataRange().getValues();
+  var head = _normHeaders(vals[0]);
+  var idCol = head.indexOf("編號");
+  if (idCol === -1) return null;
+  for (var r = 1; r < vals.length; r++) {
+    if (String(vals[r][idCol] || "") === id) {
+      var obj = {};
+      for (var c = 0; c < head.length; c++) obj[head[c]] = vals[r][c];
+      return obj;
+    }
+  }
+  return null;
+}
+
+// 聯絡 Email：優先獨立欄位，否則從備注／姓名欄文字抓
+function _applyEmailOf(row) {
+  if (!row) return "";
+  var direct = _s(row["聯絡 Email"]).trim();
+  if (direct) return _extractEmail(direct) || direct;
+  return _extractEmail(_s(row["備注"]) + " " + _s(row["備註"]));
+}
+
+// ---------- 回覆申請人的通知信（已接入／已拒絕／重設） ----------
+function _replyApplyEmail(row, status, extra) {
+  var name = _s(row["旅團名稱"]) || ("第 " + _s(row["旅團號"]) + " 旅");
+  var tid  = _s(row["旅團號"]);
+  var lines = [];
+  var subject = "";
+
+  if (status === "已接入") {
+    subject = "✅ [Scout Admin] 你的旅團接入申請已開通 — " + name;
+    lines.push("你好，" + name + " 的接入申請已經開通 ✅");
+    lines.push("");
+    lines.push("已為你完成：");
+    if (tid) {
+      lines.push("1. 在 APP 的 Vercel 專案登記旅團：" + tid);
+      lines.push("2. 環境變數已設定：TROOP_" + tid + "_NAME / TROOP_" + tid + "_BACKEND / TROOP_" + tid + "_APIKEY");
+    } else {
+      lines.push("1. 已登記你的旅團後端（URL＋API Key）");
+    }
+    lines.push("3. 之後開啟 APP 就會見到你的旅團卡片，可直接用成員／領袖帳號登入");
+    lines.push("");
+    lines.push("如登入有問題，請在 APP 內「🐛💬 回報 · 意見」再聯絡我們。");
+  } else if (status === "已拒絕") {
+    subject = "❌ [Scout Admin] 旅團接入申請結果 — " + name;
+    lines.push("你好，" + name + " 的接入申請暫時未能通過 ❌");
+    lines.push("");
+    lines.push("常見原因：URL／API Key 不正確、Apps Script 未部署為「任何人可存取」、或試算表未初始化。");
+    lines.push("請修正後在 APP 內重新提交一次，我們會盡快跟進。");
+  } else {
+    subject = "✉️ [Scout Admin] 旅團接入申請狀態更新 — " + name;
+    lines.push("你好，" + name + " 的接入申請狀態已更新為「" + status + "」。");
+  }
+
+  var msg = _s(extra).trim();
+  if (msg) {
+    lines.push("");
+    lines.push("── 管理員訊息 ──");
+    lines.push(msg);
+  }
+  lines.push("");
+  lines.push("（此信由 Scout Admin 自動發出，請勿直接回覆此地址；如需跟進請用 APP 內的回報功能。）");
+  return { subject: subject, body: lines.join("\\n") };
 }
 
 // ---------- API KEY：產生／查詢（在編輯器「執行」一次） ----------
@@ -1810,7 +2002,7 @@ function _writeStatusById(key, id, header, value) {
   if (sheet.getLastRow() < 2) return false;
   var vals  = sheet.getDataRange().getValues();
   var head  = _normHeaders(vals[0]);
-  var idCol = head.indexOf(cfg.headers[cfg.headers.length - 1]);
+  var idCol = head.indexOf("編號");
   var stCol = head.indexOf(header);
   if (idCol === -1 || stCol === -1) return false;
   for (var r = 1; r < vals.length; r++) {
@@ -1855,7 +2047,9 @@ function doGet(e) {
       status: "ok",
       adminEmail: ADMIN_EMAIL,
       lastEmail: _lastEmail(),
+      lastApplyEmail: _lastEmailApply(),
       remainingQuota: _remainingQuota(),
+      capabilities: { replyEmail: true, testEmail: true, applyContact: true, sourceOverride: true },
       now: new Date().toLocaleString("zh-HK"),
       version: "2.5"
     });
@@ -1894,13 +2088,29 @@ const SOURCE_APPS = [
   { key:'progress',  icon:'📈',  label:'進度追蹤', aliases:['progress','progresstracker','scoutprogress','進度','進度追蹤'] },
   { key:'troop',     icon:'⚜️',  label:'旅系統',   aliases:['troop','troopsystem','scoutsystem','旅系統','旅團系統'] },
   { key:'district',  icon:'🗺️', label:'區系統',   aliases:['district','districtsystem','scoutdistrict','區','區系統'] },
-  { key:'badge',     icon:'🎖️', label:'專章系統', aliases:['badge','badgesystem','vsbadge','專章','專章系統'] }
+  { key:'badge',     icon:'🎖️', label:'專章系統', aliases:[
+      'badge','badgesystem','專章','專章系統',
+      'scoutbadge','scoutbadge.vercel.app','童軍支部','童軍進度追蹤',
+      'vsbadge','vsbadge.vercel.app','深資童軍','深資童軍進度追蹤',
+      'cubsbadge','cubbadge','cubsbadge.vercel.app','幼童軍','幼童軍進度追蹤',
+      'roverbadge','roverbadge.vercel.app','樂行童軍','樂行童軍進度追蹤'
+  ] }
 ];
 
 // 來源字串 → 正規化 key（未登記來源回 '@原樣小寫'，永不丟失）
+// v2.5：4 個 BADGE APP 一律歸入「專章系統」。
+// scoutbadge 舊版 proxy 送出的是「進度追蹤」，所以先把這個字串指向 badge；
+// 若日後有真正獨立的「進度追蹤」系統，把這幾條刪掉即可。
+const SOURCE_OVERRIDES = {
+  '進度追蹤': 'badge', '童軍進度追蹤': 'badge', '幼童軍進度追蹤': 'badge',
+  '深資童軍進度追蹤': 'badge', '樂行童軍進度追蹤': 'badge'
+};
+
 function normSourceKey(raw) {
   let s = String(raw ?? '').trim().toLowerCase();
   if (!s) return '';
+  const rawKey = String(raw ?? '').trim();
+  if (SOURCE_OVERRIDES[rawKey]) return SOURCE_OVERRIDES[rawKey];
   s = s.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^www\./, '');
   for (const a of SOURCE_APPS) {
     if (a.key === s || a.label.toLowerCase() === s) return a.key;
@@ -2043,10 +2253,15 @@ function buildAppCard(r) {
   const bmap = { pending:'badge-pending', done:'badge-done', rejected:'badge-rejected' };
   const btxt = { pending:'待處理', done:'已接入', rejected:'已拒絕' };
 
-  const actions = r.status === 'pending'
+  const actions = (r.status === 'pending'
     ? `<button class="btn btn-success" onclick="markDone('${escJs(r.id)}')">✅ 接入</button>
        <button class="btn btn-danger"  onclick="markRejected('${escJs(r.id)}')">❌ 拒絕</button>`
-    : `<button class="btn btn-ghost"   onclick="markPending('${escJs(r.id)}')">↩ 重設</button>`;
+    : `<button class="btn btn-ghost"   onclick="markPending('${escJs(r.id)}')">↩ 重設</button>`)
+    + `<button class="btn btn-blue" onclick="notifyApplicant('${escJs(r.id)}')" title="寄通知信給申請人">✉️ 通知</button>`;
+
+  const contact = contactEmailOf(r);
+  const sentTag = r.notifiedAt
+    ? `<span class="badge badge-muted" title="${escHtml(r.notifiedAt)}">✉️ 已通知</span>` : '';
 
   // build JSON snippets inline
   const vsSnippet  = buildSingleVsbadge(r);
@@ -2061,12 +2276,14 @@ function buildAppCard(r) {
       <div class="app-detail">
         <strong>登記時間：</strong>${escHtml(r.createdAt)}<br>
         <strong>URL：</strong><span class="url-cell" style="max-width:none">${escHtml(r.backendUrl||'—')}</span><br>
-        <strong>API Key：</strong><code>${escHtml(r.apiKey||'—')}</code>
+        <strong>API Key：</strong><code>${escHtml(r.apiKey||'—')}</code><br>
+        <strong>聯絡 Email：</strong>${contact?escHtml(contact):'<span style="color:#c62828">未填（可按 ✉️ 補輸入）</span>'}
         ${r.note?`<br><strong>備注：</strong>${escHtml(r.note)}`:''}
       </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
       <span class="badge ${bmap[r.status]}">${btxt[r.status]}</span>
+      ${sentTag}
       <div class="app-actions">
         ${actions}
         <button class="btn btn-ghost" onclick="editRequest('${escJs(r.id)}')">✏️</button>
@@ -2254,6 +2471,7 @@ function editRequest(id) {
   document.getElementById('m_name').value   = r.troopName||'';
   document.getElementById('m_url').value    = r.backendUrl||'';
   document.getElementById('m_key').value    = r.apiKey||'';
+  document.getElementById('m_contact').value= r.contact||contactEmailOf(r)||'';
   document.getElementById('m_note').value   = r.note||'';
   document.getElementById('m_status').value = (r.status==='done'||r.status==='pending'||r.status==='rejected') ? r.status : 'pending';
   document.getElementById('modal').style.display='block';
@@ -2265,6 +2483,7 @@ function saveModal() {
   const troopName = document.getElementById('m_name').value.trim();
   const backendUrl= document.getElementById('m_url').value.trim();
   const apiKey    = document.getElementById('m_key').value.trim();
+  const contact   = document.getElementById('m_contact').value.trim();
   const note      = document.getElementById('m_note').value.trim();
   const status    = document.getElementById('m_status').value;
   if(!troopName){ alert('請填寫旅團名稱'); return; }
@@ -2272,11 +2491,11 @@ function saveModal() {
   if(!apiKey){ alert('請填寫 API Key'); return; }
   if(eid) {
     const idx=state.requests.findIndex(r=>r.id===eid);
-    if(idx>=0) Object.assign(state.requests[idx],{troopId,troopName,backendUrl,apiKey,note,status});
+    if(idx>=0) Object.assign(state.requests[idx],{troopId,troopName,backendUrl,apiKey,contact,note,status});
   } else {
     state.requests.unshift({
       id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-      troopId,troopName,backendUrl,apiKey,note,status,
+      troopId,troopName,backendUrl,apiKey,contact,note,status,
       createdAt: new Date().toLocaleString('zh-HK')
     });
   }
@@ -2285,9 +2504,88 @@ function saveModal() {
   toast('✅ 已儲存');
 }
 
-function markDone(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='done';save();refreshAll();pushRequestStatus(id);toast('✅ 已標記接入');} }
-function markRejected(id){ if(!confirm('確定拒絕？')) return; const r=state.requests.find(r=>r.id===id); if(r){r.status='rejected';save();refreshAll();pushRequestStatus(id);toast('❌ 已拒絕');} }
+// ============================================================
+// 回覆申請人 Email（v2.5）
+//   狀態寫回 Sheet 之後，可一鍵寄「已接入／已拒絕」通知信。
+//   收件人：申請表填的聯絡 Email → 備注內抓到的 Email → 手動輸入。
+// ============================================================
+const APPLY_STATUS_LABEL = { done:'已接入', rejected:'已拒絕', pending:'待處理' };
+
+function contactEmailOf(r) {
+  const direct = String((r && r.contact) || '').trim();
+  if (/@/.test(direct)) return direct;
+  const m = String((r && r.note) || '').match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  return m ? m[0] : direct;
+}
+
+async function notifyApplicant(id, opts) {
+  const o = opts || {};
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return false;
+
+  let to = contactEmailOf(r);
+  if (!to) {
+    to = (prompt('這張申請沒有聯絡 Email。\n請輸入要通知的 Email（留空＝不寄）：', '') || '').trim();
+    if (!to) { toast('✉️ 已略過通知'); return false; }
+    r.contact = to; save(); refreshAll();
+  }
+  if (typeof hasServerId === 'function' && !hasServerId(r.id)) {
+    toast('⚠️ 這張申請未同步到 Sheet（本機新增），請先「🔄 同步 Sheet」再寄通知');
+    return false;
+  }
+  const label = APPLY_STATUS_LABEL[r.status] || '狀態更新';
+  if (!o.skipConfirm && !confirm(`要寄「${label}」通知信到 ${to} 嗎？`)) return false;
+
+  const message = (o.message !== undefined)
+    ? String(o.message || '')
+    : (prompt(`附加訊息（會加在通知信內，可留空）：`, '') || '');
+
+  toast('✉️ 寄出通知信…');
+  const res = await viaProxy('POST', 'markReq', {
+    type: 'markReq', id: r.id, status: label, notify: true, message
+  });
+  if (res.requireLogin) { gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼'); return false; }
+
+  const d = (res.ok && res.data) ? res.data : null;
+  if (!d) { toast('❌ 通知失敗：/api/admin 無回應'); return false; }
+  if (d.email === 'sent') {
+    r.notifiedAt = new Date().toLocaleString('zh-HK');
+    r.notifiedTo = d.to || to;
+    save(); refreshAll();
+    toast(`✅ 已寄出通知信到 ${r.notifiedTo}`);
+    return true;
+  }
+  if (d.email === 'no-address') {
+    toast('⚠️ 這張申請沒有聯絡 Email，請人手回覆');
+    return false;
+  }
+  if (d.email === 'failed') {
+    toast('⚠️ 通知信寄不出：' + (d.error || '請檢查 GS 寄信配額'));
+    return false;
+  }
+  toast('⚠️ ' + (d.message || '通知未確認送出'));
+  return false;
+}
+
+function markDone(id){
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return;
+  r.status = 'done'; save(); refreshAll(); pushRequestStatus(id);
+  toast('✅ 已標記接入');
+  if (applyNotifyEnabled() && contactEmailOf(r)) notifyApplicant(id, { skipConfirm: false });
+}
+function markRejected(id){
+  if (!confirm('確定拒絕？')) return;
+  const r = state.requests.find(x => x.id === id);
+  if (!r) return;
+  r.status = 'rejected'; save(); refreshAll(); pushRequestStatus(id);
+  toast('❌ 已拒絕');
+  if (applyNotifyEnabled()) notifyApplicant(id, { skipConfirm: true });
+}
 function markPending(id){ const r=state.requests.find(r=>r.id===id); if(r){r.status='pending';save();refreshAll();pushRequestStatus(id);toast('↩ 已重設');} }
+
+// 後台可關掉「審核後自動問要唔要寄信」（記在 settings，預設開）
+function applyNotifyEnabled(){ return state.settings.notifyOnReview !== false; }
 function deleteRequest(id){ if(!confirm('確定刪除？')) return; state.requests=state.requests.filter(r=>r.id!==id); save();refreshAll();toast('🗑 已刪除'); }
 
 // ============================================================
@@ -2970,8 +3268,8 @@ async function syncFromSheet() {
 
     (data.applications || []).forEach(row => {
       const troopId   = String(row['旅團號'] ?? '').trim();
-      const troopName = String(row['旅團名稱'] ?? '').trim();
-      if (!troopName) return;
+      // v2.5：旅團名稱空白也要收（roverbadge 舊版可能無名）→ 用旅團號補，唔好靜靜漏單
+      const troopName = String(row['旅團名稱'] ?? '').trim() || (troopId ? `第 ${troopId} 旅` : '（未填旅團名稱）');
       const id = String(row['編號'] || '');
       const dupById   = id && state.requests.some(r => r.id === id);
       const dupByComp = !id && state.requests.some(r => r.troopName === troopName && r.troopId === troopId);
@@ -2982,6 +3280,7 @@ async function syncFromSheet() {
         troopId, troopName,
         backendUrl: String(row['URL'] ?? row['Apps Script URL'] ?? ''),
         apiKey:     String(row['API Key'] ?? ''),
+        contact:    String(row['聯絡 Email'] ?? '').trim(),
         note:       String(row['備注'] ?? ''),
         status:     REQ_STATUS_FROM_SHEET[sheetStatus] || 'pending',
         createdAt:  sheetDate(row['提交時間'])

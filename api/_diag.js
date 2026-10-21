@@ -244,6 +244,32 @@ async function probeGsEmail(ctx) {
     return out;
   }
 
+  // 能力探測：舊版 GS 冇回覆 Email／測試 Email，要叫用戶更新
+  const caps = body.capabilities || {};
+  if (caps.replyEmail === true) {
+    out.push(check('Scout Admin', 'gs-reply', '回覆申請人 Email', 'pass',
+      'GS 支援 markReq + notify（審核後一鍵回覆申請人）', ''));
+  } else {
+    out.push(check('Scout Admin', 'gs-reply', '回覆申請人 Email', 'warn',
+      'GS 未支援回覆功能（?action=diag 冇 capabilities.replyEmail）',
+      '貼上最新版 GS（v2.5）並「新版本」重新部署，後台的 ✉️ 通知才有作用。'));
+  }
+
+  // 上一封「旅團接入申請」通知信：直接用來看「申請有冇 Email」
+  const lastApply = body.lastApplyEmail;
+  if (!lastApply) {
+    out.push(check('Scout Admin', 'gs-apply-email', '申請通知信紀錄', 'warn',
+      'GS 未有申請通知信的寄出紀錄（v2.5 之後才開始記）',
+      '按「📨 寄測試申請」送一張測試申請，這裡就會顯示成／敗同原因。'));
+  } else if (lastApply.ok === true) {
+    out.push(check('Scout Admin', 'gs-apply-email', '申請通知信紀錄', 'pass',
+      `上一封已寄出（${lastApply.at || ''}${lastApply.subject ? '：' + lastApply.subject : ''}）`, ''));
+  } else {
+    out.push(check('Scout Admin', 'gs-apply-email', '申請通知信紀錄', 'fail',
+      `上一封寄唔出（${lastApply.at || ''}）：${lastApply.error || ''}`,
+      '同一支 GS 既然連回報 Email 都寄得到，就代表係配額／收件人／個別欄位拋錯；用「✉️ 只寄測試 Email」對照。'));
+  }
+
   const last = body.lastEmail;
   if (!last) {
     out.push(check('Scout Admin', 'gs-email', 'Email 通知狀態', 'warn',

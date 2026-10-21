@@ -42,6 +42,8 @@ function mockFetch() {
           status: 'ok',
           adminEmail: 'playerkousas@hotmail.com',
           lastEmail: { ok: false, key: 'apply', error: 'Service invoked too many times: email', at: '2026-10-21T12:00:00.000Z' },
+          lastApplyEmail: { ok: true, key: 'apply', subject: '📥 [Scout Admin] 新旅團登記 — 第 82 旅', at: '2026-10-21T11:00:00.000Z' },
+          capabilities: { replyEmail: true, testEmail: true, applyContact: true, sourceOverride: true },
           remainingQuota: 0,
           version: '2.5'
         });
@@ -120,6 +122,8 @@ function freshHandle() {
   check(byId['roverbadge-troops'].status === 'warn', 'roverbadge 旅團清單空 → warn');
   check(byId['scoutbadge-troops'].status === 'pass', 'scoutbadge 旅團清單 pass');
   check(byId['scoutbadge-home'].status === 'pass', '首頁 HEAD pass');
+  check(byId['gs-reply'] && byId['gs-reply'].status === 'pass', 'GS 支援回覆申請人 Email → pass');
+  check(byId['gs-apply-email'] && byId['gs-apply-email'].status === 'pass', '上一封申請通知信成功 → pass');
   check(byId['gs-email'] && byId['gs-email'].status === 'fail', 'GS 上一封寄信失敗 → fail（指出真正原因）');
   check(/配額|限制/.test(byId['gs-email'].hint), '寄信失敗有提示配額／帳戶限制');
   check(byId['gs-quota'] && byId['gs-quota'].status === 'fail', '剩餘配額 0 → fail');
