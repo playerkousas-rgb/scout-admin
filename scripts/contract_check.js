@@ -68,7 +68,12 @@ function jsArrayLabels(src, marker) {
 }
 function aliasTableKeys(src) {
   const i = src.indexOf('SOURCE_ALIASES = {');
-  const seg = src.slice(i, src.indexOf('\n};', i));
+  const rest = src.slice(i);
+  // 收窄到 alias 表本身的結尾（縮排的 `};` 也要認）＋ 明確停在 SOURCE_OVERRIDES 之前
+  const stop = rest.indexOf('SOURCE_OVERRIDES');
+  const body = stop === -1 ? rest : rest.slice(0, stop);
+  const end = body.search(/\n\s*\};/);
+  const seg = end === -1 ? body : body.slice(0, end);
   return [...seg.matchAll(/^\s*['"]([^'"]+)['"]\s*:/gm)].map(m => m[1]);
 }
 const adminLabels = jsArrayLabels(html, 'const SOURCE_APPS = [');
@@ -184,7 +189,7 @@ check(state.issue.headers.includes('appVersion'), '對方自家欄位自動加�
 
 // ---------- ④ 說明書必備內容 ----------
 [
-  ['2.4', '版本號'],
+  ['2.5', '版本號'],
   ['統一回報格式 v1', '格式名稱'],
   ['不用改 Apps Script', '加新系統免改後端的承諾'],
   ['"type": "issue"', 'issue payload 範例'],
@@ -193,7 +198,10 @@ check(state.issue.headers.includes('appVersion'), '對方自家欄位自動加�
   ['report.html?app=', '獨立回報頁'],
   ['setupApiKey', 'API KEY 產生方式'],
   ['SUPER_KEY', '後台密碼門'],
-  ['markRead', '狀態寫回']
+  ['markRead', '狀態寫回'],
+  ['專章系統', '4 個 BADGE APP 統一來源'],
+  ['回覆申請人', '審核後回覆申請人 Email'],
+  ['聯絡 Email', '回覆用的聯絡 Email 欄']
 ].forEach(([needle, what]) => check(md.includes(needle), '說明書包含' + what));
 check(md.includes('| 來源APP（＝來源系統，自動對齊統一名稱） |'), '說明書欄位表標明來源系統欄');
 

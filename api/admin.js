@@ -10,6 +10,9 @@
 //         → 密碼 == Vercel 環境變數 SUPER_KEY 時回 {ok:true, token, exp}（24 小時）
 //   GET  /api/admin?action=list  → Apps Script GET ?action=list&apikey=KEY（需 session）
 //   POST /api/admin {type:markRead|markReq, id, status}（需 session，注入 apikey）
+//   GET  /api/admin?action=diag          → 連通測試（4 個 BADGE APP ＋ GS，零副作用；需 session）
+//   POST /api/admin {type:diagTest}      → 真送一張【連通測試】接入申請（會寫 Sheet＋寄信）
+//   POST /api/admin {type:testEmail}     → 只寄測試 Email 到 ADMIN_EMAIL（唔寫 Sheet）
 //
 // 設定（Vercel → 專案 Settings → Environment Variables）：
 //   SCOUT_ADMIN_KEY   = GS「setupApiKey」產生並 Email 給你的 Key
@@ -20,6 +23,7 @@
 //     ping 會回 auth:'off'，前端會在畫面上提示「目前沒有密碼保護」。
 
 const crypto = require('crypto');
+const { runDiag } = require('./_diag');
 
 const WEBAPP_URL = process.env.SCOUT_WEBAPP_URL ||
   'https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec';
@@ -130,6 +134,7 @@ module.exports = async function handle(req, res) {
 
   try {
     const action = queryAction(req);
+    let postBody = null;
 
     // 0) ping — 前端查密碼門狀態；不需 token、不碰 Apps Script
     if (req.method === 'GET' && action === 'ping') {
@@ -143,6 +148,7 @@ module.exports = async function handle(req, res) {
     // 1) login — SUPER_KEY 在 server 端比對（timing-safe），成功發 24 小時 token
     if (req.method === 'POST') {
       const body = await readBody(req);
+      postBody = body;
       if (body.type === 'login') {
         if (!SUPER_KEY) return send(400, { ok: false, error: '後端未設定 SUPER_KEY 環境變數' });
         const ip = clientIp(req);
@@ -156,14 +162,30 @@ module.exports = async function handle(req, res) {
         return send(200, { ok: true, token: makeToken(now), exp: now + SESSION_TTL_MS });
       }
 
-      if (body.type !== 'markRead' && body.type !== 'markReq') {
-        return send(400, { status: 'error', message: '此代理只接受 login / markRead / markReq' });
+      if (body.type !== 'markRead' && body.type !== 'markReq' && body.type !== 'diagTest' && body.type !== 'testEmail') {
+        return send(400, { status: 'error', message: '此代理只接受 login / markRead / markReq / diagTest / testEmail' });
       }
     }
 
     // 2) 密碼門開著時：list 讀取與狀態寫回都要有效 session
     if (SUPER_KEY && !verifyToken(sessionFromReq(req))) {
       return send(401, { ok: false, requireLogin: true, message: '請先輸入 SUPER KEY 登入' });
+    }
+
+    // 3a) 連通測試 — 只做公開 GET／HEAD 與「空 payload」探測，零副作用
+    //     （唔會寫 Sheet、唔會寄 Email；真正寄測試信要 POST diagTest）
+    if (req.method === 'GET' && action === 'diag') {
+      try {
+        const diag = await runDiag({
+          webappUrl: WEBAPP_URL,
+          adminKey: KEY,
+          hasAdminKey: !!KEY,
+          hasSuperKey: !!SUPER_KEY
+        });
+        return send(200, diag);
+      } catch (err) {
+        return send(502, { ok: false, error: '連通測試失敗：' + (err && err.message ? err.message : err) });
+      }
     }
 
     // 3) GET list — 轉發 Apps Script（server 注入 apikey）
@@ -179,7 +201,63 @@ module.exports = async function handle(req, res) {
 
     // 4) POST markRead / markReq — 轉發 Apps Script（server 注入 apikey）
     if (req.method === 'POST') {
-      const body = await readBody(req);
+      const body = postBody || await readBody(req);
+
+      // 4b) testEmail — 只寄一封測試信到 ADMIN_EMAIL（唔寫 Sheet）
+      if (body.type === 'testEmail') {
+        const upstream = await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ type: 'testEmail' }),
+          redirect: 'follow',
+          signal: AbortSignal.timeout(20000)
+        });
+        const text = await upstream.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        return send(200, {
+          ok: !!(parsed && parsed.status === 'ok'),
+          mode: 'testEmail',
+          email: parsed ? parsed.email : 'unknown',
+          to: parsed ? parsed.to : '',
+          quota: parsed ? parsed.quota : null,
+          error: parsed ? parsed.error : '',
+          upstreamStatus: upstream.status,
+          upstream: parsed || String(text).slice(0, 400)
+        });
+      }
+
+      // 4a) diagTest — 真正送一張「連通測試」旅團接入申請去收件端，
+      //     會寫入 Sheet「申請記錄」並寄 Email（所以前端要再確認一次）。
+      if (body.type === 'diagTest') {
+        const stamp = new Date().toISOString();
+        const payload = {
+          type: 'apply',
+          troopId: String(body.troopId || 'TEST').replace(/[^0-9A-Za-z_-]/g, '').slice(0, 32) || 'TEST',
+          troopName: '【連通測試】Scout Admin 自我測試（可忽略／可刪）',
+          backendUrl: 'https://script.google.com/macros/s/TEST-DIAG/exec',
+          apiKey: 'DIAG-TEST-KEY',
+          note: 'Scout Admin 連通測試（' + stamp + '）。收到這封 Email ＝「接入申請 → 中央收件端 → MailApp」整條路正常。',
+          appType: 'scout-admin-diag'
+        };
+        const upstream = await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+          redirect: 'follow',
+          signal: AbortSignal.timeout(20000)
+        });
+        const text = await upstream.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        return send(200, {
+          ok: !!(parsed && (parsed.status === 'success' || parsed.success === true)),
+          upstreamStatus: upstream.status,
+          upstream: parsed || String(text).slice(0, 400),
+          sent: payload
+        });
+      }
+
       if (KEY) body.apikey = KEY;
       const upstream = await fetch(WEBAPP_URL, {
         method: 'POST',
