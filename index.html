@@ -2647,7 +2647,27 @@ function markPending(id){ const r=state.requests.find(r=>r.id===id); if(r){r.sta
 
 // 後台可關掉「審核後自動問要唔要寄信」（記在 settings，預設開）
 function applyNotifyEnabled(){ return state.settings.notifyOnReview !== false; }
-function deleteRequest(id){ if(!confirm('確定刪除？')) return; state.requests=state.requests.filter(r=>r.id!==id); save();refreshAll();toast('🗑 已刪除'); }
+async function deleteRequest(id){ 
+  if(!confirm('確定刪除這條旅團登記？\n\n⚠️ 這將永久刪除，無法恢復！')) return; 
+  
+  // 如果有 Server ID，嘗試寫回 Sheet 刪除
+  if(id && hasServerId(id)){
+    const proxied = await viaProxy('POST', 'deleteRequest', { type: 'deleteRequest', id: id });
+    if(proxied.ok && proxied.data && proxied.data.status === 'ok'){
+      toast('🗑 已永久刪除（已寫回 Google Sheet）');
+    } else if(proxied.requireLogin) {
+      gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼');
+      return;
+    } else {
+      toast('⚠️ 寫回 Sheet 失敗，已本地刪除');
+    }
+  } else {
+    toast('⚠️ 本地刪除（非 Server ID，無法寫回 Sheet）');
+  }
+  
+  state.requests=state.requests.filter(r=>r.id!==id); 
+  save();refreshAll();
+}
 
 // ============================================================
 // ISSUES（問題回報）
@@ -2799,7 +2819,27 @@ function markIssue(id, status){
   const r=state.issues.find(x=>x.id===id);
   if(r){ r.status=status; save(); refreshAll(); markIssueServer(id, status); toast(status==='read'?'✔ 已讀，已沉底':'↩ 已標回未閱'); }
 }
-function deleteIssue(id){ if(!confirm('確定刪除這條問題回報？')) return; state.issues=state.issues.filter(x=>x.id!==id); save();refreshAll();toast('🗑 已刪除'); }
+async function deleteIssue(id){ 
+  if(!confirm('確定刪除這條問題回報？\n\n⚠️ 這將永久刪除，無法恢復！')) return; 
+  
+  // 如果有 Server ID，嘗試寫回 Sheet 刪除
+  if(id && hasServerId(id)){
+    const proxied = await viaProxy('POST', 'deleteIssue', { type: 'deleteIssue', id: id });
+    if(proxied.ok && proxied.data && proxied.data.status === 'ok'){
+      toast('🗑 已永久刪除（已寫回 Google Sheet）');
+    } else if(proxied.requireLogin) {
+      gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼');
+      return;
+    } else {
+      toast('⚠️ 寫回 Sheet 失敗，已本地刪除');
+    }
+  } else {
+    toast('⚠️ 本地刪除（非 Server ID，無法寫回 Sheet）');
+  }
+  
+  state.issues=state.issues.filter(x=>x.id!==id); 
+  save();refreshAll();
+}
 
 function updateIssueStats() {
   const s = state.issues;
@@ -2923,7 +2963,27 @@ function markFeedback(id, status){
   const r=state.feedbacks.find(x=>x.id===id);
   if(r){ r.status=status; save(); refreshAll(); markFeedbackServer(id, status); toast(status==='read'?'✔ 已讀，已沉底':'↩ 已標回未閱'); }
 }
-function deleteFeedback(id){ if(!confirm('確定刪除這條意見回饋？')) return; state.feedbacks=state.feedbacks.filter(x=>x.id!==id); save();refreshAll();toast('🗑 已刪除'); }
+async function deleteFeedback(id){ 
+  if(!confirm('確定刪除這條意見回饋？\n\n⚠️ 這將永久刪除，無法恢復！')) return; 
+  
+  // 如果有 Server ID，嘗試寫回 Sheet 刪除
+  if(id && hasServerId(id)){
+    const proxied = await viaProxy('POST', 'deleteFeedback', { type: 'deleteFeedback', id: id });
+    if(proxied.ok && proxied.data && proxied.data.status === 'ok'){
+      toast('🗑 已永久刪除（已寫回 Google Sheet）');
+    } else if(proxied.requireLogin) {
+      gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼');
+      return;
+    } else {
+      toast('⚠️ 寫回 Sheet 失敗，已本地刪除');
+    }
+  } else {
+    toast('⚠️ 本地刪除（非 Server ID，無法寫回 Sheet）');
+  }
+  
+  state.feedbacks=state.feedbacks.filter(x=>x.id!==id); 
+  save();refreshAll();
+}
 
 function updateFeedbackStats() {
   const s = state.feedbacks;
@@ -3000,10 +3060,26 @@ function updateAppStoreStats() {
   document.getElementById('astatTotal').textContent   = s.length;
 }
 
-function deleteAppStore(id) {
-  if (!confirm('確定刪除這筆作品投稿？')) return;
+async function deleteAppStore(id) {
+  if (!confirm('確定刪除這筆作品投稿？\n\n⚠️ 這將永久刪除，無法恢復！')) return;
+  
+  // 如果有 Server ID，嘗試寫回 Sheet 刪除
+  if(id && hasServerId(id)){
+    const proxied = await viaProxy('POST', 'deleteAppStore', { type: 'deleteAppStore', id: id });
+    if(proxied.ok && proxied.data && proxied.data.status === 'ok'){
+      toast('🗑 已永久刪除（已寫回 Google Sheet）');
+    } else if(proxied.requireLogin) {
+      gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼');
+      return;
+    } else {
+      toast('⚠️ 寫回 Sheet 失敗，已本地刪除');
+    }
+  } else {
+    toast('⚠️ 本地刪除（非 Server ID，無法寫回 Sheet）');
+  }
+  
   state.appstore = state.appstore.filter(x => x.id !== id);
-  save(); renderAppStore(); toast('🗑 已刪除');
+  save(); renderAppStore();
 }
 
 // ============================================================

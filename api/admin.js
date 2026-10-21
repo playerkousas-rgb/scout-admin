@@ -167,8 +167,9 @@ module.exports = async function handle(req, res) {
         return send(200, { ok: true, token: makeToken(now), exp: now + SESSION_TTL_MS });
       }
 
-      if (body.type !== 'markRead' && body.type !== 'markReq' && body.type !== 'diagTest' && body.type !== 'testEmail') {
-        return send(400, { status: 'error', message: '此代理只接受 login / markRead / markReq / diagTest / testEmail' });
+      if (body.type !== 'markRead' && body.type !== 'markReq' && body.type !== 'diagTest' && body.type !== 'testEmail' &&
+          body.type !== 'deleteIssue' && body.type !== 'deleteFeedback' && body.type !== 'deleteRequest' && body.type !== 'deleteAppStore') {
+        return send(400, { status: 'error', message: '此代理只接受 login / markRead / markReq / diagTest / testEmail / deleteIssue / deleteFeedback / deleteRequest / deleteAppStore' });
       }
     }
 
@@ -262,6 +263,20 @@ module.exports = async function handle(req, res) {
           upstream: parsed || String(text).slice(0, 400),
           sent: payload
         });
+      }
+
+      // 4c) delete operations — 永久刪除資料（轉發到 Apps Script）
+      if (body.type === 'deleteIssue' || body.type === 'deleteFeedback' || body.type === 'deleteRequest' || body.type === 'deleteAppStore') {
+        if (KEY) body.apikey = KEY;
+        const upstream = await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(20000)
+        });
+        const text = await upstream.text();
+        try { res.status(upstream.status).send(text); } catch (e) {}
+        return;
       }
 
       if (KEY) body.apikey = KEY;

@@ -94,7 +94,9 @@ var TYPE_ALIASES = {
   "appstore": "appstore", "submission": "appstore", "作品投稿": "appstore", "投稿": "appstore",
   "apply": "apply", "register": "apply", "旅團登記": "apply", "登記": "apply",
   "markread": "markRead", "markreq": "markReq",
-  "testemail": "testEmail", "測試電郵": "testEmail", "測試email": "testEmail"
+  "testemail": "testEmail", "測試電郵": "testEmail", "測試email": "testEmail",
+  "deleteissue": "deleteIssue", "deletefeedback": "deleteFeedback", "deterequest": "deleteRequest", "deleteappstore": "deleteAppStore",
+  "刪除問題": "deleteIssue", "刪除回饋": "deleteFeedback", "刪除申請": "deleteRequest", "刪除作品": "deleteAppStore"
 };
 
 // ---------- 統一回報格式：來源系統正規化（新系統照收，不用改這裡） ----------
@@ -155,6 +157,10 @@ function doPost(e) {
     if (type === "markReq")  return _handleMarkReq(data);
     if (type === "markRead") return _handleMarkRead(data);
     if (type === "testEmail") return _handleTestEmail(data);
+    if (type === "deleteIssue") return _handleDelete(data, "issue");
+    if (type === "deleteFeedback") return _handleDelete(data, "feedback");
+    if (type === "deleteRequest") return _handleDelete(data, "apply");
+    if (type === "deleteAppStore") return _handleDelete(data, "appstore");
     if (type === "issue")    return _capture("issue",    data, "未閱");
     if (type === "feedback") return _capture("feedback", data, "未閱");
     if (type === "appstore") return _capture("appstore", data, "待審核");
@@ -368,6 +374,33 @@ function _handleMarkRead(data) {
   var done = _writeStatusById("issue", rowId, "狀態", put);
   if (!done) done = _writeStatusById("feedback", rowId, "狀態", put);
   return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
+}
+
+// ---------- 刪除資料（永久刪除，從 Sheet 中移除該列） ----------
+//  payload: { type: "deleteFeedback", id: "編號" }
+function _handleDelete(data, sheetKey) {
+  var rowId = (data.id || "").toString().trim();
+  if (!rowId) return _json({ status: "error", message: "缺少編號" });
+  
+  var cfg   = SHEET_CFG[sheetKey];
+  if (!cfg) return _json({ status: "error", message: "未知工作表類型" });
+  
+  var sheet = _sheet(sheetKey);
+  if (sheet.getLastRow() < 2) return _json({ status: "error", message: "工作表為空" });
+  
+  var vals  = sheet.getDataRange().getValues();
+  var head  = _normHeaders(vals[0]);
+  var idCol = head.indexOf("編號");
+  if (idCol === -1) return _json({ status: "error", message: "找不到編號欄" });
+  
+  for (var r = 1; r < vals.length; r++) {
+    if (String(vals[r][idCol] || "") === rowId) {
+      // 刪除該列（r+1 因為 Sheet 是 1-indexed）
+      sheet.deleteRow(r + 1);
+      return _json({ status: "ok", message: "已永久刪除", sheet: sheetKey, id: rowId });
+    }
+  }
+  return _json({ status: "error", message: "找不到這條編號", sheet: sheetKey, id: rowId });
 }
 
 // ---------- 申請審核狀態寫回（＋可選：回覆申請人 Email） ----------
