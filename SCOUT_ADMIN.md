@@ -481,3 +481,39 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 1. **Vercel 未部署**：合併 PR 後仍要等部署完成（Deployments 最上面一個要係 `Ready` 且對應最新 commit）；
 2. **GS 未「新版本」部署**：貼了代碼但只按「儲存」＝公開網址仍然行舊版本，必須「管理部署 → 編輯 → 新版本 → 部署」；
 3. **瀏覽器快取**：舊 `index.html` 仍在記憶體，強制刷新即可。
+
+### 🚨 為什麼一直見到舊版？— Vercel 部署的分支不是 `main`
+
+2026-10-21 實測：`https://scout-admin-blue.vercel.app` 線上跑的內容，與 GitHub 的
+**`arena/01a0dca5-scout-admin`（2026-09-26）** 完全一致，而不是 `main`：
+
+| 線上實際 | `arena/01a0dca5`（2026-09-26） | `main`（最新） |
+|---|---|---|
+| `ping` 冇 `version` 欄 | 冇 | 有 `"version":"2.5.0"` |
+| GS 分頁寫 v2.4、約 369 行 | 369 行 | 589 行，有 `GS_VERSION` |
+| 專章系統只有 4 個別名 | `badge, badgesystem, vsbadge, 專章` | 另有 4 個 APP 名稱／網域 |
+| 冇版本徽章／冇 🧪 | 無 | 有 |
+| `package.json` | `2.4.0` | `2.5.0` |
+
+**即係 Vercel 項目「Settings → Git → Production Branch」指去了那個 arena 分支**，
+所以合併到 `main` 之後，線上永遠不會更新。
+
+**修正（2 分鐘）**：
+
+1. Vercel → 該項目 → **Settings → Git → Production Branch** 改成 **`main`** → Save；
+2. **Deployments → 右上 `⋯` → Redeploy**（或推一個 commit 觸發）；
+3. 開後台 → 右上角見到 **`v2.5.0 ✔`** 就代表成功。
+
+> 若 Vercel 搜不到 `main`：先在 GitHub 把該 arena 分支刪除（Branches 頁 → 垃圾桶），
+> Vercel 便只會剩 `main` 可選。
+
+### 不想再等 Vercel？GS 可以直接由 GitHub 取
+
+`apps-script/Code.gs` 是自動由 `index.html` 的 `GS_CODE` 匯出（`npm test` 會驗證逐字相同），
+所以即使後台仍是舊版，也可以：
+
+1. GitHub 開 **`apps-script/Code.gs`** → 右上 **Raw** → 全選複製；
+2. 貼進 Apps Script → 儲存 → **管理部署 → 新版本 → 部署**；
+3. 編輯器搜尋 **`GS_VERSION`** 確認是 v2.5。
+
+（改完 `GS_CODE` 後執行 `node scripts/export_gs.js` 或 `npm run gs:export` 重新匯出。）
