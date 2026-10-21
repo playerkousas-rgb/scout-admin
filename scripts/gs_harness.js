@@ -198,13 +198,15 @@ check(r.status==='ok' && r.email==='sent' && r.to==='leader91@example.com','審�
 check(emails.length===1,'回覆只寄一封給申請人（唔會再發一封畀自己）');
 const replyMail = emails.find(e=>e.to==='leader91@example.com');
 check(replyMail && replyMail.subject.indexOf('已開通')>=0,'回覆信主旨標明已開通');
-check(replyMail && replyMail.body.indexOf('TROOP_0091_BACKEND')>=0,'回覆信附上要設定的環境變數名');
+check(replyMail && replyMail.body.indexOf('TROOP_')===-1,'通知信不含環境變數（由管理員自己設定）');
+check(replyMail && replyMail.body.indexOf('已經開通')>=0 && replyMail.body.length<300,'通知信簡短：只講已開通');
 check(replyMail && replyMail.body.indexOf('已幫你設定好')>=0,'回覆信包含管理員附加訊息');
 check(arow()[state.apply.headers.indexOf('狀態')]==='已接入','狀態已寫回');
 
 emails.length=0;
 r = post({type:'markReq', id:aId(), status:'已拒絕', notify:true});
-check(r.email==='sent' && emails.some(e=>e.body.indexOf('未能通過')>=0 && e.subject.indexOf('結果')>=0),'拒絕申請會寄出拒絕信');
+check(r.email==='sent' && emails.some(e=>e.body.indexOf('未能開通')>=0 && e.subject.indexOf('結果')>=0),'拒絕申請會寄出拒絕信');
+check(emails.every(e=>e.body.indexOf('TROOP_')===-1),'拒絕信亦不含技術設定內容');
 
 r = post({type:'apply',troopId:'0092',troopName:'第92旅',backendUrl:'u',apiKey:'k',note:'無留電郵'});
 const noMailId = arow()[state.apply.headers.indexOf('編號')];

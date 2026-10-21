@@ -1112,12 +1112,18 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 **收件人怎麼決定**：\`聯絡 Email\` 欄 → 沒有就從 \`備注\` 抓第一個 Email → 都沒有就彈窗請你輸入（留空＝不寄）。
 **完全沒有 Email 時不會假成功**：GS 回 \`email:"no-address"\`，後台提示「請人手回覆」。
 
-### 通知信內容
+### 通知信內容（刻意簡短）
 
-- **已接入**：附上已登記的旅團號＋要設定的環境變數名（\`TROOP_{編號}_NAME\` / \`_BACKEND\` / \`_APIKEY\`）＋之後怎麼登入；
-- **已拒絕**：列出常見原因（URL／API Key 錯、GS 未設「任何人可存取」、試算表未初始化）＋請重新提交；
+- **已接入**：
+  > 你好，  
+  > 貴旅團（第 82 旅）的接入申請已經開通 ✅  
+  >   
+  > 現在可以開啟 APP，選擇你的旅團登入使用。
+- **已拒絕**：只講「暫時未能開通」＋請用 APP 內回報功能聯絡；
 - 可加一段「管理員訊息」（拒絕時最常用）；
 - 寄出成功會在卡片顯示 **✉️ 已通知** 標記。
+
+> 通知信**不會**列出環境變數名或技術設定步驟 —— 那些全部由管理員在 Vercel 自己設定，旅團毋須知道。
 
 ### API（給其他系統／腳本用）
 
@@ -1902,33 +1908,26 @@ function _applyEmailOf(row) {
 // ---------- 回覆申請人的通知信（已接入／已拒絕／重設） ----------
 function _replyApplyEmail(row, status, extra) {
   var name = _s(row["旅團名稱"]) || ("第 " + _s(row["旅團號"]) + " 旅");
-  var tid  = _s(row["旅團號"]);
   var lines = [];
   var subject = "";
 
+  // v2.5：通知信只講「結果」，不列環境變數／技術步驟（那些由管理員自己設定）
   if (status === "已接入") {
-    subject = "✅ [Scout Admin] 你的旅團接入申請已開通 — " + name;
-    lines.push("你好，" + name + " 的接入申請已經開通 ✅");
+    subject = "✅ [Scout Admin] 旅團接入已開通 — " + name;
+    lines.push("你好，");
+    lines.push("貴旅團（" + name + "）的接入申請已經開通 ✅");
     lines.push("");
-    lines.push("已為你完成：");
-    if (tid) {
-      lines.push("1. 在 APP 的 Vercel 專案登記旅團：" + tid);
-      lines.push("2. 環境變數已設定：TROOP_" + tid + "_NAME / TROOP_" + tid + "_BACKEND / TROOP_" + tid + "_APIKEY");
-    } else {
-      lines.push("1. 已登記你的旅團後端（URL＋API Key）");
-    }
-    lines.push("3. 之後開啟 APP 就會見到你的旅團卡片，可直接用成員／領袖帳號登入");
-    lines.push("");
-    lines.push("如登入有問題，請在 APP 內「🐛💬 回報 · 意見」再聯絡我們。");
+    lines.push("現在可以開啟 APP，選擇你的旅團登入使用。");
   } else if (status === "已拒絕") {
     subject = "❌ [Scout Admin] 旅團接入申請結果 — " + name;
-    lines.push("你好，" + name + " 的接入申請暫時未能通過 ❌");
+    lines.push("你好，");
+    lines.push("貴旅團（" + name + "）的接入申請暫時未能開通。");
     lines.push("");
-    lines.push("常見原因：URL／API Key 不正確、Apps Script 未部署為「任何人可存取」、或試算表未初始化。");
-    lines.push("請修正後在 APP 內重新提交一次，我們會盡快跟進。");
+    lines.push("如需了解原因或重新申請，請在 APP 內「🐛💬 回報 · 意見」聯絡我們。");
   } else {
     subject = "✉️ [Scout Admin] 旅團接入申請狀態更新 — " + name;
-    lines.push("你好，" + name + " 的接入申請狀態已更新為「" + status + "」。");
+    lines.push("你好，");
+    lines.push("貴旅團（" + name + "）的接入申請狀態已更新為「" + status + "」。");
   }
 
   var msg = _s(extra).trim();
