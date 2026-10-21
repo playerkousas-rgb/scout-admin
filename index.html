@@ -228,6 +228,7 @@
       <div class="card-header">
         <div class="card-title">🏛️ 旅團登記</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="runDiag()">🧪 連通測試</button>
           <button class="btn btn-ghost" onclick="syncFromSheet()">🔄 同步 Sheet</button>
           <button class="btn btn-gold" onclick="showAddModal()">＋ 手動新增</button>
         </div>
@@ -525,6 +526,26 @@
   </div>
 </div>
 
+<!-- ===== DIAG MODAL（🧪 連通測試） ===== -->
+<div id="diagModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto">
+  <div style="background:#fff;max-width:760px;margin:40px auto;border-radius:14px;padding:26px;position:relative">
+    <button onclick="closeDiag()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px">🧪 一鍵連通測試</div>
+    <div class="note" style="margin-bottom:14px">
+      檢查 <strong>Scout Admin 收件端</strong> 與 <strong>4 個 BADGE APP</strong> 是否通、以及每個 APP 的
+      <strong>「新旅團接入申請」是否已啟用</strong>。<br>
+      本測試<strong>只送空 payload</strong>：唔會寫入 Sheet、唔會寄 Email（所以零副作用）。
+      要確認「真係收得到 Email」，請按最下面的 <strong>📨 寄測試申請</strong>（會寫一列測試資料＋寄一封信）。
+    </div>
+    <div id="diagBody" style="font-size:.86rem"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="runDiag()">🔄 再測一次</button>
+      <button class="btn btn-gold" onclick="sendDiagTest()">📨 寄測試申請（會寫 Sheet＋寄 Email）</button>
+    </div>
+    <div id="diagTestMsg" style="font-size:.84rem;margin-top:10px;min-height:18px"></div>
+  </div>
+</div>
+
 <!-- ===== ISSUE MODAL ===== -->
 <div id="issueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto">
   <div style="background:#fff;max-width:560px;margin:40px auto;border-radius:14px;padding:28px;position:relative">
@@ -649,13 +670,14 @@ const DOCS = {
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 統一回報 · 旅團接入管理中心 說明書
 
-> 版本：2.4 | 作者：系統管理員
+> 版本：2.5 | 作者：系統管理員
 > 本次大改：
 > ① **統一回報格式 v1**：所有系統（圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…）用**同一個 payload、同一個接收端、同一組工作表欄位**回報，唯一分別只有 \`sourceApp\`（來源系統）
 > ② 後台「問題回報 / 意見回饋」加**來源系統膠囊**：一眼看到每個系統各有幾條未閱，點一下只看該系統
 > ③ Apps Script v2.4：**來源名稱自動正規化**、**type 別名／中文／漏寫也收得到**、**工作表與欄位完全不變**
 > ④ 移除已無用的「🔧 產生器」與「⚙️ 設定」分頁
 > ⑤ 保留：SUPER KEY 密碼門、API KEY 只留 Vercel 環境變數、已閱／審核寫回 Sheet
+> ⑥ **新增「🧪 一鍵連通測試」**：一頁測完 4 個 BADGE APP ＋ Apps Script 收件端，並可寄一封測試申請確認 Email（見第十二節）
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -994,6 +1016,43 @@ A：密碼＝Vercel 環境變數 \`SUPER_KEY\` 的值；改值 → 重新部署�
 
 **Q：想修改通知 Email？**
 A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新版本）。
+
+---
+
+## 十二、🧪 一鍵連通測試（v2.5）
+
+後台 **🏛️ 旅團登記 → 🧪 連通測試**，由 Vercel server 代你逐項探測（瀏覽器不需處理 CORS）：
+
+| 檢查 | 正常結果 | 不合格代表 |
+|------|---------|-----------|
+| \`SCOUT_ADMIN_KEY\` / \`SUPER_KEY\` | 已設定 | 未設 → 讀 Sheet／密碼門失效 |
+| Apps Script GET | \`{"status":"ok"}\` | 見到登入頁＝部署權限不是「所有人」 |
+| Apps Script POST（送空 \`{}\`） | \`沒有收到任何資料\` | 舊版 GS／POST 不通 |
+| 4 個 APP 首頁 | HTTP 200 | 專案被刪／網域失效 |
+| 4 個 APP \`/api/troops\` | 列出旅團 | 空＝未設 \`TROOP_{編號}_*\` 環境變數 |
+| 4 個 APP 接入申請端點（送空 payload） | **400**＝已配置 | **503**＝未設收件匣 URL；**500**＝URL 格式錯 |
+
+> **零副作用**：以上只送空 payload，**不會寫入 Sheet、不會寄 Email**。
+> 要確認「真係收得到信」按 **📨 寄測試申請**：會寫一列【連通測試】並寄一封信，測完可在 Sheet 刪除。
+
+### Q：為什麼回報／意見一填好就收到 Email，但旅團接入申請冇？
+
+兩者走**同一支 Apps Script、同一個 \`MailApp.sendEmail\`**，分別在**入境前**：
+
+| 路徑 | 收件匣 URL 由誰決定 | 未設定會怎樣 |
+|------|-------------------|-------------|
+| 問題回報／意見回饋 | 每個 APP 的 proxy 有**內建預設** \`/exec\` | 照樣寄得出 |
+| 旅團接入申請（scoutbadge） | 一定要 \`SCOUTBADGE_ADMIN_API\`，**冇內建預設** | 表單回 **503「接入申請功能尚未啟用」**，根本冇送出 → 冇 Email |
+| 旅團接入申請（vsbadge／cubsbadge／roverbadge） | 有內建預設，亦接受 \`SCOUT_ADMIN_API\` 等別名 | 通常寄得出 |
+
+最常見原因：
+
+1. **scoutbadge 未設 \`SCOUTBADGE_ADMIN_API\`** → 補環境變數後**重新部署**；
+2. 收件匣環境變數指去**舊的／錯的** \`/exec\` → 改回第九節的 URL；
+3. 其實已寫入 Sheet，但 Email 落入**垃圾郵件**，或 \`MailApp\` **每日配額**用完。
+
+> 在後台按「✅ 接入／❌ 拒絕」只會**寫回 Sheet 狀態**，本身不會寄 Email。
+
 `
   }
 };
@@ -2665,6 +2724,100 @@ async function viaProxy(method, action, payload) {
     const data = await res.json();
     return { ok: true, data };
   } catch (e) { return { ok: false }; }
+}
+
+// ============================================================
+// 🧪 連通測試（/api/admin?action=diag）
+//   由 Vercel server 代為探測 4 個 BADGE APP 同 Apps Script 收件端，
+//   瀏覽器唔會有 CORS 問題，亦唔會將任何 Key 送去第三方。
+//   探測只送空 payload：唔寫 Sheet、唔寄信（要寄信請按「📨 寄測試申請」）。
+// ============================================================
+const DIAG_STYLE = {
+  pass: { icon: '✅', color: '#1a7a3c' },
+  warn: { icon: '⚠️', color: '#b26a00' },
+  fail: { icon: '❌', color: '#c62828' }
+};
+
+function closeDiag() { const m = document.getElementById('diagModal'); if (m) m.style.display = 'none'; }
+
+async function runDiag() {
+  const box = document.getElementById('diagBody');
+  const tmsg = document.getElementById('diagTestMsg');
+  if (tmsg) tmsg.textContent = '';
+  document.getElementById('diagModal').style.display = 'block';
+  box.innerHTML = '<div style="padding:16px;color:var(--muted)">⏳ 測試中…（實際連線到 10 個端點，最多 15 秒）</div>';
+
+  const r = await viaProxy('GET', 'diag');
+  if (r.requireLogin) {
+    gateAuthOn = true; showGate();
+    box.innerHTML = '<div style="padding:16px;color:#c62828">請先重新登入 SUPER KEY。</div>';
+    return;
+  }
+  if (!r.ok || !r.data) {
+    box.innerHTML = '<div style="padding:16px;color:#c62828">❌ 連通測試失敗：/api/admin 代理無回應。<br>本機直接開檔案時請先部署到 Vercel；已部署就檢查 Functions log。</div>';
+    return;
+  }
+  renderDiag(r.data);
+}
+
+function renderDiag(d) {
+  const box = document.getElementById('diagBody');
+  if (!d || !Array.isArray(d.checks)) {
+    box.innerHTML = '<div style="padding:16px;color:#c62828">回應格式不正確。</div>';
+    return;
+  }
+  const s = d.summary || { pass: 0, warn: 0, fail: 0 };
+  const groups = [];
+  d.checks.forEach(c => {
+    let g = groups.find(x => x.name === c.group);
+    if (!g) { g = { name: c.group, items: [] }; groups.push(g); }
+    g.items.push(c);
+  });
+
+  box.innerHTML =
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center">' +
+      '<span class="badge badge-done">✅ 通過 ' + s.pass + '</span>' +
+      '<span class="badge badge-pending">⚠️ 注意 ' + s.warn + '</span>' +
+      '<span class="badge badge-rejected">❌ 失敗 ' + s.fail + '</span>' +
+      '<span style="color:var(--muted)">' + escHtml(new Date(d.checkedAt || Date.now()).toLocaleString('zh-HK')) + '</span>' +
+    '</div>' +
+    groups.map(g =>
+      '<div class="section-label" style="margin-top:10px">' + escHtml(g.name) + '</div>' +
+      g.items.map(c => {
+        const st = DIAG_STYLE[c.status] || DIAG_STYLE.warn;
+        return '<div style="border:1px solid #e2ddd5;border-radius:10px;padding:9px 12px;margin-bottom:8px">' +
+          '<div style="font-weight:700;color:' + st.color + '">' + st.icon + ' ' + escHtml(c.label) + '</div>' +
+          '<div style="color:#4a4a4a;margin-top:2px;word-break:break-word">' + escHtml(c.detail) + '</div>' +
+          (c.hint ? '<div style="color:#8a6d00;background:#fff8e1;border-radius:6px;padding:6px 8px;margin-top:6px;font-size:.8rem">👉 ' + escHtml(c.hint) + '</div>' : '') +
+        '</div>';
+      }).join('')
+    ).join('');
+}
+
+async function sendDiagTest() {
+  const msg = document.getElementById('diagTestMsg');
+  if (!confirm('會送出一張【連通測試】旅團接入申請：\n\n‧ 寫入 Google Sheet「申請記錄」一列（可事後刪除）\n‧ 寄一封測試 Email 到 ADMIN_EMAIL\n\n確定要送嗎？')) return;
+  msg.style.color = '#888';
+  msg.textContent = '📨 送出中…（最多 20 秒）';
+
+  const r = await viaProxy('POST', 'diagTest', { type: 'diagTest' });
+  if (r.requireLogin) {
+    gateAuthOn = true; showGate();
+    msg.style.color = '#c62828'; msg.textContent = '請先重新登入 SUPER KEY。';
+    return;
+  }
+  if (!r.ok || !r.data) {
+    msg.style.color = '#c62828'; msg.textContent = '❌ 送不出：/api/admin 代理無回應。';
+    return;
+  }
+  const d = r.data;
+  if (d.ok) {
+    msg.style.color = '#1a7a3c';
+    msg.textContent = '✅ 收件端已確認收到（已寫入 Sheet 並寄出 Email）。若 1–2 分鐘內收不到信，請檢查垃圾郵件，以及 MailApp 每日寄信配額。';
+  } else {
+    msg.style.color = '#c62828';
+    msg.textContent = '❌ 收件端未確認成功：HTTP ' + (d.upstreamStatus || '?') + ' ' + JSON.stringify(d.upstream || {}).slice(0, 200);
+  }
 }
 
 async function syncFromSheet() {

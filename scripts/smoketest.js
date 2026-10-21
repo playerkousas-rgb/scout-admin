@@ -22,6 +22,17 @@ const LIST_PAYLOAD = {
   ]
 };
 
+// 連通測試（/api/admin?action=diag）用嘅假回應
+const DIAG_PAYLOAD = {
+  ok: false,
+  checkedAt: '2026-10-21T13:00:00.000Z',
+  summary: { pass: 1, warn: 0, fail: 1 },
+  checks: [
+    { group: 'Scout Admin', id: 'gs-health', label: 'Apps Script 收件端', status: 'pass', detail: '正常：Scout Admin Web App 正常運行', hint: '' },
+    { group: 'BADGE APP', id: 'scoutbadge-register', label: '接入申請端點', status: 'fail', detail: '未啟用（503）', hint: '補 SCOUTBADGE_ADMIN_API 後重新部署。' }
+  ]
+};
+
 const dom = new JSDOM(html, {
   runScripts: 'dangerously',
   url: 'https://scout-admin-blue.vercel.app/',
@@ -29,6 +40,7 @@ const dom = new JSDOM(html, {
     window.fetch = async (url) => {
       const s = String(url);
       let payload = LIST_PAYLOAD;
+      if (s.includes('action=diag')) payload = DIAG_PAYLOAD;
       // POST 寫回也受控：回傳 ok
       return {
         ok: true,
@@ -126,6 +138,15 @@ setTimeout(async () => {
     // 顯示順序：最新在最頂（renderAppStore 依 submit 時間排序）
     const cards = [...d.querySelectorAll('#appstoreList .app-card .app-troop')].map(n => n.textContent);
     check(cards[0] && cards[0].includes('露營裝備清單'), '顯示最新在最頂（' + cards.join(' , ') + '）');
+
+    // ---- 🧪 連通測試 UI ----
+    check(d.getElementById('diagModal') !== null, '連通測試 modal 存在');
+    check([...d.querySelectorAll('button')].some(b => /連通測試/.test(b.textContent)), '旅團登記有「🧪 連通測試」按鈕');
+    await w.runDiag();
+    const diagHtml = d.getElementById('diagBody').innerHTML;
+    check(diagHtml.includes('Apps Script 收件端'), '連通測試渲染 Apps Script 檢查項');
+    check(diagHtml.includes('SCOUTBADGE_ADMIN_API'), '連通測試顯示修正提示（hint）');
+    check(diagHtml.includes('❌ 失敗 1') && diagHtml.includes('✅ 通過 1'), '連通測試顯示 summary 統計');
 
     // 再 sync 一次 → 去重（不重複加）
     await w.syncFromSheet();
