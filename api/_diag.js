@@ -173,6 +173,11 @@ async function probeApp(app) {
 
 async function probeScoutAdmin(ctx) {
   const out = [];
+
+  out.push(check('Scout Admin', 'admin-version', '後台代理版本',
+    ctx.adminVersion === '2.5.0' ? 'pass' : 'warn',
+    ctx.adminVersion ? `v${ctx.adminVersion}` : '未知（舊版代理冇回版本）',
+    ctx.adminVersion === '2.5.0' ? '' : 'Vercel 可能未重新部署；前端右上角版本標記亦會顯示前後端不一致。'));
   out.push(check('Scout Admin', 'admin-key', '後台 API KEY', ctx.hasAdminKey ? 'pass' : 'fail',
     ctx.hasAdminKey ? 'SCOUT_ADMIN_KEY 已設定' : '未設定 SCOUT_ADMIN_KEY',
     ctx.hasAdminKey ? '' : '後台讀取 Sheet 會失敗；在 Vercel 加 SCOUT_ADMIN_KEY（由 GS setupApiKey 產生）後重新部署。'));
@@ -297,6 +302,7 @@ async function runDiag(opts) {
   const options = opts || {};
   const ctx = {
     webappUrl: String(options.webappUrl || DEFAULT_WEBAPP_URL).trim() || DEFAULT_WEBAPP_URL,
+    adminVersion: String(options.adminVersion || ''),
     adminKey: String(options.adminKey || ''),
     hasAdminKey: !!options.hasAdminKey,
     hasSuperKey: !!options.hasSuperKey

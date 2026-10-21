@@ -89,6 +89,12 @@ function req(method, url, { headers = {}, body } = {}) {
   return { method, url, headers, body, ip: '10.0.0.9' };
 }
 
+let lastDiag = null;
+function byIdAdmin(id) {
+  const c = (lastDiag && lastDiag.checks || []).find(x => x.id === id);
+  return c || { status: 'missing' };
+}
+
 function token(method, superKey) {
   const payload = { v: 1, scope: 'admin', iat: Date.now(), exp: Date.now() + 3600000 };
   const b = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -147,7 +153,12 @@ function freshHandle() {
   let handle = freshHandle();
   mockFetch();
 
+  // ping 版本（前端用嚟偵測「Vercel 未重新部署」）
   let res = makeRes();
+  await handle(req('GET', '/api/admin?action=ping'), res);
+  check(res.out().status === 200 && res.out().payload.version === '2.5.0', 'ping 回 version 2.5.0');
+
+  res = makeRes();
   await handle(req('GET', '/api/admin?action=diag'), res);
   check(res.out().status === 401, '無 session 打 diag → 401');
 
@@ -155,6 +166,9 @@ function freshHandle() {
   res = makeRes();
   await handle(req('GET', '/api/admin?action=diag', { headers: { 'x-scout-session': token('x', 'super-secret-1') } }), res);
   check(res.out().status === 200 && Array.isArray(res.out().payload.checks), '有 session 打 diag → 200 + checks');
+  lastDiag = res.out().payload;
+  check(res.out().payload.version === '2.5.0', 'diag 回報後台代理版本 2.5.0');
+  check((byIdAdmin('admin-version')).status === 'pass', 'diag 有「後台代理版本」檢查項');
 
   // ---------- 4) diagTest ----------
   mockFetch();

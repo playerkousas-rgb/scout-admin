@@ -159,6 +159,19 @@ setTimeout(async () => {
     const cards = [...d.querySelectorAll('#appstoreList .app-card .app-troop')].map(n => n.textContent);
     check(cards[0] && cards[0].includes('露營裝備清單'), '顯示最新在最頂（' + cards.join(' , ') + '）');
 
+    // ---- 版本標記（辨認 Vercel 有冇部署到新版）----
+    check(d.getElementById('verTag') !== null, 'header 有版本標記 #verTag');
+    check(d.getElementById('verTag').textContent.trim() === 'v' + w.eval('APP_VERSION'), '預設顯示前端版本');
+    w.setVerTag('2.5.0');
+    check(d.getElementById('verTag').classList.contains('ok') && d.getElementById('verTag').textContent.includes('✔'),
+      '前後端版本一致 → 綠色 ✔');
+    w.setVerTag('2.4.0');
+    check(d.getElementById('verTag').classList.contains('bad') && d.getElementById('verTag').textContent.includes('伺服器 v2.4.0'),
+      '前後端版本不一致 → 紅色警示（Vercel 未重新部署）');
+    w.setVerTag('');
+    check(!d.getElementById('verTag').classList.contains('bad'), '未連到代理時不加警示');
+    check(w.eval('APP_VERSION') === '2.5.0', 'APP_VERSION = 2.5.0');
+
     // ---- ✉️ 回覆申請人（v2.5）----
     w.eval(`state.requests = [
       { id:'aaaaaaaa-1111-4111-8111-111111111111', troopId:'0082', troopName:'第82旅', backendUrl:'u', apiKey:'k',

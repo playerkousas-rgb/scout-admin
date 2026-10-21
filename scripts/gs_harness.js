@@ -229,5 +229,13 @@ const srcCol = state.feedback.headers.indexOf('來源APP');
 const srcs = state.feedback.rows.slice(-10).map(row=>row[srcCol]);
 check(srcs.every(x=>x==='專章系統'), '10 種 BADGE APP 寫法全部統一成「專章系統」（' + Array.from(new Set(srcs)).join('/') + '）');
 
+// ==== v2.5：版本標記（用嚟分辨貼上的是新版還是舊版 v2.4）====
+check(/統一回報接收系統（v2\.5）/.test(code.split('\n')[1]), 'GS 第 2 行標明 v2.5');
+check(/var GS_VERSION = "2\.5"/.test(code), 'GS 有 GS_VERSION 常數（舊版 v2.4 冇）');
+g = JSON.parse(sandbox.doGet({parameter:{}}));
+check(g.version === '2.5', 'GS 健康檢查回 version 2.5');
+g = JSON.parse(sandbox.doGet({parameter:{action:'diag',apikey:sandbox.PropertiesService.getScriptProperties().getProperty('API_KEY')}}));
+check(g.version === '2.5' && g.capabilities && g.capabilities.replyEmail === true, 'GS ?action=diag 回版本同回覆功能');
+
 console.log(fails===0?'ALL GAS OK':(fails+' FAILURES'));
 process.exit(fails?1:0);
