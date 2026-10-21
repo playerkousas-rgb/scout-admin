@@ -382,3 +382,17 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 3. 申請其實已送達並寫入 Sheet，但 Email 落入**垃圾郵件**，或 Apps Script `MailApp` **每日配額**用完。
 
 > 注意：在後台按「✅ 接入／❌ 拒絕」只會**寫回 Sheet 狀態**，本身不會寄 Email；要通知請直接回覆申請人。
+
+---
+
+## 十三、v2.5 其他修正（Email 通知可靠性）
+
+| 問題 | 舊行為 | 現在 |
+|------|-------|------|
+| `MailApp.sendEmail` 失敗（配額用完／帳戶受限／主旨含換行） | `try { ... } catch (e) {}` **靜靜吞掉**，Sheet 有資料但完全冇通知 | 回傳 `email:"sent"`／`"failed"` ＋ `emailError`；寫入 Script Property `LAST_EMAIL` |
+| 主旨含換行（旅團名稱多行） | `MailApp` 直接拋錯 → 冇信 | `_safeSubject()` 清乾淨再寄 |
+| 查「上一封有冇寄出」 | 冇方法查 | `GET ?action=diag&apikey=…` → `lastEmail`、`remainingQuota` |
+| 只想確認 Email 通不通 | 要開一張真申請 | `POST {type:"testEmail"}`（後台「✉️ 只寄測試 Email」）：只寄信、唔寫 Sheet；**收件人固定 ADMIN_EMAIL，不接受自訂 to** |
+
+> 後台 🧪 連通測試會多兩項：**📧 Email 通知狀態**（上一封成功／失敗原因）同 **今日剩餘寄信配額**。
+> 免費 Gmail 經 Apps Script 寄信上限約 **100 封／日**，爆配額就會全部寄不出。

@@ -34,11 +34,23 @@ function mockFetch() {
     const method = (opts && opts.method) || 'GET';
     calls.push({ url: u, method, body: opts && opts.body });
 
-    if (u === WEBAPP) {
+    if (u.startsWith(WEBAPP)) {
+      const parsed = new URL(u);
+      if (method === 'GET' && parsed.searchParams.get('action') === 'diag') {
+        if (parsed.searchParams.get('apikey') !== 'scout-key-1') return resp(200, { status: 'error', message: '缺少或錯誤的 API KEY' });
+        return resp(200, {
+          status: 'ok',
+          adminEmail: 'playerkousas@hotmail.com',
+          lastEmail: { ok: false, key: 'apply', error: 'Service invoked too many times: email', at: '2026-10-21T12:00:00.000Z' },
+          remainingQuota: 0,
+          version: '2.5'
+        });
+      }
       if (method === 'GET') return resp(200, { status: 'ok', message: 'Scout Admin Web App 正常運行' });
       const body = JSON.parse((opts && opts.body) || '{}');
       if (!Object.keys(body).length) return resp(200, { status: 'error', message: '沒有收到任何資料' });
       if (body.type === 'apply') return resp(200, { status: 'success', message: '登記已提交，管理員會盡快接入。' });
+      if (body.type === 'testEmail') return resp(200, { status: 'ok', email: 'sent', to: 'playerkousas@hotmail.com', quota: 87 });
       return resp(200, { status: 'success' });
     }
 
@@ -92,7 +104,7 @@ function freshHandle() {
   // ---------- 1+2) runDiag 判讀 ----------
   const { runDiag } = require(path.join(__dirname, '..', 'api', '_diag.js'));
   mockFetch();
-  const diag = await runDiag({ webappUrl: WEBAPP, hasAdminKey: true, hasSuperKey: true });
+  const diag = await runDiag({ webappUrl: WEBAPP, adminKey: 'scout-key-1', hasAdminKey: true, hasSuperKey: true });
 
   const byId = {};
   diag.checks.forEach(c => { byId[c.id] = c; });
@@ -108,7 +120,10 @@ function freshHandle() {
   check(byId['roverbadge-troops'].status === 'warn', 'roverbadge 旅團清單空 → warn');
   check(byId['scoutbadge-troops'].status === 'pass', 'scoutbadge 旅團清單 pass');
   check(byId['scoutbadge-home'].status === 'pass', '首頁 HEAD pass');
-  check(diag.summary.fail === 1 && diag.summary.pass >= 10, `summary 正確（fail=${diag.summary.fail}）`);
+  check(byId['gs-email'] && byId['gs-email'].status === 'fail', 'GS 上一封寄信失敗 → fail（指出真正原因）');
+  check(/配額|限制/.test(byId['gs-email'].hint), '寄信失敗有提示配額／帳戶限制');
+  check(byId['gs-quota'] && byId['gs-quota'].status === 'fail', '剩餘配額 0 → fail');
+  check(diag.summary.fail === 3 && diag.summary.pass >= 10, `summary 正確（fail=${diag.summary.fail}）`);
   check(diag.ok === false, '有 fail 時 ok=false');
 
   const emptyProbe = calls.find(c => c.url === WEBAPP && c.method === 'POST');
@@ -150,6 +165,19 @@ function freshHandle() {
   check(sent.type === 'apply', 'diagTest 送 type:apply');
   check(/連通測試/.test(sent.troopName) && /連通測試/.test(sent.note), 'diagTest 有清楚標示【連通測試】');
   check(sent.apiKey === 'DIAG-TEST-KEY', 'diagTest 用假 API Key，唔會洩露真 Key');
+
+  // testEmail：只寄信、唔寫 Sheet
+  mockFetch();
+  res = makeRes();
+  await handle(req('POST', '/api/admin', {
+    headers: { 'x-scout-session': token('x', 'super-secret-1') },
+    body: { type: 'testEmail' }
+  }), res);
+  const te = res.out();
+  check(te.status === 200 && te.payload.mode === 'testEmail' && te.payload.ok === true, 'testEmail 回報寄出成功');
+  check(te.payload.to === 'playerkousas@hotmail.com', 'testEmail 收件人固定為 ADMIN_EMAIL');
+  const teCall = calls.filter(c => c.url === WEBAPP && c.method === 'POST').pop();
+  check(teCall && JSON.parse(teCall.body).type === 'testEmail', 'testEmail 有送去 GS');
 
   // diagTest 無 session → 401
   res = makeRes();

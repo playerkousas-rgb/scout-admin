@@ -33,7 +33,10 @@ SheetStub.prototype.setFrozenRows=function(){}; SheetStub.prototype.appendRow=fu
 
 const sandbox={
   Utilities:{getUuid:(()=>{let n=0;return()=>'uuu-'+(++n);})()},
-  MailApp:{sendEmail:o=>emails.push(o)},
+  MailApp:{
+    sendEmail:o=>{ if(global.__mailThrows) throw new Error('Service invoked too many times: email'); emails.push(o); },
+    getRemainingDailyQuota:()=>87
+  },
   PropertiesService:{getScriptProperties:()=>({getProperty:k=>scriptProps[k]||'',setProperty:(k,v)=>scriptProps[k]=v,deleteProperty:k=>delete scriptProps[k]})},
   SpreadsheetApp:{getActiveSpreadsheet:()=>({getSheetByName:n=>Object.keys(state).includes(NAME2KEY[n])?new SheetStub(n):null, insertSheet:n=>new SheetStub(n)})},
   ContentService:{createTextOutput:t=>({setMimeType:()=>t}), MimeType:{JSON:'j'}},
@@ -145,6 +148,40 @@ check(state.issue.rows[state.issue.rows.length-1][SRCCOL()]==='區系統','來�
 r = post({type:'意見', sourceApp:'未來新系統X', content:'新系統照樣收'});
 check(state.feedback.rows[state.feedback.rows.length-1][state.feedback.headers.indexOf('來源APP')]==='未來新系統X','未登記來源原樣保留（不漏單）');
 check(state.issue.headers.length===state.issue.headers.length,'欄位數不變（無需改 Sheet）');
+
+// ==== v2.5：Email 狀態唔再靜靜吞 + testEmail + ?action=diag ====
+const ADMIN = 'playerkousas@hotmail.com';
+global.__mailThrows = false;
+emails.length=0;
+r = post({type:'apply',troopName:'第99旅',backendUrl:'u',apiKey:'k'});
+check(r.status==='success' && r.email==='sent','apply 回應帶 email:sent');
+check(emails.length===1 && emails[0].subject.indexOf('新旅團登記')>=0,'apply 有寄出通知信');
+
+emails.length=0;
+r = post({type:'apply',troopName:'第98旅\n第二行',backendUrl:'u',apiKey:'k'});
+check(r.email==='sent' && emails[0].subject.indexOf('\n')===-1 && emails[0].subject.indexOf('\r')===-1,
+  '主旨含換行會清乾淨（MailApp 唔會因此拋錯）');
+
+global.__mailThrows = true;
+emails.length=0;
+const rowsBefore = state.apply.rows.length;
+r = post({type:'apply',troopName:'第97旅',backendUrl:'u',apiKey:'k'});
+check(r.status==='success' && r.email==='failed','MailApp 失敗 → email:failed（唔再靜靜吞）');
+check(/Service invoked/.test(r.emailError),'回應帶 emailError 原因');
+check(state.apply.rows.length===rowsBefore+1,'Email 失敗仍然寫入 Sheet（不會漏單）');
+
+const diagKey = sandbox.PropertiesService.getScriptProperties().getProperty('API_KEY');
+g = JSON.parse(sandbox.doGet({parameter:{action:'diag',apikey:diagKey}}));
+check(g.status==='ok' && g.lastEmail && g.lastEmail.ok===false,'?action=diag 回 LAST_EMAIL（失敗記錄）');
+check(g.remainingQuota===87,'?action=diag 回剩餘寄信配額');
+g = JSON.parse(sandbox.doGet({parameter:{action:'diag'}}));
+check(g.status==='error','?action=diag 冇 API KEY → 拒絕');
+
+global.__mailThrows = false;
+emails.length=0;
+r = post({type:'testEmail', to:'attacker@example.com'});
+check(r.status==='ok' && r.email==='sent','testEmail 寄出成功');
+check(emails.length===1 && emails[0].to===ADMIN,'testEmail 只寄 ADMIN_EMAIL（忽略自訂 to，唔會被濫用）');
 
 console.log(fails===0?'ALL GAS OK':(fails+' FAILURES'));
 process.exit(fails?1:0);

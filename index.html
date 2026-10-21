@@ -540,6 +540,7 @@
     <div id="diagBody" style="font-size:.86rem"></div>
     <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap">
       <button class="btn btn-ghost" onclick="runDiag()">🔄 再測一次</button>
+      <button class="btn btn-ghost" onclick="sendTestEmail()">✉️ 只寄測試 Email（唔寫 Sheet）</button>
       <button class="btn btn-gold" onclick="sendDiagTest()">📨 寄測試申請（會寫 Sheet＋寄 Email）</button>
     </div>
     <div id="diagTestMsg" style="font-size:.84rem;margin-top:10px;min-height:18px"></div>
@@ -1053,6 +1054,21 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 
 > 在後台按「✅ 接入／❌ 拒絕」只會**寫回 Sheet 狀態**，本身不會寄 Email。
 
+---
+
+## 十三、v2.5 其他修正（Email 通知可靠性）
+
+| 問題 | 舊行為 | 現在 |
+|------|-------|------|
+| \`MailApp.sendEmail\` 失敗（配額用完／帳戶受限／主旨含換行） | \`try { ... } catch (e) {}\` **靜靜吞掉**，Sheet 有資料但完全冇通知 | 回傳 \`email:"sent"\`／\`"failed"\` ＋ \`emailError\`；寫入 Script Property \`LAST_EMAIL\` |
+| 主旨含換行（旅團名稱多行） | \`MailApp\` 直接拋錯 → 冇信 | \`_safeSubject()\` 清乾淨再寄 |
+| 查「上一封有冇寄出」 | 冇方法查 | \`GET ?action=diag&apikey=…\` → \`lastEmail\`、\`remainingQuota\` |
+| 只想確認 Email 通不通 | 要開一張真申請 | \`POST {type:"testEmail"}\`（後台「✉️ 只寄測試 Email」）：只寄信、唔寫 Sheet；**收件人固定 ADMIN_EMAIL，不接受自訂 to** |
+
+> 後台 🧪 連通測試會多兩項：**📧 Email 通知狀態**（上一封成功／失敗原因）同 **今日剩餘寄信配額**。
+> 免費 Gmail 經 Apps Script 寄信上限約 **100 封／日**，爆配額就會全部寄不出。
+
+
 `
   }
 };
@@ -1486,7 +1502,8 @@ var TYPE_ALIASES = {
   "意見": "feedback", "意見回饋": "feedback", "回饋": "feedback",
   "appstore": "appstore", "submission": "appstore", "作品投稿": "appstore", "投稿": "appstore",
   "apply": "apply", "register": "apply", "旅團登記": "apply", "登記": "apply",
-  "markread": "markRead", "markreq": "markReq"
+  "markread": "markRead", "markreq": "markReq",
+  "testemail": "testEmail", "測試電郵": "testEmail", "測試email": "testEmail"
 };
 
 // ---------- 統一回報格式：來源系統正規化（新系統照收，不用改這裡） ----------
@@ -1533,6 +1550,7 @@ function doPost(e) {
 
     if (type === "markReq")  return _handleMarkReq(data);
     if (type === "markRead") return _handleMarkRead(data);
+    if (type === "testEmail") return _handleTestEmail(data);
     if (type === "issue")    return _capture("issue",    data, "未閱");
     if (type === "feedback") return _capture("feedback", data, "未閱");
     if (type === "appstore") return _capture("appstore", data, "待審核");
@@ -1594,13 +1612,24 @@ function _capture(key, data, defaultStatus) {
 
   var sheetOk = true;
   try { _appendRowAny(key, map, extras); } catch (e) { sheetOk = false; }
-  try { _emailAll(key, map, extras, ts, data); } catch (e) {}
+
+  // v2.5：Email 失敗再也不會被靜靜吞掉 —— 會記錄落 Script Property（LAST_EMAIL）
+  // 同時在回應帶 email:"sent" / "failed"，方便前端同 ?action=diag 追查。
+  var mail = { ok: false, error: "未執行" };
+  try { mail = _emailAll(key, map, extras, ts, data); } catch (e) { mail = { ok: false, error: String(e) }; }
 
   var okMsg = key === "issue"    ? "問題回報已提交，多謝！管理員會盡快跟進。"
             : key === "feedback" ? "意見已收到，多謝你！"
             : key === "appstore" ? "作品已提交審核，多謝！"
             : "登記已提交，管理員會盡快接入。";
-  return _json({ status: "success", message: sheetOk ? okMsg : (okMsg + "（寫入 Sheet 失敗，已改以 Email 通知）") });
+  var msg = sheetOk ? okMsg : (okMsg + "（寫入 Sheet 失敗，已改以 Email 通知）");
+  if (!mail.ok) msg += "（Email 通知失敗：" + _s(mail.error).slice(0, 120) + "）";
+  return _json({
+    status: "success",
+    email: mail.ok ? "sent" : "failed",
+    emailError: mail.ok ? "" : _s(mail.error).slice(0, 300),
+    message: msg
+  });
 }
 
 // ---------- 新增一列（欄位名 → 位置；缺欄自動補；沒見過的欄位自動加欄） ----------
@@ -1626,14 +1655,40 @@ function _appendRowAny(key, map, extras) {
   sheet.appendRow(row);
 }
 
+// ---------- Email 狀態記錄（給 ?action=diag 查） ----------
+function _rememberEmail(rec) {
+  try {
+    PropertiesService.getScriptProperties().setProperty("LAST_EMAIL", JSON.stringify(rec));
+  } catch (e) { /* 記錄失敗不影響主流程 */ }
+}
+
+function _lastEmail() {
+  try {
+    var raw = PropertiesService.getScriptProperties().getProperty("LAST_EMAIL");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function _remainingQuota() {
+  try { return MailApp.getRemainingDailyQuota(); } catch (e) { return null; }
+}
+
+// MailApp.sendEmail 遇到底板換行會直接拋錯，主旨一定要清乾淨
+function _safeSubject(raw) {
+  var t = _s(raw).replace(/[\\r\\n]+/g, " ").replace(/\\s+/g, " ").trim();
+  return t.length > 150 ? t.slice(0, 150) : t;
+}
+
 // ---------- Email：全部欄位＋原始 JSON 備份 ----------
+// 回傳 { ok:true } 或 { ok:false, error }，呼叫者一定要處理（唔再靜靜吞錯）
 function _emailAll(key, map, extras, ts, rawData) {
   var cfg  = SHEET_CFG[key];
-  var subject =
+  var subject = _safeSubject(
     key === "issue"    ? "🐛 [Scout Admin] 問題回報 — " + _s(map["標題"])
   : key === "feedback" ? "💬 [Scout Admin] 意見回饋（" + _s(map["類型"]) + "）"
   : key === "appstore" ? "📮 [Scout Admin] 新作品投稿 — " + _s(map["作品名稱"])
-  : "📥 [Scout Admin] 新旅團登記 — " + _s(map["旅團名稱"]);
+  : "📥 [Scout Admin] 新旅團登記 — " + _s(map["旅團名稱"])
+  );
 
   var body = "請到對應系統查看並處理（資料已同步登記到 Google Sheet）。\\n\\n━━━━━━━━━━━━━━━━━━\\n";
   for (var i = 0; i < cfg.headers.length; i++) {
@@ -1647,7 +1702,33 @@ function _emailAll(key, map, extras, ts, rawData) {
   }
   body += "━━━━━━━━━━━━━━━━━━\\n\\n（原始資料備份，確保不漏）\\n" + JSON.stringify(rawData);
 
-  MailApp.sendEmail({ to: ADMIN_EMAIL, subject: subject, body: body });
+  try {
+    MailApp.sendEmail({ to: ADMIN_EMAIL, subject: subject, body: body, name: "Scout Admin 系統通知" });
+    _rememberEmail({ ok: true, key: key, subject: subject, at: new Date().toISOString() });
+    return { ok: true };
+  } catch (e) {
+    _rememberEmail({ ok: false, key: key, subject: subject, error: String(e), at: new Date().toISOString() });
+    Logger.log("Email 發送失敗 [" + key + "]：" + e);
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---------- 測試 Email（只寄給 ADMIN_EMAIL，不接受自訂收件人，避免被當濫發工具） ----------
+function _handleTestEmail(data) {
+  var stamp = new Date().toLocaleString("zh-HK");
+  var subject = _safeSubject("✅ [Scout Admin] 測試 Email — " + stamp);
+  var body = "這封是 Scout Admin 的測試通知信。\\n\\n"
+           + "收到即代表：Apps Script → MailApp → " + ADMIN_EMAIL + " 這條路正常。\\n"
+           + "若旅團接入申請仍然收唔到信，請到 Sheet 睇「申請記錄」有冇資料，再用 ?action=diag 查 LAST_EMAIL。\\n\\n"
+           + "時間：" + stamp;
+  try {
+    MailApp.sendEmail({ to: ADMIN_EMAIL, subject: subject, body: body, name: "Scout Admin 系統通知" });
+    _rememberEmail({ ok: true, key: "testEmail", subject: subject, at: new Date().toISOString() });
+    return _json({ status: "ok", email: "sent", to: ADMIN_EMAIL, quota: _remainingQuota() });
+  } catch (e) {
+    _rememberEmail({ ok: false, key: "testEmail", subject: subject, error: String(e), at: new Date().toISOString() });
+    return _json({ status: "error", email: "failed", to: ADMIN_EMAIL, error: String(e), quota: _remainingQuota() });
+  }
 }
 
 // ---------- 已閱 / 未閱 寫回 ----------
@@ -1767,7 +1848,19 @@ function doGet(e) {
     if (!_checkKey(p)) return _json({ status: "error", message: "缺少或錯誤的 API KEY" });
     return _json({ status: "ok", applications: _readSheet("apply"), issues: _readSheet("issue"), feedbacks: _readSheet("feedback"), appstore: _readSheet("appstore") });
   }
-  return _json({ status: "ok", message: "Scout Admin Web App 正常運行" });
+  // v2.5：?action=diag —— 查「上一封通知信到底有冇寄出」，要 API KEY
+  if (action === "diag") {
+    if (!_checkKey(p)) return _json({ status: "error", message: "缺少或錯誤的 API KEY" });
+    return _json({
+      status: "ok",
+      adminEmail: ADMIN_EMAIL,
+      lastEmail: _lastEmail(),
+      remainingQuota: _remainingQuota(),
+      now: new Date().toLocaleString("zh-HK"),
+      version: "2.5"
+    });
+  }
+  return _json({ status: "ok", message: "Scout Admin Web App 正常運行", version: "2.5" });
 }
 
 function _s(v) {
@@ -1964,7 +2057,7 @@ function buildAppCard(r) {
 <div class="app-card ${r.status}" id="card_${escHtml(r.id)}">
   <div class="app-card-top">
     <div class="app-meta">
-      <div class="app-troop">⚜️ ${escHtml(r.troopName)}${r.troopId ? ` <span style="font-size:.78rem;color:var(--muted);font-weight:600">（${escHtml(r.troopId)}）</span>` : ''}</div>
+      <div class="app-troop">⚜️ ${escHtml(r.troopName || (r.troopId ? `第 ${r.troopId} 旅` : '（未填旅團名稱）'))}${r.troopId ? ` <span style="font-size:.78rem;color:var(--muted);font-weight:600">（${escHtml(r.troopId)}）</span>` : ''}</div>
       <div class="app-detail">
         <strong>登記時間：</strong>${escHtml(r.createdAt)}<br>
         <strong>URL：</strong><span class="url-cell" style="max-width:none">${escHtml(r.backendUrl||'—')}</span><br>
@@ -2817,6 +2910,32 @@ async function sendDiagTest() {
   } else {
     msg.style.color = '#c62828';
     msg.textContent = '❌ 收件端未確認成功：HTTP ' + (d.upstreamStatus || '?') + ' ' + JSON.stringify(d.upstream || {}).slice(0, 200);
+  }
+}
+
+async function sendTestEmail() {
+  const msg = document.getElementById('diagTestMsg');
+  msg.style.color = '#888';
+  msg.textContent = '✉️ 寄出中…（最多 20 秒）';
+
+  const r = await viaProxy('POST', 'testEmail', { type: 'testEmail' });
+  if (r.requireLogin) {
+    gateAuthOn = true; showGate();
+    msg.style.color = '#c62828'; msg.textContent = '請先重新登入 SUPER KEY。';
+    return;
+  }
+  if (!r.ok || !r.data) {
+    msg.style.color = '#c62828'; msg.textContent = '❌ 送不出：/api/admin 代理無回應。';
+    return;
+  }
+  const d = r.data;
+  if (d.ok) {
+    msg.style.color = '#1a7a3c';
+    msg.textContent = '✅ GS 已寄出測試信到 ' + (d.to || 'ADMIN_EMAIL') + '（今日剩餘配額：' +
+      (typeof d.quota === 'number' ? d.quota + ' 封' : '未知') + '）。收不到就查垃圾郵件。';
+  } else {
+    msg.style.color = '#c62828';
+    msg.textContent = '❌ 寄信失敗：' + (d.error || ('HTTP ' + (d.upstreamStatus || '?')));
   }
 }
 

@@ -222,15 +222,61 @@ async function probeScoutAdmin(ctx) {
   return out;
 }
 
+// GS 的 ?action=diag：查「上一封通知信有冇寄出」＋剩餘寄信配額（要 API KEY）
+async function probeGsEmail(ctx) {
+  const out = [];
+  if (!ctx.hasAdminKey) {
+    out.push(check('Scout Admin', 'gs-email', 'Email 通知狀態', 'warn',
+      '未有 SCOUT_ADMIN_KEY，查不到 GS 的寄信紀錄',
+      '設定 SCOUT_ADMIN_KEY 後，這裡會顯示上一封信成功／失敗同剩餘配額。'));
+    return out;
+  }
+  const url = new URL(ctx.webappUrl);
+  url.searchParams.set('action', 'diag');
+  url.searchParams.set('apikey', ctx.adminKey);
+  const res = await fetchText(url.toString(), { method: 'GET' });
+  const body = parseJson(res.text);
+
+  if (res.error || !body || body.status !== 'ok') {
+    out.push(check('Scout Admin', 'gs-email', 'Email 通知狀態', 'warn',
+      res.error ? `無法連接：${res.error}` : `GS 未支援 ?action=diag：${(res.text || '').slice(0, 120)}`,
+      '舊版 GS 未有這個診斷端點；貼上最新版 GS 並重新部署（新版本）即可。'));
+    return out;
+  }
+
+  const last = body.lastEmail;
+  if (!last) {
+    out.push(check('Scout Admin', 'gs-email', 'Email 通知狀態', 'warn',
+      `GS 沒有寄信紀錄（ADMIN_EMAIL = ${body.adminEmail || '?'}）`,
+      '即係部署新版 GS 之後未寄過任何通知。可按「📨 寄測試申請」或「✉️ 只寄測試 Email」確認。'));
+  } else if (last.ok === true) {
+    out.push(check('Scout Admin', 'gs-email', 'Email 通知狀態', 'pass',
+      `上一封已成功寄出（${last.at || ''} ${last.subject || ''}）`,
+      ''));
+  } else {
+    out.push(check('Scout Admin', 'gs-email', 'Email 通知狀態', 'fail',
+      `上一封寄信失敗（${last.at || ''}）：${last.error || ''}`,
+      '常見：MailApp 每日配額用完（免費 Gmail 約 100 封／日）、或 Google 帳戶被限制寄信。用「✉️ 只寄測試 Email」再確認。'));
+  }
+
+  if (typeof body.remainingQuota === 'number') {
+    out.push(check('Scout Admin', 'gs-quota', '今日剩餘寄信配額', body.remainingQuota > 0 ? 'pass' : 'fail',
+      `${body.remainingQuota} 封`,
+      body.remainingQuota > 0 ? '' : '配額用完要等明日重置；可改用其他通知方式。'));
+  }
+  return out;
+}
+
 async function runDiag(opts) {
   const options = opts || {};
   const ctx = {
     webappUrl: String(options.webappUrl || DEFAULT_WEBAPP_URL).trim() || DEFAULT_WEBAPP_URL,
+    adminKey: String(options.adminKey || ''),
     hasAdminKey: !!options.hasAdminKey,
     hasSuperKey: !!options.hasSuperKey
   };
 
-  const adminChecks = await probeScoutAdmin(ctx);
+  const adminChecks = (await probeScoutAdmin(ctx)).concat(await probeGsEmail(ctx));
   const appChecks = (await Promise.all(APPS.map(probeApp))).flat();
   const checks = adminChecks.concat(appChecks);
 

@@ -10,6 +10,9 @@
 //         → 密碼 == Vercel 環境變數 SUPER_KEY 時回 {ok:true, token, exp}（24 小時）
 //   GET  /api/admin?action=list  → Apps Script GET ?action=list&apikey=KEY（需 session）
 //   POST /api/admin {type:markRead|markReq, id, status}（需 session，注入 apikey）
+//   GET  /api/admin?action=diag          → 連通測試（4 個 BADGE APP ＋ GS，零副作用；需 session）
+//   POST /api/admin {type:diagTest}      → 真送一張【連通測試】接入申請（會寫 Sheet＋寄信）
+//   POST /api/admin {type:testEmail}     → 只寄測試 Email 到 ADMIN_EMAIL（唔寫 Sheet）
 //
 // 設定（Vercel → 專案 Settings → Environment Variables）：
 //   SCOUT_ADMIN_KEY   = GS「setupApiKey」產生並 Email 給你的 Key
@@ -159,8 +162,8 @@ module.exports = async function handle(req, res) {
         return send(200, { ok: true, token: makeToken(now), exp: now + SESSION_TTL_MS });
       }
 
-      if (body.type !== 'markRead' && body.type !== 'markReq' && body.type !== 'diagTest') {
-        return send(400, { status: 'error', message: '此代理只接受 login / markRead / markReq / diagTest' });
+      if (body.type !== 'markRead' && body.type !== 'markReq' && body.type !== 'diagTest' && body.type !== 'testEmail') {
+        return send(400, { status: 'error', message: '此代理只接受 login / markRead / markReq / diagTest / testEmail' });
       }
     }
 
@@ -175,6 +178,7 @@ module.exports = async function handle(req, res) {
       try {
         const diag = await runDiag({
           webappUrl: WEBAPP_URL,
+          adminKey: KEY,
           hasAdminKey: !!KEY,
           hasSuperKey: !!SUPER_KEY
         });
@@ -198,6 +202,30 @@ module.exports = async function handle(req, res) {
     // 4) POST markRead / markReq — 轉發 Apps Script（server 注入 apikey）
     if (req.method === 'POST') {
       const body = postBody || await readBody(req);
+
+      // 4b) testEmail — 只寄一封測試信到 ADMIN_EMAIL（唔寫 Sheet）
+      if (body.type === 'testEmail') {
+        const upstream = await fetch(WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ type: 'testEmail' }),
+          redirect: 'follow',
+          signal: AbortSignal.timeout(20000)
+        });
+        const text = await upstream.text();
+        let parsed = null;
+        try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
+        return send(200, {
+          ok: !!(parsed && parsed.status === 'ok'),
+          mode: 'testEmail',
+          email: parsed ? parsed.email : 'unknown',
+          to: parsed ? parsed.to : '',
+          quota: parsed ? parsed.quota : null,
+          error: parsed ? parsed.error : '',
+          upstreamStatus: upstream.status,
+          upstream: parsed || String(text).slice(0, 400)
+        });
+      }
 
       // 4a) diagTest — 真正送一張「連通測試」旅團接入申請去收件端，
       //     會寫入 Sheet「申請記錄」並寄 Email（所以前端要再確認一次）。
