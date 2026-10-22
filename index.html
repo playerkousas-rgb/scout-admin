@@ -2633,7 +2633,9 @@ function markDone(id){
   if (!r) return;
   r.status = 'done'; save(); refreshAll(); pushRequestStatus(id);
   toast('✅ 已標記接入');
-  if (applyNotifyEnabled() && contactEmailOf(r)) notifyApplicant(id, { skipConfirm: false });
+  // Always invoke the notification flow when enabled. If the application has
+  // no contact address, notifyApplicant prompts the admin to enter one.
+  if (applyNotifyEnabled()) notifyApplicant(id, { skipConfirm: false });
 }
 function markRejected(id){
   if (!confirm('確定拒絕？')) return;
