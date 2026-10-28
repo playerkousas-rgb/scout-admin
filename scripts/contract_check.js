@@ -189,7 +189,7 @@ check(state.issue.headers.includes('appVersion'), '對方自家欄位自動加�
 
 // ---------- ④ 說明書必備內容 ----------
 [
-  ['2.5', '版本號'],
+  ['2.6', '版本號'],
   ['統一回報格式 v1', '格式名稱'],
   ['不用改 Apps Script', '加新系統免改後端的承諾'],
   ['"type": "issue"', 'issue payload 範例'],

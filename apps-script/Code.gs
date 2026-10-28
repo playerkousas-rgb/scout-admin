@@ -1,12 +1,21 @@
 // ============================================================
-// Scout Admin — 統一回報接收系統（v2.5）
+// Scout Admin — 統一回報接收系統（v2.6）
 //   旅團登記 / 問題回報 / 意見回饋 / 作品投稿 / 回覆申請人
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
 //
-// 【版本怎樣認？】本檔第 2 行要寫「v2.5」，開頭亦會有
-//   var GS_VERSION = "2.5";
-//   貼上後在編輯器搜尋 GS_VERSION，搵到就係新版（舊版 v2.4 冇這個常數）。
-//   網址加 ?action=diag（要 API KEY）亦會回 "version":"2.5"。
+// 【版本怎樣認？】本檔第 2 行要寫「v2.6」，開頭亦會有
+//   var GS_VERSION = "2.6";
+//   貼上後在編輯器搜尋 GS_VERSION，搵到就係新版（v2.5 起有這個常數）。
+//   網址加 ?action=diag（要 API KEY）亦會回 "version":"2.6"。
+//
+// 【v2.6 改動：✉️ 回覆信一定寄得出】
+//   ① markReq 會收後台傳來的 to（所見即所寄）。以前只讀 Sheet「聯絡 Email」欄，
+//      後台顯示到地址但 Sheet 冇／格式唔同時就會回 no-address，睇落好似「寄唔出」。
+//   ② 用過的地址會寫回「聯絡 Email」欄；成功寄出後自動加「通知時間」欄
+//      （加在最後，原有欄位同編號位置完全不變）。
+//   ③ 搵地址唔再只靠一欄：整行任何一格有電郵都會用；全形＠、空格、mailto: 自動修正。
+//   ④ 新增 email:"invalid-address"（地址格式錯），回應一定會帶 to，後台可以顯示真正原因。
+//   ⑤ v2.5 全部功能保留（統一回報、專章系統、testEmail、?action=diag 等）。
 //
 // 【v2.5 改動】
 //   ① 4 個 BADGE APP（scoutbadge／vsbadge／cubsbadge／roverbadge）
@@ -44,7 +53,7 @@
 //   Email 一定附上全部欄位＋原始 JSON 備份，確保永不漏掉。
 // ============================================================
 
-var GS_VERSION = "2.5"; // ← 版本標記：搵到這行就係 v2.5（舊版 v2.4 冇）
+var GS_VERSION = "2.6"; // ← 版本標記：搵到這行就係 v2.6（v2.4 及之前冇這個常數）
 
 var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
@@ -79,7 +88,9 @@ var FIELD_MAP = {
   "分類":     ["category"],
   "作品簡介": ["desc","description"],
   "標籤":     ["tags"],
-  "聯絡 Email": ["contact", "email", "replyTo", "reply_email"]
+  // v2.6：多收幾個寫法，客人點寫都入得到「聯絡 Email」欄
+  "聯絡 Email": ["contact", "email", "replyTo", "reply_email", "emailAddress", "mail",
+                 "聯絡電郵", "聯絡email", "連絡Email", "電郵"]
 };
 
 // 系統欄位：不要自動加進 Sheet
@@ -198,11 +209,19 @@ function _capture(key, data, defaultStatus) {
   // 統一回報格式：來源系統名稱正規化（欄位不變，只是把名字寫成統一那個）
   if (map["來源APP"] !== undefined) map["來源APP"] = _normSource(map["來源APP"]);
 
-  // v2.5：旅團接入申請 → 抽出「聯絡 Email」（後台回覆功能用）。
-  // 4 個 BADGE APP 現時把 Email 寫在「備注」，所以先讀獨立欄位、再從備注／note 抓。
+  // v2.5／v2.6：旅團接入申請 → 抽出「聯絡 Email」（後台回覆功能用）。
+  // 4 個 BADGE APP 現時把 Email 寫在「備注」或者自家欄位，所以先讀常見欄位，
+  // 再掃整個 payload 任何一格，務求「客人有填就搵得到」。
   if (key === "apply" && !_s(map["聯絡 Email"])) {
-    map["聯絡 Email"] = _extractEmail(_s(data["聯絡 Email"]) + " " + _s(data.contact) + " " +
-                                      _s(data.email) + " " + _s(data.note) + " " + _s(map["備注"]));
+    var bag = [
+      _s(data["聯絡 Email"]), _s(data.contact), _s(data.email), _s(data.replyTo),
+      _s(data.note), _s(data.remark), _s(data.message), _s(map["備注"])
+    ];
+    for (var bk in data) {
+      if (bk === "type" || bk === "apikey" || bk === "apiKey" || bk === "backendUrl" || bk === "url") continue;
+      bag.push(_s(data[bk]));
+    }
+    map["聯絡 Email"] = _extractEmail(bag.join(" "));
   }
 
   // 未知欄位 → 收集進 extras（稍後自動加欄）
@@ -291,10 +310,39 @@ function _lastEmailApply() {
   } catch (e) { return null; }
 }
 
+// ---------- Email 正規化（v2.6） ----------
+// 客人可能用全形＠、中間有空格、前面有 mailto:，或者成句「電郵：xxx@yyy.com」，
+// 全部先執成乾乾淨淨一個地址；唔合法就回空字串（寧願唔寄，都唔好寄錯人）。
+function _toHalfWidth(s) {
+  return _s(s).replace(/[\uFF01-\uFF5E]/g, function (ch) {
+    return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+  }).replace(/\u3000/g, " ");
+}
+
+function _normEmail(v) {
+  var s = _toHalfWidth(v).replace(/\s+/g, " ").trim().replace(/^mailto:/i, "").trim();
+  if (!s) return "";
+  var m = s.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+/);
+  return m ? m[0].replace(/[.,;:]+$/, "") : "";
+}
+
 // 從自由文字抽出第一個 Email（備注／訊息都可能有人手打）
-function _extractEmail(text) {
-  var m = _s(text).match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+.[A-Za-z]{2,}/);
-  return m ? m[0] : "";
+function _extractEmail(text) { return _normEmail(text); }
+
+// 由整行資料搵電郵：唔再只靠「聯絡 Email」一欄（舊資料／客人填錯位都救得返）
+function _rowEmailOf(row) {
+  if (!row) return "";
+  var first = ["聯絡 Email", "聯絡方式", "備注", "備註", "姓名", "旅團名稱"];
+  for (var i = 0; i < first.length; i++) {
+    var a = _normEmail(row[first[i]]);
+    if (a) return a;
+  }
+  for (var k in row) {
+    if (k === "提交時間" || k === "編號" || k === "狀態" || k === "通知時間" || k === "=") continue;
+    var b = _normEmail(row[k]);
+    if (b) return b;
+  }
+  return "";
 }
 
 function _lastEmail() {
@@ -404,34 +452,89 @@ function _handleDelete(data, sheetKey) {
 }
 
 // ---------- 申請審核狀態寫回（＋可選：回覆申請人 Email） ----------
-//  payload: { type:"markReq", id, status:"已接入|已拒絕|待處理", notify:true, message:"附加說明（選填）" }
+//  payload: { type:"markReq", id, status:"已接入|已拒絕|待處理",
+//             notify:true, to:"收件人（由後台傳入，優先）", message:"附加說明（選填）" }
 function _handleMarkReq(data) {
   var rowId = (data.id || "").toString().trim();
   var put   = (data.status || "待處理").toString().trim();
   if (!rowId) return _json({ status: "error", message: "缺少編號" });
   var done  = _writeStatusById("apply", rowId, "狀態", put);
-  if (!done) return _json({ status: "error", message: "找不到這條編號" });
+  if (!done) return _json({ status: "error", message: "找不到這條編號（可能未同步到 Sheet，或已被刪除）" });
 
   if (!data.notify) return _json({ status: "ok", message: "已更新", notified: false });
 
   var row = _findApplyRow(rowId);
-  var to  = _applyEmailOf(row);
+
+  // v2.6：所見即所寄 —— 後台畫面上顯示／輸入的地址優先，
+  // 其次才由整行資料（任何一格）搵。以前只讀「聯絡 Email」一欄，
+  // 所以後台見到地址、Sheet 冇或格式唔同，就會回 no-address 好似寄唔出。
+  var typed     = _s(data.to || data.email || data.contact || "").trim();
+  var typedMail = _normEmail(typed);
+  var to        = typedMail || _rowEmailOf(row);
+
   if (!to) {
+    var why = typed ? "bad-email" : "no-email";
+    _rememberEmail({ ok: false, key: "reply", to: typed, status: put, error: why, at: new Date().toISOString() });
     return _json({
-      status: "ok", message: "已更新，但這張申請沒有聯絡 Email（請人手回覆）",
-      notified: false, email: "no-address", reason: "no-email"
+      status: "ok",
+      message: typed
+        ? ("已更新，但電郵格式不正確（" + typed.slice(0, 60) + "），請人手回覆")
+        : "已更新，但這張申請搵唔到電郵地址（請人手回覆）",
+      notified: false,
+      email: typed ? "invalid-address" : "no-address",
+      to: typed,
+      reason: why
     });
   }
+
+  // 用過的地址寫回「聯絡 Email」欄：下次喺 Sheet 或其他裝置都見到同一個地址
+  try { _writeApplyField(rowId, "聯絡 Email", to); } catch (e) { /* 寫唔到唔影響寄信 */ }
+
   var tpl = _replyApplyEmail(row, put, data.message);
   try {
     MailApp.sendEmail({ to: to, subject: _safeSubject(tpl.subject), body: tpl.body, name: "Scout Admin" });
-    _rememberEmail({ ok: true, key: "reply", to: to, status: put, subject: tpl.subject, at: new Date().toISOString() });
-    return _json({ status: "ok", message: "已更新並已通知申請人", notified: true, email: "sent", to: to });
+    var at = _nowText();
+    try { _writeApplyField(rowId, "通知時間", at); } catch (e2) { /* 只係記錄，唔影響寄信 */ }
+    _rememberEmail({ ok: true, key: "reply", to: to, status: put, subject: tpl.subject, at: at });
+    return _json({ status: "ok", message: "已更新並已通知申請人", notified: true,
+                   email: "sent", to: to, at: at, quota: _remainingQuota() });
   } catch (e) {
     _rememberEmail({ ok: false, key: "reply", to: to, status: put, error: String(e), at: new Date().toISOString() });
     return _json({ status: "ok", message: "已更新，但通知信寄不出：" + _s(e).slice(0, 120),
-                   notified: false, email: "failed", to: to, error: _s(e).slice(0, 300) });
+                   notified: false, email: "failed", to: to,
+                   error: _s(e).slice(0, 300), quota: _remainingQuota() });
   }
+}
+
+function _nowText() {
+  try { return new Date().toLocaleString("zh-HK"); } catch (e) { return new Date().toISOString(); }
+}
+
+// ---------- 寫／加一格（按欄名；欄唔存在就自動加在最後） ----------
+function _ensureHeader(sheet, header) {
+  var head = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+  var idx  = head.indexOf(header);
+  if (idx >= 0) return idx + 1;
+  var col = head.length + 1;
+  sheet.getRange(1, col).setValue(header);
+  return col;
+}
+
+function _writeApplyField(id, header, value) {
+  var sheet = _sheet("apply");
+  if (sheet.getLastRow() < 2) return false;
+  var col  = _ensureHeader(sheet, header);
+  var vals = sheet.getDataRange().getValues();
+  var head = _normHeaders(vals[0]);
+  var idCol = head.indexOf("編號");
+  if (idCol === -1) return false;
+  for (var r = 1; r < vals.length; r++) {
+    if (String(vals[r][idCol] || "") === id) {
+      sheet.getRange(r + 1, col).setValue(value);
+      return true;
+    }
+  }
+  return false;
 }
 
 // ---------- 找一列申請（回傳 { 欄名: 值 }） ----------
@@ -452,13 +555,8 @@ function _findApplyRow(id) {
   return null;
 }
 
-// 聯絡 Email：優先獨立欄位，否則從備注／姓名欄文字抓
-function _applyEmailOf(row) {
-  if (!row) return "";
-  var direct = _s(row["聯絡 Email"]).trim();
-  if (direct) return _extractEmail(direct) || direct;
-  return _extractEmail(_s(row["備注"]) + " " + _s(row["備註"]));
-}
+// 聯絡 Email：優先「聯絡 Email」欄 → 常見欄位 → 掃全行任何一格（v2.6）
+function _applyEmailOf(row) { return _rowEmailOf(row); }
 
 // ---------- 回覆申請人的通知信（已接入／已拒絕／重設） ----------
 function _replyApplyEmail(row, status, extra) {
@@ -603,7 +701,10 @@ function doGet(e) {
       lastEmail: _lastEmail(),
       lastApplyEmail: _lastEmailApply(),
       remainingQuota: _remainingQuota(),
-      capabilities: { replyEmail: true, testEmail: true, applyContact: true, sourceOverride: true },
+      capabilities: {
+        replyEmail: true, replyEmailTo: true, notifyLog: true,
+        testEmail: true, applyContact: true, sourceOverride: true
+      },
       now: new Date().toLocaleString("zh-HK"),
       version: GS_VERSION
     });

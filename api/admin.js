@@ -9,7 +9,8 @@
 //   POST /api/admin {type:'login', password}
 //         → 密碼 == Vercel 環境變數 SUPER_KEY 時回 {ok:true, token, exp}（24 小時）
 //   GET  /api/admin?action=list  → Apps Script GET ?action=list&apikey=KEY（需 session）
-//   POST /api/admin {type:markRead|markReq, id, status}（需 session，注入 apikey）
+//   POST /api/admin {type:markRead|markReq, id, status, notify, to, message}（需 session，注入 apikey）
+//         markReq + notify → GS 寄「回覆申請人」通知信；to＝後台畫面上顯示的地址（v2.6 所見即所寄）
 //   GET  /api/admin?action=diag          → 連通測試（4 個 BADGE APP ＋ GS，零副作用；需 session）
 //   POST /api/admin {type:diagTest}      → 真送一張【連通測試】接入申請（會寫 Sheet＋寄信）
 //   POST /api/admin {type:testEmail}     → 只寄測試 Email 到 ADMIN_EMAIL（唔寫 Sheet）
@@ -32,7 +33,7 @@ const SUPER_KEY = (process.env.SUPER_KEY || '').trim();
 
 // 與 index.html 的 APP_VERSION 對齊。ping 會回這組版本，
 // 前端發現「檔案係新版、代理係舊版」就代表 Vercel 未重新部署。
-const ADMIN_VERSION = '2.5.0';
+const ADMIN_VERSION = '2.6.0';
 
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 小時
 const TOKEN_PEPPER = 'scout-admin/super-key-gate/v1';

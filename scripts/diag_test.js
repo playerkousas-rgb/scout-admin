@@ -43,9 +43,9 @@ function mockFetch() {
           adminEmail: 'playerkousas@hotmail.com',
           lastEmail: { ok: false, key: 'apply', error: 'Service invoked too many times: email', at: '2026-10-21T12:00:00.000Z' },
           lastApplyEmail: { ok: true, key: 'apply', subject: '📥 [Scout Admin] 新旅團登記 — 第 82 旅', at: '2026-10-21T11:00:00.000Z' },
-          capabilities: { replyEmail: true, testEmail: true, applyContact: true, sourceOverride: true },
+          capabilities: { replyEmail: true, replyEmailTo: true, notifyLog: true, testEmail: true, applyContact: true, sourceOverride: true },
           remainingQuota: 0,
-          version: '2.5'
+          version: '2.6'
         });
       }
       if (method === 'GET') return resp(200, { status: 'ok', message: 'Scout Admin Web App 正常運行' });
@@ -156,7 +156,7 @@ function freshHandle() {
   // ping 版本（前端用嚟偵測「Vercel 未重新部署」）
   let res = makeRes();
   await handle(req('GET', '/api/admin?action=ping'), res);
-  check(res.out().status === 200 && res.out().payload.version === '2.5.0', 'ping 回 version 2.5.0');
+  check(res.out().status === 200 && res.out().payload.version === '2.6.0', 'ping 回 version 2.6.0');
 
   res = makeRes();
   await handle(req('GET', '/api/admin?action=diag'), res);
@@ -167,7 +167,7 @@ function freshHandle() {
   await handle(req('GET', '/api/admin?action=diag', { headers: { 'x-scout-session': token('x', 'super-secret-1') } }), res);
   check(res.out().status === 200 && Array.isArray(res.out().payload.checks), '有 session 打 diag → 200 + checks');
   lastDiag = res.out().payload;
-  check(res.out().payload.version === '2.5.0', 'diag 回報後台代理版本 2.5.0');
+  check(res.out().payload.version === '2.6.0', 'diag 回報後台代理版本 2.6.0');
   check((byIdAdmin('admin-version')).status === 'pass', 'diag 有「後台代理版本」檢查項');
 
   // ---------- 4) diagTest ----------

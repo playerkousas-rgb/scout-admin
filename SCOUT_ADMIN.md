@@ -1,6 +1,6 @@
 # Scout Admin — 統一回報 · 旅團接入管理中心 說明書
 
-> 版本：2.5 | 作者：系統管理員
+> 版本：2.6 | 作者：系統管理員
 > 本次大改：
 > ① **統一回報格式 v1**：所有系統（圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…）用**同一個 payload、同一個接收端、同一組工作表欄位**回報，唯一分別只有 `sourceApp`（來源系統）
 > ② 後台「問題回報 / 意見回饋」加**來源系統膠囊**：一眼看到每個系統各有幾條未閱，點一下只看該系統
@@ -11,6 +11,7 @@
 > ⑦ **Email 可靠性**：寄信失敗唔再靜靜吞、可查 `LAST_EMAIL`／剩餘配額（見第十三節）
 > ⑧ **4 個 BADGE APP 統一歸入「🎖️ 專章系統」**（見第十四節）
 > ⑨ **✉️ 回覆申請人 Email**：審核後一鍵通知旅團（見第十五節）
+> ⑩ **v2.6：回覆信「所見即所寄」**——後台見到／輸入的地址直接傳去 GS，唔再因為 Sheet 某一欄冇值而寄唔出；失敗會講原因，仲有「📧 用電郵軟件寄」後備（見第十五節）
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -235,7 +236,8 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 | F | 備注 |
 | G | 狀態（待處理／已接入／已拒絕） |
 | H | 編號（位置不變） |
-| I | 聯絡 Email（**v2.5 新增，加在最後**；表單無此欄時自動由備注抽出 Email） |
+| I | 聯絡 Email（**v2.5 新增**；v2.6 起後台寄信會自動寫回，表單無此欄時由備注／任何欄位抽出 Email） |
+| J | 通知時間（**v2.6 新增，只在第一次成功寄出回覆信時自動加**；原有欄位同「編號」位置完全不變） |
 
 ### ② 問題回報（全系統共用）
 
@@ -424,7 +426,7 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 
 ---
 
-## 十五、✉️ 回覆申請人 Email（v2.5）
+## 十五、✉️ 回覆申請人 Email（v2.6）
 
 以前旅團申請要人手回覆。現在後台「🏛️ 旅團登記」卡片多一個 **✉️ 通知** 按鈕：
 
@@ -434,8 +436,29 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 | 按「❌ 拒絕」 | 寫回 Sheet → 問你要不要寄「結果」通知信（可填原因） |
 | 卡片「✉️ 通知」 | 隨時按當時狀態補寄（重發也用這個） |
 
-**收件人怎麼決定**：`聯絡 Email` 欄 → 沒有就從 `備注` 抓第一個 Email → 都沒有就彈窗請你輸入（留空＝不寄）。
-**完全沒有 Email 時不會假成功**：GS 回 `email:"no-address"`，後台提示「請人手回覆」。
+**收件人怎麼決定（v2.6 重點：所見即所寄）**：
+
+1. 後台卡片上顯示的那個地址（或你即場輸入的地址）**會直接傳去 GS** —— 唔再只靠 Sheet；
+2. GS 收到之後會**寫回「聯絡 Email」欄**，下次喺 Sheet 或另一部電腦都見到同一個地址；
+3. 冇傳地址時，GS 會喺整行**任何一格**搵電郵（`聯絡 Email` → `聯絡方式` → `備注` → 其他欄），
+   全形＠、前後空格、`mailto:` 都會自動執正；
+4. 成功寄出後，申請記錄會自動多一欄 **「通知時間」**（加在最後，原有欄位同編號位置完全不變），
+   按「🔄 同步」後卡片會顯示 **✉️ 已通知**。
+
+**完全沒有 Email 時不會假成功**：GS 回 `email:"no-address"`（或地址格式錯時 `email:"invalid-address"`），
+後台會開一個視窗講清楚原因，並提供 **📧 用電郵軟件寄**／**📋 複製信件** 兩個後備，即刻都寄得出。
+
+### 寄唔出？對照表（v2.6）
+
+| 後台見到 | 真正原因 | 怎樣做 |
+|---|---|---|
+| 「Google 寄唔出通知信」＋錯誤字 | Gmail 每日配額用完／授權過期／地址被拒 | 等配額重置；或去 Apps Script 執行一次 `setupApiKey` 重新授權；趕時間就直接按「📧 用電郵軟件寄」 |
+| 「Google 收件端搵唔到電郵地址」 | Apps Script 仍然係 **v2.5 或之前**（舊版唔會用後台傳去的地址），或者真係冇地址 | 貼上 v2.6 代碼並「新版本」重新部署；冇地址就用「✏️ 改地址」輸入 |
+| 「Apps Script 仲係舊版（未支援回覆信）」 | 回應完全冇 `email` 欄位＝GS 係 v2.4 | 同上，更新 GS |
+| 「電郵格式唔正確」 | 全形字／多咗空格／打漏 `.com` | 按「✏️ 改地址」 |
+| 「連唔到 /api/admin 代理」 | Vercel 未部署／網絡問題 | 重新整理；必要時 Vercel Redeploy |
+
+> 所有結果（成功／失敗原因／收件人）都會記錄在 Script Property `LAST_EMAIL_APPLY`，可用 `?action=diag` 查。
 
 ### 通知信內容（刻意簡短）
 
@@ -454,26 +477,27 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 
 ```json
 { "type": "markReq", "id": "<編號>", "status": "已接入|已拒絕|待處理",
-  "notify": true, "message": "附加說明（選填）" }
+  "notify": true, "to": "leader@example.com（選填；有就以它為準）",
+  "message": "附加說明（選填）" }
 ```
 
-回應：`{ status:"ok", notified:true, email:"sent"|"failed"|"no-address", to:"…" }`。
+回應：`{ status:"ok", notified:true, email:"sent"|"failed"|"no-address"|"invalid-address", to:"…", at:"…", quota:… }`。
 寄信結果同樣寫入 Script Property `LAST_EMAIL_APPLY`，可在 `?action=diag` 查到。
 
 ---
 
-## 十六、點樣確認「已經係新版」（v2.5）
+## 十六、點樣確認「已經係新版」（v2.6）
 
 三個地方任何一個都可以確認，**唔需要數行數**：
 
 | 位置 | 新版應該見到 | 見到舊值代表 |
 |------|------------|-------------|
-| 後台右上角 | 版本標記 **`v2.5.0 ✔`**（綠色） | 冇版本標記＝Vercel 仍係舊 build；紅色 `v2.5.0 ⚠️ 伺服器 vX` ＝前後端唔一致 |
-| `GET /api/admin?action=ping` | `{"ok":true,"version":"2.5.0","auth":"on"}` | `version` 係舊值或冇這個欄位＝代理未重新部署 |
-| Apps Script | 第 2 行寫 **v2.5**，並搵到 `var GS_VERSION = "2.5";` | 只搵到 `v2.4`、冇 `GS_VERSION`＝仍然係舊 GS |
-| `GET <GS>?action=diag&apikey=…` | `"version":"2.5"`、`capabilities.replyEmail:true` | 冇呢啲欄位＝GS 未更新 |
+| 後台右上角 | 版本標記 **`v2.6.0 ✔`**（綠色） | 冇版本標記＝Vercel 仍係舊 build；紅色 `v2.6.0 ⚠️ 伺服器 vX` ＝前後端唔一致 |
+| `GET /api/admin?action=ping` | `{"ok":true,"version":"2.6.0","auth":"on"}` | `version` 係舊值或冇這個欄位＝代理未重新部署 |
+| Apps Script | 第 2 行寫 **v2.6**，並搵到 `var GS_VERSION = "2.6";` | 只搵到 `v2.5`／`v2.4`＝仍然係舊 GS（回覆信功能會失效） |
+| `GET <GS>?action=diag&apikey=…` | `"version":"2.6"`、`capabilities.replyEmail:true`、`replyEmailTo:true` | 冇呢啲欄位＝GS 未更新 |
 
-> 舊版 GS 是 **369 行**、v2.5 是 **589 行**（僅供參考，行數會隨更新變動；請以 `GS_VERSION` 標記為準）。
+> 舊版 GS 是 **369 行**、v2.5 是 **589 行**、v2.6 是 **723 行**（僅供參考，行數會隨更新變動；請以 `GS_VERSION` 標記為準）。
 > 若瀏覽器仍載入舊頁，按 **Ctrl/Cmd + Shift + R** 強制刷新；必要時在 Vercel 按 **Redeploy**。
 
 ### 常見「見到舊版」的三個原因
@@ -489,11 +513,11 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 
 | 線上實際 | `arena/01a0dca5`（2026-09-26） | `main`（最新） |
 |---|---|---|
-| `ping` 冇 `version` 欄 | 冇 | 有 `"version":"2.5.0"` |
-| GS 分頁寫 v2.4、約 369 行 | 369 行 | 589 行，有 `GS_VERSION` |
+| `ping` 冇 `version` 欄 | 冇 | 有 `"version":"2.6.0"` |
+| GS 分頁寫 v2.4、約 369 行 | 369 行 | 723 行，有 `GS_VERSION` |
 | 專章系統只有 4 個別名 | `badge, badgesystem, vsbadge, 專章` | 另有 4 個 APP 名稱／網域 |
 | 冇版本徽章／冇 🧪 | 無 | 有 |
-| `package.json` | `2.4.0` | `2.5.0` |
+| `package.json` | `2.4.0` | `2.6.0` |
 
 **即係 Vercel 項目「Settings → Git → Production Branch」指去了那個 arena 分支**，
 所以合併到 `main` 之後，線上永遠不會更新。
@@ -502,18 +526,19 @@ A：Apps Script 裡改 `ADMIN_EMAIL` → 重新部署（編輯部署 → 新版�
 
 1. Vercel → 該項目 → **Settings → Git → Production Branch** 改成 **`main`** → Save；
 2. **Deployments → 右上 `⋯` → Redeploy**（或推一個 commit 觸發）；
-3. 開後台 → 右上角見到 **`v2.5.0 ✔`** 就代表成功。
+3. 開後台 → 右上角見到 **`v2.6.0 ✔`** 就代表成功。
 
 > 若 Vercel 搜不到 `main`：先在 GitHub 把該 arena 分支刪除（Branches 頁 → 垃圾桶），
 > Vercel 便只會剩 `main` 可選。
 
 ### 不想再等 Vercel？GS 可以直接由 GitHub 取
 
-`apps-script/Code.gs` 是自動由 `index.html` 的 `GS_CODE` 匯出（`npm test` 會驗證逐字相同），
+`apps-script/Code.gs` 與 `index.html` 的 `GS_CODE` 逐字相同（`npm test` 會驗證；兩邊任何一邊改完，
+用 `node scripts/export_gs.js` 或 `node scripts/export_gs.js --import` 同步），
 所以即使後台仍是舊版，也可以：
 
 1. GitHub 開 **`apps-script/Code.gs`** → 右上 **Raw** → 全選複製；
 2. 貼進 Apps Script → 儲存 → **管理部署 → 新版本 → 部署**；
-3. 編輯器搜尋 **`GS_VERSION`** 確認是 v2.5。
+3. 編輯器搜尋 **`GS_VERSION`** 確認是 v2.6。
 
 （改完 `GS_CODE` 後執行 `node scripts/export_gs.js` 或 `npm run gs:export` 重新匯出。）

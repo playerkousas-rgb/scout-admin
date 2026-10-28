@@ -187,7 +187,7 @@
   <div class="logo">⚜️ Scout <span>Admin</span></div>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="hstats" id="headerStats">載入中…</div>
-    <span id="verTag" class="ver-tag" title="後台前端版本（載入自 Vercel 的檔案）">v2.5.0</span>
+    <span id="verTag" class="ver-tag" title="後台前端版本（載入自 Vercel 的檔案）">v2.6.0</span>
     <button id="gateLogout" style="display:none" onclick="gateLogout()" title="清除本機 session，回到登入畫面">🚪 登出</button>
   </div>
 </header>
@@ -204,7 +204,7 @@
       <div class="gate-err" id="gateErr"></div>
       <button class="gate-btn" id="gateBtn" type="submit">🔓 登入</button>
     </form>
-    <p class="gate-hint">登入後 24 小時內免再輸入。<br>改密碼：Vercel 環境變數 <b>SUPER_KEY</b> 修改後重新部署。<br>版本：<b>v2.5.0</b>（若見不到版本號，即係載入到舊版快取，請強制刷新）</p>
+    <p class="gate-hint">登入後 24 小時內免再輸入。<br>改密碼：Vercel 環境變數 <b>SUPER_KEY</b> 修改後重新部署。<br>版本：<b>v2.6.0</b>（若見不到版本號，即係載入到舊版快取，請強制刷新）</p>
   </div>
 </div>
 
@@ -332,11 +332,12 @@
   <!-- ===== TAB 4: APPS SCRIPT ===== -->
   <div class="section" id="tab-gs">
     <div class="card">
-      <div class="card-header"><div class="card-title">📜 接收 Apps Script v2.5（旅團登記＋問題回報＋意見回饋＋作品投稿＋回覆申請人）</div></div>
+      <div class="card-header"><div class="card-title">📜 接收 Apps Script v2.6（旅團登記＋問題回報＋意見回饋＋作品投稿＋回覆申請人）</div></div>
       <div class="note">
         ⚠️ <strong>需要你重新部署一次才生效。</strong>把下方代碼整段貼到 Google Sheet → 擴充功能 → Apps Script → 儲存 → 部署 →「管理部署」→ <strong>編輯</strong> → 版本選「<strong>新版本</strong>」→ 部署（網址不變）。<br>
         <strong>API KEY 由 GS 自己產生</strong>：貼上後在編輯器上方選「<code>setupApiKey</code>」→「執行」→ 授權，自動生 Key、存腳本屬性並 E-mail 給你（含一鍵填好連結）。<strong>Key 保護的是「讀取／已閱／審核」這類後台動作；任何人提交（旅團登記、問題、回饋、作品投稿）都不需要 Key。</strong><br>
         核心保證：欄位對不上自動加欄、Email 附全部欄位＋原始 JSON 備份，資料不漏。<br>
+        <strong style="color:#8B0000">v2.6 改動：✉️ 回覆信一定寄得出。</strong>①<strong>所見即所寄</strong>——後台卡片上顯示／你輸入的地址會直接傳去 GS（以前只讀 Sheet「聯絡 Email」一欄，所以會出現「明明見到有電郵但寄唔出」）；②用過的地址自動寫回「聯絡 Email」欄，寄出成功再加「通知時間」欄（加在最後，原有欄位不變）；③搵地址唔再靠一欄：整行任何一格有電郵都會用，全形＠／空格／<code>mailto:</code> 自動執正；④新增 <code>email:"invalid-address"</code>，後台會講清楚失敗原因，仲有「📧 用電郵軟件寄」後備。<br>
         <strong>v2.5 改動：</strong>①<strong>4 個 BADGE APP 統一歸入「專章系統」</strong>；②<strong>✉️ 回覆申請人 Email</strong>（申請記錄加「聯絡 Email」欄，審核後一鍵通知）；③寄信失敗唔再靜靜吞（回應帶 <code>email</code>、記錄 <code>LAST_EMAIL</code>）；④<code>?action=diag</code> 查寄信紀錄同配額。<br><strong>v2.4 改動（統一回報格式 v1）：</strong>①<strong>來源系統自動正規化</strong>（library／scoutlibrary.vercel.app → 圖書館，vsbadge → 專章系統…）；②<strong>type 別名／中文／寫錯／沒寫都收得到</strong>（自動判斷去問題回報還是意見回饋，絕不漏單）；③<strong>工作表與欄位完全不變</strong>——支部系統、進度追蹤、旅系統、區系統、專章系統之後上線，<strong>這份代碼不用再改</strong>，也不用加表加欄。
       </div>
       <div class="gs-block">
@@ -410,7 +411,8 @@
             <tr><td>F</td><td>備注</td><td>選填</td></tr>
             <tr><td>G</td><td>狀態</td><td>可留空；前端審核寫回（待處理／已接入／已拒絕）</td></tr>
             <tr><td>H</td><td>編號</td><td>自動產生，供同步去重（**位置不變**）</td></tr>
-            <tr><td>I</td><td>聯絡 Email</td><td>v2.5 新增（加在最後）：審核後「✉️ 通知」用的地址；表單無此欄時自動由備注抽出 Email</td></tr>
+            <tr><td>I</td><td>聯絡 Email</td><td>v2.5 新增：審核後「✉️ 通知」用的地址；v2.6 起後台寄信會自動寫回這裡；表單無此欄時由備注／任何欄位抽出 Email</td></tr>
+            <tr><td>J</td><td>通知時間</td><td>v2.6 新增（<strong>只在第一次成功寄出回覆信時自動加</strong>）：方便核對幾時通知過；原有欄位同「編號」位置完全不變</td></tr>
           </tbody>
         </table>
       </div>
@@ -556,6 +558,22 @@
   </div>
 </div>
 
+<!-- ===== REPLY MODAL（✉️ 回覆申請人：結果＋後備寄法） ===== -->
+<div id="replyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:210;overflow:auto">
+  <div style="background:#fff;max-width:620px;margin:40px auto;border-radius:14px;padding:26px;position:relative">
+    <button onclick="closeReplyModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:10px" id="replyTitle">✉️ 回覆申請人</div>
+    <div id="replyBody" style="font-size:.88rem;line-height:1.6"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="closeReplyModal()">關閉</button>
+      <button class="btn btn-ghost" id="replyFixBtn" onclick="fixReplyAddress()" style="display:none">✏️ 改地址</button>
+      <button class="btn btn-ghost" id="replyRetryBtn" onclick="retryReply()" style="display:none">🔁 再試一次</button>
+      <button class="btn btn-ghost" id="replyCopyBtn" onclick="copyReplyLetter()">📋 複製信件</button>
+      <button class="btn btn-blue"  id="replyMailBtn" onclick="openReplyMailto()" style="display:none">📧 用電郵軟件寄</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== ISSUE MODAL ===== -->
 <div id="issueModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:auto">
   <div style="background:#fff;max-width:560px;margin:40px auto;border-radius:14px;padding:28px;position:relative">
@@ -676,11 +694,11 @@
 // ============================================================
 const DOCS = {
   scout: {
-    title: '📖 Scout Admin 說明書（統一回報格式 v2.5）',
+    title: '📖 Scout Admin 說明書（統一回報格式 v2.6）',
     filename: 'SCOUT_ADMIN.md',
     content: `# Scout Admin — 統一回報 · 旅團接入管理中心 說明書
 
-> 版本：2.5 | 作者：系統管理員
+> 版本：2.6 | 作者：系統管理員
 > 本次大改：
 > ① **統一回報格式 v1**：所有系統（圖書館、APP STORE、支部系統、進度追蹤、旅系統、區系統、專章系統…）用**同一個 payload、同一個接收端、同一組工作表欄位**回報，唯一分別只有 \`sourceApp\`（來源系統）
 > ② 後台「問題回報 / 意見回饋」加**來源系統膠囊**：一眼看到每個系統各有幾條未閱，點一下只看該系統
@@ -691,6 +709,7 @@ const DOCS = {
 > ⑦ **Email 可靠性**：寄信失敗唔再靜靜吞、可查 \`LAST_EMAIL\`／剩餘配額（見第十三節）
 > ⑧ **4 個 BADGE APP 統一歸入「🎖️ 專章系統」**（見第十四節）
 > ⑨ **✉️ 回覆申請人 Email**：審核後一鍵通知旅團（見第十五節）
+> ⑩ **v2.6：回覆信「所見即所寄」**——後台見到／輸入的地址直接傳去 GS，唔再因為 Sheet 某一欄冇值而寄唔出；失敗會講原因，仲有「📧 用電郵軟件寄」後備（見第十五節）
 > 部署網址：https://scout-admin-blue.vercel.app/
 
 ---
@@ -845,10 +864,10 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 
 ---
 
-## 三、升級到 v2.5 要做的事
+## 三、升級到 v2.4 要做的事
 
 1. **重新部署本專案**（後台新版）
-2. **更新 Apps Script**（拿到 v2.5 的來源統一、回覆 Email、寄信紀錄）：
+2. **更新 Apps Script**（拿到 v2.4 的來源正規化與容錯）：
    - 後台 **📜 Apps Script** 分頁 → 複製最新代碼 → 貼上取代舊碼 → 儲存
    - 部署 → **管理部署** → **編輯** → 版本選「**新版本**」→ 部署（網址不變）
 3. 確認 Vercel 環境變數：\`SUPER_KEY\`（後台密碼）、\`SCOUT_ADMIN_KEY\`（GS 產生的 API KEY）
@@ -901,7 +920,7 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 
 ---
 
-## 七、Google Sheet 工作表（v2.5 完全不變）
+## 七、Google Sheet 工作表（v2.4 完全不變）
 
 ### ① 申請記錄（旅團登記）
 
@@ -914,7 +933,9 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 | E | API Key |
 | F | 備注 |
 | G | 狀態（待處理／已接入／已拒絕） |
-| H | 編號 |
+| H | 編號（位置不變） |
+| I | 聯絡 Email（**v2.5 新增**；v2.6 起後台寄信會自動寫回，表單無此欄時由備注／任何欄位抽出 Email） |
+| J | 通知時間（**v2.6 新增，只在第一次成功寄出回覆信時自動加**；原有欄位同「編號」位置完全不變） |
 
 ### ② 問題回報（全系統共用）
 
@@ -1034,7 +1055,7 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 
 ## 十二、🧪 一鍵連通測試（v2.5）
 
-後台 **🏛️ 旅團登記 → 🧪 連通測試**，由 Vercel server 代你逐項探測（瀏覽器不需處理 CORS）：
+後台 **🏛️ 旅團登記 → 🧪 連通測試** 會由 Vercel server 代你逐項探測（瀏覽器不需處理 CORS）：
 
 | 檢查 | 正常結果 | 不合格代表 |
 |------|---------|-----------|
@@ -1043,28 +1064,28 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 | Apps Script POST（送空 \`{}\`） | \`沒有收到任何資料\` | 舊版 GS／POST 不通 |
 | 4 個 APP 首頁 | HTTP 200 | 專案被刪／網域失效 |
 | 4 個 APP \`/api/troops\` | 列出旅團 | 空＝未設 \`TROOP_{編號}_*\` 環境變數 |
-| 4 個 APP 接入申請端點（送空 payload） | **400**＝已配置 | **503**＝未設收件匣 URL；**500**＝URL 格式錯 |
+| 4 個 APP 接入申請端點（送空 payload） | **400**＝已配置 | **503**＝該 APP 未設收件匣 URL；**500**＝URL 格式錯 |
 
-> **零副作用**：以上只送空 payload，**不會寫入 Sheet、不會寄 Email**。
-> 要確認「真係收得到信」按 **📨 寄測試申請**：會寫一列【連通測試】並寄一封信，測完可在 Sheet 刪除。
+> **零副作用**：以上全部只送空 payload，**不會寫入 Sheet、不會寄 Email**。
+> 要確認「真係收得到信」，按 **📨 寄測試申請**：會寫一列【連通測試】到「申請記錄」並寄一封信，測試完可在 Sheet 刪除。
 
 ### Q：為什麼回報／意見一填好就收到 Email，但旅團接入申請冇？
 
-兩者走**同一支 Apps Script、同一個 \`MailApp.sendEmail\`**，分別在**入境前**：
+兩者其實走**同一支 Apps Script、同一個 \`MailApp.sendEmail\`**，分別在**入境前**：
 
 | 路徑 | 收件匣 URL 由誰決定 | 未設定會怎樣 |
 |------|-------------------|-------------|
 | 問題回報／意見回饋 | 每個 APP 的 proxy 有**內建預設** \`/exec\` | 照樣寄得出 |
-| 旅團接入申請（scoutbadge） | 一定要 \`SCOUTBADGE_ADMIN_API\`，**冇內建預設** | 表單回 **503「接入申請功能尚未啟用」**，根本冇送出 → 冇 Email |
+| 旅團接入申請（scoutbadge） | 一定要 \`SCOUTBADGE_ADMIN_API\`，**冇內建預設** | 表單直接回 **503「接入申請功能尚未啟用」**，根本冇送出 → 冇 Email |
 | 旅團接入申請（vsbadge／cubsbadge／roverbadge） | 有內建預設，亦接受 \`SCOUT_ADMIN_API\` 等別名 | 通常寄得出 |
 
-最常見原因：
+所以最常見的三個原因（用 🧪 連通測試可逐一排除）：
 
-1. **scoutbadge 未設 \`SCOUTBADGE_ADMIN_API\`** → 補環境變數後**重新部署**；
-2. 收件匣環境變數指去**舊的／錯的** \`/exec\` → 改回第九節的 URL；
-3. 其實已寫入 Sheet，但 Email 落入**垃圾郵件**，或 \`MailApp\` **每日配額**用完。
+1. **scoutbadge 未設 \`SCOUTBADGE_ADMIN_API\`**（503）→ 補環境變數後**重新部署**；
+2. 該 APP 的收件匣環境變數指去**舊的／錯的** \`/exec\`（例如舊部署 URL）→ 改回本文件第九節的 URL；
+3. 申請其實已送達並寫入 Sheet，但 Email 落入**垃圾郵件**，或 Apps Script \`MailApp\` **每日配額**用完。
 
-> 在後台按「✅ 接入／❌ 拒絕」只會**寫回 Sheet 狀態**，本身不會寄 Email。
+> 注意：在後台按「✅ 接入／❌ 拒絕」只會**寫回 Sheet 狀態**，本身不會寄 Email；要通知請直接回覆申請人。
 
 ---
 
@@ -1103,7 +1124,7 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 
 ---
 
-## 十五、✉️ 回覆申請人 Email（v2.5）
+## 十五、✉️ 回覆申請人 Email（v2.6）
 
 以前旅團申請要人手回覆。現在後台「🏛️ 旅團登記」卡片多一個 **✉️ 通知** 按鈕：
 
@@ -1113,8 +1134,29 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 | 按「❌ 拒絕」 | 寫回 Sheet → 問你要不要寄「結果」通知信（可填原因） |
 | 卡片「✉️ 通知」 | 隨時按當時狀態補寄（重發也用這個） |
 
-**收件人怎麼決定**：\`聯絡 Email\` 欄 → 沒有就從 \`備注\` 抓第一個 Email → 都沒有就彈窗請你輸入（留空＝不寄）。
-**完全沒有 Email 時不會假成功**：GS 回 \`email:"no-address"\`，後台提示「請人手回覆」。
+**收件人怎麼決定（v2.6 重點：所見即所寄）**：
+
+1. 後台卡片上顯示的那個地址（或你即場輸入的地址）**會直接傳去 GS** —— 唔再只靠 Sheet；
+2. GS 收到之後會**寫回「聯絡 Email」欄**，下次喺 Sheet 或另一部電腦都見到同一個地址；
+3. 冇傳地址時，GS 會喺整行**任何一格**搵電郵（\`聯絡 Email\` → \`聯絡方式\` → \`備注\` → 其他欄），
+   全形＠、前後空格、\`mailto:\` 都會自動執正；
+4. 成功寄出後，申請記錄會自動多一欄 **「通知時間」**（加在最後，原有欄位同編號位置完全不變），
+   按「🔄 同步」後卡片會顯示 **✉️ 已通知**。
+
+**完全沒有 Email 時不會假成功**：GS 回 \`email:"no-address"\`（或地址格式錯時 \`email:"invalid-address"\`），
+後台會開一個視窗講清楚原因，並提供 **📧 用電郵軟件寄**／**📋 複製信件** 兩個後備，即刻都寄得出。
+
+### 寄唔出？對照表（v2.6）
+
+| 後台見到 | 真正原因 | 怎樣做 |
+|---|---|---|
+| 「Google 寄唔出通知信」＋錯誤字 | Gmail 每日配額用完／授權過期／地址被拒 | 等配額重置；或去 Apps Script 執行一次 \`setupApiKey\` 重新授權；趕時間就直接按「📧 用電郵軟件寄」 |
+| 「Google 收件端搵唔到電郵地址」 | Apps Script 仍然係 **v2.5 或之前**（舊版唔會用後台傳去的地址），或者真係冇地址 | 貼上 v2.6 代碼並「新版本」重新部署；冇地址就用「✏️ 改地址」輸入 |
+| 「Apps Script 仲係舊版（未支援回覆信）」 | 回應完全冇 \`email\` 欄位＝GS 係 v2.4 | 同上，更新 GS |
+| 「電郵格式唔正確」 | 全形字／多咗空格／打漏 \`.com\` | 按「✏️ 改地址」 |
+| 「連唔到 /api/admin 代理」 | Vercel 未部署／網絡問題 | 重新整理；必要時 Vercel Redeploy |
+
+> 所有結果（成功／失敗原因／收件人）都會記錄在 Script Property \`LAST_EMAIL_APPLY\`，可用 \`?action=diag\` 查。
 
 ### 通知信內容（刻意簡短）
 
@@ -1129,20 +1171,31 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 
 > 通知信**不會**列出環境變數名或技術設定步驟 —— 那些全部由管理員在 Vercel 自己設定，旅團毋須知道。
 
+### API（給其他系統／腳本用）
+
+\`\`\`json
+{ "type": "markReq", "id": "<編號>", "status": "已接入|已拒絕|待處理",
+  "notify": true, "to": "leader@example.com（選填；有就以它為準）",
+  "message": "附加說明（選填）" }
+\`\`\`
+
+回應：\`{ status:"ok", notified:true, email:"sent"|"failed"|"no-address"|"invalid-address", to:"…", at:"…", quota:… }\`。
+寄信結果同樣寫入 Script Property \`LAST_EMAIL_APPLY\`，可在 \`?action=diag\` 查到。
+
 ---
 
-## 十六、點樣確認「已經係新版」（v2.5）
+## 十六、點樣確認「已經係新版」（v2.6）
 
 三個地方任何一個都可以確認，**唔需要數行數**：
 
 | 位置 | 新版應該見到 | 見到舊值代表 |
 |------|------------|-------------|
-| 後台右上角 | 版本標記 **\`v2.5.0 ✔\`**（綠色） | 冇版本標記＝Vercel 仍係舊 build；紅色 \`v2.5.0 ⚠️ 伺服器 vX\` ＝前後端唔一致 |
-| \`GET /api/admin?action=ping\` | \`{"ok":true,"version":"2.5.0","auth":"on"}\` | \`version\` 係舊值或冇這個欄位＝代理未重新部署 |
-| Apps Script | 第 2 行寫 **v2.5**，並搵到 \`var GS_VERSION = "2.5";\` | 只搵到 \`v2.4\`、冇 \`GS_VERSION\`＝仍然係舊 GS |
-| \`GET <GS>?action=diag&apikey=…\` | \`"version":"2.5"\`、\`capabilities.replyEmail:true\` | 冇呢啲欄位＝GS 未更新 |
+| 後台右上角 | 版本標記 **\`v2.6.0 ✔\`**（綠色） | 冇版本標記＝Vercel 仍係舊 build；紅色 \`v2.6.0 ⚠️ 伺服器 vX\` ＝前後端唔一致 |
+| \`GET /api/admin?action=ping\` | \`{"ok":true,"version":"2.6.0","auth":"on"}\` | \`version\` 係舊值或冇這個欄位＝代理未重新部署 |
+| Apps Script | 第 2 行寫 **v2.6**，並搵到 \`var GS_VERSION = "2.6";\` | 只搵到 \`v2.5\`／\`v2.4\`＝仍然係舊 GS（回覆信功能會失效） |
+| \`GET <GS>?action=diag&apikey=…\` | \`"version":"2.6"\`、\`capabilities.replyEmail:true\`、\`replyEmailTo:true\` | 冇呢啲欄位＝GS 未更新 |
 
-> 舊版 GS 是 **369 行**、v2.5 是 **589 行**（僅供參考，行數會隨更新變動；請以 \`GS_VERSION\` 標記為準）。
+> 舊版 GS 是 **369 行**、v2.5 是 **589 行**、v2.6 是 **723 行**（僅供參考，行數會隨更新變動；請以 \`GS_VERSION\` 標記為準）。
 > 若瀏覽器仍載入舊頁，按 **Ctrl/Cmd + Shift + R** 強制刷新；必要時在 Vercel 按 **Redeploy**。
 
 ### 常見「見到舊版」的三個原因
@@ -1151,32 +1204,42 @@ A：Apps Script 裡改 \`ADMIN_EMAIL\` → 重新部署（編輯部署 → 新�
 2. **GS 未「新版本」部署**：貼了代碼但只按「儲存」＝公開網址仍然行舊版本，必須「管理部署 → 編輯 → 新版本 → 部署」；
 3. **瀏覽器快取**：舊 \`index.html\` 仍在記憶體，強制刷新即可。
 
-### 🚨 真正的元兇：Vercel 部署的分支不是 \`main\`
+### 🚨 為什麼一直見到舊版？— Vercel 部署的分支不是 \`main\`
 
-2026-10-21 實測：線上網站跑的內容與 GitHub 的 **\`arena/01a0dca5-scout-admin\`（2026-09-26）** 完全一致，
-而不是 \`main\`（\`ping\` 冇 \`version\`、GS 分頁 369 行 v2.4、專章系統只有 4 個別名、\`package.json\` 2.4.0）。
+2026-10-21 實測：\`https://scout-admin-blue.vercel.app\` 線上跑的內容，與 GitHub 的
+**\`arena/01a0dca5-scout-admin\`（2026-09-26）** 完全一致，而不是 \`main\`：
 
-**修正**：Vercel → 該項目 → **Settings → Git → Production Branch** 改成 **\`main\`** → Save →
-**Deployments → ⋯ → Redeploy**。之後右上角見到 \`v2.5.0 ✔\` 即成功。
-（Vercel 選不到 \`main\`？先去 GitHub 刪除那個 arena 分支。）
+| 線上實際 | \`arena/01a0dca5\`（2026-09-26） | \`main\`（最新） |
+|---|---|---|
+| \`ping\` 冇 \`version\` 欄 | 冇 | 有 \`"version":"2.6.0"\` |
+| GS 分頁寫 v2.4、約 369 行 | 369 行 | 723 行，有 \`GS_VERSION\` |
+| 專章系統只有 4 個別名 | \`badge, badgesystem, vsbadge, 專章\` | 另有 4 個 APP 名稱／網域 |
+| 冇版本徽章／冇 🧪 | 無 | 有 |
+| \`package.json\` | \`2.4.0\` | \`2.6.0\` |
 
-**不想等 Vercel**：GS 可直接由 GitHub 取 — 開 **\`apps-script/Code.gs\`** → **Raw** → 全選複製 → 貼進 Apps Script。
-這個檔由 \`index.html\` 的 \`GS_CODE\` 自動匯出（\`npm test\` 驗證逐字相同），所以與「複製備份」拿到的是同一份。
+**即係 Vercel 項目「Settings → Git → Production Branch」指去了那個 arena 分支**，
+所以合併到 \`main\` 之後，線上永遠不會更新。
 
+**修正（2 分鐘）**：
 
+1. Vercel → 該項目 → **Settings → Git → Production Branch** 改成 **\`main\`** → Save；
+2. **Deployments → 右上 \`⋯\` → Redeploy**（或推一個 commit 觸發）；
+3. 開後台 → 右上角見到 **\`v2.6.0 ✔\`** 就代表成功。
 
-### API（給其他系統／腳本用）
+> 若 Vercel 搜不到 \`main\`：先在 GitHub 把該 arena 分支刪除（Branches 頁 → 垃圾桶），
+> Vercel 便只會剩 \`main\` 可選。
 
-\`\`\`json
-{ "type": "markReq", "id": "<編號>", "status": "已接入|已拒絕|待處理",
-  "notify": true, "message": "附加說明（選填）" }
-\`\`\`
+### 不想再等 Vercel？GS 可以直接由 GitHub 取
 
-回應：\`{ status:"ok", notified:true, email:"sent"|"failed"|"no-address", to:"…" }\`。
-寄信結果同樣寫入 Script Property \`LAST_EMAIL_APPLY\`，可在 \`?action=diag\` 查到。
+\`apps-script/Code.gs\` 與 \`index.html\` 的 \`GS_CODE\` 逐字相同（\`npm test\` 會驗證；兩邊任何一邊改完，
+用 \`node scripts/export_gs.js\` 或 \`node scripts/export_gs.js --import\` 同步），
+所以即使後台仍是舊版，也可以：
 
+1. GitHub 開 **\`apps-script/Code.gs\`** → 右上 **Raw** → 全選複製；
+2. 貼進 Apps Script → 儲存 → **管理部署 → 新版本 → 部署**；
+3. 編輯器搜尋 **\`GS_VERSION\`** 確認是 v2.6。
 
-
+（改完 \`GS_CODE\` 後執行 \`node scripts/export_gs.js\` 或 \`npm run gs:export\` 重新匯出。）
 `
   }
 };
@@ -1190,7 +1253,7 @@ let currentDoc = 'scout';
 // ============================================================
 // 後台前端版本（＝本檔 index.html 的版本）。
 // 後端 /api/admin?action=ping 會回同一組版本；兩者不一致 ＝ Vercel 未重新部署。
-const APP_VERSION = '2.5.0';
+const APP_VERSION = '2.6.0';
 
 const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z5aYImWYeXbN5af8U1ObON0z9WnsN6QJW4I1XWolhs5kQ_H-UQ/exec";
 
@@ -1198,9 +1261,9 @@ const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559smkK4Z
 // 前端旅團登記表單代碼（嵌入旅團 APP）
 // ============================================================
 const FRONTEND_CODE = `<!-- ============================================================
-  Scout Admin — 旅團登記表單
+  Scout Admin — 旅團登記表單（v2.6：加「聯絡 Email」，審核結果直接寄到這裡）
   嵌入位置：旅團 APP 的設定頁面 / 首次登入引導頁
-  只需：旅團名稱、URL、API KEY（旅團號選填）
+  只需：旅團名稱、聯絡 Email、URL、API KEY（旅團號選填）
   ============================================================ -->
 
 <div id="scoutApplyWrap" style="
@@ -1210,7 +1273,7 @@ const FRONTEND_CODE = `<!-- ====================================================
   font-family:'Segoe UI','PingFang HK',sans-serif;">
 
   <h3 style="color:#8B0000;margin-bottom:4px;font-size:1.1rem">⚜️ 旅團登記</h3>
-  <p style="font-size:.82rem;color:#888;margin-bottom:18px">只需填旅團名稱、URL 和 API KEY，管理員就會為你接入。</p>
+  <p style="font-size:.82rem;color:#888;margin-bottom:18px">填好之後管理員會盡快接入；<b>審核結果會寄到你填的電郵</b>。</p>
 
   <div style="display:flex;flex-direction:column;gap:12px">
 
@@ -1223,6 +1286,12 @@ const FRONTEND_CODE = `<!-- ====================================================
     <div>
       <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">旅團號（選填，如 0082）</label>
       <input id="apply_troopId" placeholder="0082"
+        style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
+    </div>
+
+    <div>
+      <label style="font-size:.8rem;font-weight:600;color:#555;display:block;margin-bottom:4px">聯絡 Email *（審核結果會寄到這裡）</label>
+      <input id="apply_contact" type="email" placeholder="leader@example.com"
         style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:.9rem" />
     </div>
 
@@ -1260,6 +1329,7 @@ const _SCOUT_ADMIN_URL = "https://script.google.com/macros/s/AKfycbxj5BDDGgjs559
 async function submitScoutApply() {
   var troopId    = document.getElementById('apply_troopId').value.trim();
   var troopName  = document.getElementById('apply_troopName').value.trim();
+  var contact    = document.getElementById('apply_contact').value.trim();
   var backendUrl = document.getElementById('apply_backendUrl').value.trim();
   var apiKey     = document.getElementById('apply_apiKey').value.trim();
   var note       = document.getElementById('apply_note').value.trim();
@@ -1268,6 +1338,11 @@ async function submitScoutApply() {
   if (!troopName || !backendUrl || !apiKey) {
     msg.style.color = '#c62828';
     msg.textContent = '⚠️ 請填寫旅團名稱、URL 和 API KEY（*）';
+    return;
+  }
+  if (!contact || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(contact)) {
+    msg.style.color = '#c62828';
+    msg.textContent = '⚠️ 請填寫正確的聯絡 Email（審核結果會寄到這裡）';
     return;
   }
 
@@ -1280,13 +1355,13 @@ async function submitScoutApply() {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type:'apply', troopId, troopName, backendUrl, apiKey, note })
+      body: JSON.stringify({ type:'apply', troopId, troopName, contact, email: contact, backendUrl, apiKey, note })
     });
     // no-cors 無法讀回應，但只要不報錯即為成功
     msg.style.color = '#1a7a3c';
     msg.textContent = '✅ 登記已成功提交！管理員會用你提供的 URL＋API KEY 完成接入。';
     // 清空表單
-    ['apply_troopId','apply_troopName','apply_backendUrl','apply_apiKey','apply_note']
+    ['apply_troopId','apply_troopName','apply_contact','apply_backendUrl','apply_apiKey','apply_note']
       .forEach(id => document.getElementById(id).value = '');
   } catch (err) {
     msg.style.color = '#c62828';
@@ -1539,14 +1614,23 @@ async function submitScoutFeedback() {
 // APPS SCRIPT CODE (帶你的 email)
 // ============================================================
 const GS_CODE = `// ============================================================
-// Scout Admin — 統一回報接收系統（v2.5）
+// Scout Admin — 統一回報接收系統（v2.6）
 //   旅團登記 / 問題回報 / 意見回饋 / 作品投稿 / 回覆申請人
 // 作者：系統管理員（信箱設定在下方 ADMIN_EMAIL）
 //
-// 【版本怎樣認？】本檔第 2 行要寫「v2.5」，開頭亦會有
-//   var GS_VERSION = "2.5";
-//   貼上後在編輯器搜尋 GS_VERSION，搵到就係新版（舊版 v2.4 冇這個常數）。
-//   網址加 ?action=diag（要 API KEY）亦會回 "version":"2.5"。
+// 【版本怎樣認？】本檔第 2 行要寫「v2.6」，開頭亦會有
+//   var GS_VERSION = "2.6";
+//   貼上後在編輯器搜尋 GS_VERSION，搵到就係新版（v2.5 起有這個常數）。
+//   網址加 ?action=diag（要 API KEY）亦會回 "version":"2.6"。
+//
+// 【v2.6 改動：✉️ 回覆信一定寄得出】
+//   ① markReq 會收後台傳來的 to（所見即所寄）。以前只讀 Sheet「聯絡 Email」欄，
+//      後台顯示到地址但 Sheet 冇／格式唔同時就會回 no-address，睇落好似「寄唔出」。
+//   ② 用過的地址會寫回「聯絡 Email」欄；成功寄出後自動加「通知時間」欄
+//      （加在最後，原有欄位同編號位置完全不變）。
+//   ③ 搵地址唔再只靠一欄：整行任何一格有電郵都會用；全形＠、空格、mailto: 自動修正。
+//   ④ 新增 email:"invalid-address"（地址格式錯），回應一定會帶 to，後台可以顯示真正原因。
+//   ⑤ v2.5 全部功能保留（統一回報、專章系統、testEmail、?action=diag 等）。
 //
 // 【v2.5 改動】
 //   ① 4 個 BADGE APP（scoutbadge／vsbadge／cubsbadge／roverbadge）
@@ -1584,7 +1668,7 @@ const GS_CODE = `// ============================================================
 //   Email 一定附上全部欄位＋原始 JSON 備份，確保永不漏掉。
 // ============================================================
 
-var GS_VERSION = "2.5"; // ← 版本標記：搵到這行就係 v2.5（舊版 v2.4 冇）
+var GS_VERSION = "2.6"; // ← 版本標記：搵到這行就係 v2.6（v2.4 及之前冇這個常數）
 
 var ADMIN_EMAIL = "playerkousas@hotmail.com";
 
@@ -1619,7 +1703,9 @@ var FIELD_MAP = {
   "分類":     ["category"],
   "作品簡介": ["desc","description"],
   "標籤":     ["tags"],
-  "聯絡 Email": ["contact", "email", "replyTo", "reply_email"]
+  // v2.6：多收幾個寫法，客人點寫都入得到「聯絡 Email」欄
+  "聯絡 Email": ["contact", "email", "replyTo", "reply_email", "emailAddress", "mail",
+                 "聯絡電郵", "聯絡email", "連絡Email", "電郵"]
 };
 
 // 系統欄位：不要自動加進 Sheet
@@ -1634,7 +1720,9 @@ var TYPE_ALIASES = {
   "appstore": "appstore", "submission": "appstore", "作品投稿": "appstore", "投稿": "appstore",
   "apply": "apply", "register": "apply", "旅團登記": "apply", "登記": "apply",
   "markread": "markRead", "markreq": "markReq",
-  "testemail": "testEmail", "測試電郵": "testEmail", "測試email": "testEmail"
+  "testemail": "testEmail", "測試電郵": "testEmail", "測試email": "testEmail",
+  "deleteissue": "deleteIssue", "deletefeedback": "deleteFeedback", "deterequest": "deleteRequest", "deleteappstore": "deleteAppStore",
+  "刪除問題": "deleteIssue", "刪除回饋": "deleteFeedback", "刪除申請": "deleteRequest", "刪除作品": "deleteAppStore"
 };
 
 // ---------- 統一回報格式：來源系統正規化（新系統照收，不用改這裡） ----------
@@ -1695,6 +1783,10 @@ function doPost(e) {
     if (type === "markReq")  return _handleMarkReq(data);
     if (type === "markRead") return _handleMarkRead(data);
     if (type === "testEmail") return _handleTestEmail(data);
+    if (type === "deleteIssue") return _handleDelete(data, "issue");
+    if (type === "deleteFeedback") return _handleDelete(data, "feedback");
+    if (type === "deleteRequest") return _handleDelete(data, "apply");
+    if (type === "deleteAppStore") return _handleDelete(data, "appstore");
     if (type === "issue")    return _capture("issue",    data, "未閱");
     if (type === "feedback") return _capture("feedback", data, "未閱");
     if (type === "appstore") return _capture("appstore", data, "待審核");
@@ -1732,11 +1824,19 @@ function _capture(key, data, defaultStatus) {
   // 統一回報格式：來源系統名稱正規化（欄位不變，只是把名字寫成統一那個）
   if (map["來源APP"] !== undefined) map["來源APP"] = _normSource(map["來源APP"]);
 
-  // v2.5：旅團接入申請 → 抽出「聯絡 Email」（後台回覆功能用）。
-  // 4 個 BADGE APP 現時把 Email 寫在「備注」，所以先讀獨立欄位、再從備注／note 抓。
+  // v2.5／v2.6：旅團接入申請 → 抽出「聯絡 Email」（後台回覆功能用）。
+  // 4 個 BADGE APP 現時把 Email 寫在「備注」或者自家欄位，所以先讀常見欄位，
+  // 再掃整個 payload 任何一格，務求「客人有填就搵得到」。
   if (key === "apply" && !_s(map["聯絡 Email"])) {
-    map["聯絡 Email"] = _extractEmail(_s(data["聯絡 Email"]) + " " + _s(data.contact) + " " +
-                                      _s(data.email) + " " + _s(data.note) + " " + _s(map["備注"]));
+    var bag = [
+      _s(data["聯絡 Email"]), _s(data.contact), _s(data.email), _s(data.replyTo),
+      _s(data.note), _s(data.remark), _s(data.message), _s(map["備注"])
+    ];
+    for (var bk in data) {
+      if (bk === "type" || bk === "apikey" || bk === "apiKey" || bk === "backendUrl" || bk === "url") continue;
+      bag.push(_s(data[bk]));
+    }
+    map["聯絡 Email"] = _extractEmail(bag.join(" "));
   }
 
   // 未知欄位 → 收集進 extras（稍後自動加欄）
@@ -1825,10 +1925,39 @@ function _lastEmailApply() {
   } catch (e) { return null; }
 }
 
+// ---------- Email 正規化（v2.6） ----------
+// 客人可能用全形＠、中間有空格、前面有 mailto:，或者成句「電郵：xxx@yyy.com」，
+// 全部先執成乾乾淨淨一個地址；唔合法就回空字串（寧願唔寄，都唔好寄錯人）。
+function _toHalfWidth(s) {
+  return _s(s).replace(/[\\uFF01-\\uFF5E]/g, function (ch) {
+    return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+  }).replace(/\\u3000/g, " ");
+}
+
+function _normEmail(v) {
+  var s = _toHalfWidth(v).replace(/\\s+/g, " ").trim().replace(/^mailto:/i, "").trim();
+  if (!s) return "";
+  var m = s.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+/);
+  return m ? m[0].replace(/[.,;:]+$/, "") : "";
+}
+
 // 從自由文字抽出第一個 Email（備注／訊息都可能有人手打）
-function _extractEmail(text) {
-  var m = _s(text).match(/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/);
-  return m ? m[0] : "";
+function _extractEmail(text) { return _normEmail(text); }
+
+// 由整行資料搵電郵：唔再只靠「聯絡 Email」一欄（舊資料／客人填錯位都救得返）
+function _rowEmailOf(row) {
+  if (!row) return "";
+  var first = ["聯絡 Email", "聯絡方式", "備注", "備註", "姓名", "旅團名稱"];
+  for (var i = 0; i < first.length; i++) {
+    var a = _normEmail(row[first[i]]);
+    if (a) return a;
+  }
+  for (var k in row) {
+    if (k === "提交時間" || k === "編號" || k === "狀態" || k === "通知時間" || k === "=") continue;
+    var b = _normEmail(row[k]);
+    if (b) return b;
+  }
+  return "";
 }
 
 function _lastEmail() {
@@ -1910,35 +2039,117 @@ function _handleMarkRead(data) {
   return _json({ status: done ? "ok" : "error", message: done ? "已更新" : "找不到這條編號" });
 }
 
+// ---------- 刪除資料（永久刪除，從 Sheet 中移除該列） ----------
+//  payload: { type: "deleteFeedback", id: "編號" }
+function _handleDelete(data, sheetKey) {
+  var rowId = (data.id || "").toString().trim();
+  if (!rowId) return _json({ status: "error", message: "缺少編號" });
+  
+  var cfg   = SHEET_CFG[sheetKey];
+  if (!cfg) return _json({ status: "error", message: "未知工作表類型" });
+  
+  var sheet = _sheet(sheetKey);
+  if (sheet.getLastRow() < 2) return _json({ status: "error", message: "工作表為空" });
+  
+  var vals  = sheet.getDataRange().getValues();
+  var head  = _normHeaders(vals[0]);
+  var idCol = head.indexOf("編號");
+  if (idCol === -1) return _json({ status: "error", message: "找不到編號欄" });
+  
+  for (var r = 1; r < vals.length; r++) {
+    if (String(vals[r][idCol] || "") === rowId) {
+      // 刪除該列（r+1 因為 Sheet 是 1-indexed）
+      sheet.deleteRow(r + 1);
+      return _json({ status: "ok", message: "已永久刪除", sheet: sheetKey, id: rowId });
+    }
+  }
+  return _json({ status: "error", message: "找不到這條編號", sheet: sheetKey, id: rowId });
+}
+
 // ---------- 申請審核狀態寫回（＋可選：回覆申請人 Email） ----------
-//  payload: { type:"markReq", id, status:"已接入|已拒絕|待處理", notify:true, message:"附加說明（選填）" }
+//  payload: { type:"markReq", id, status:"已接入|已拒絕|待處理",
+//             notify:true, to:"收件人（由後台傳入，優先）", message:"附加說明（選填）" }
 function _handleMarkReq(data) {
   var rowId = (data.id || "").toString().trim();
   var put   = (data.status || "待處理").toString().trim();
   if (!rowId) return _json({ status: "error", message: "缺少編號" });
   var done  = _writeStatusById("apply", rowId, "狀態", put);
-  if (!done) return _json({ status: "error", message: "找不到這條編號" });
+  if (!done) return _json({ status: "error", message: "找不到這條編號（可能未同步到 Sheet，或已被刪除）" });
 
   if (!data.notify) return _json({ status: "ok", message: "已更新", notified: false });
 
   var row = _findApplyRow(rowId);
-  var to  = _applyEmailOf(row);
+
+  // v2.6：所見即所寄 —— 後台畫面上顯示／輸入的地址優先，
+  // 其次才由整行資料（任何一格）搵。以前只讀「聯絡 Email」一欄，
+  // 所以後台見到地址、Sheet 冇或格式唔同，就會回 no-address 好似寄唔出。
+  var typed     = _s(data.to || data.email || data.contact || "").trim();
+  var typedMail = _normEmail(typed);
+  var to        = typedMail || _rowEmailOf(row);
+
   if (!to) {
+    var why = typed ? "bad-email" : "no-email";
+    _rememberEmail({ ok: false, key: "reply", to: typed, status: put, error: why, at: new Date().toISOString() });
     return _json({
-      status: "ok", message: "已更新，但這張申請沒有聯絡 Email（請人手回覆）",
-      notified: false, email: "no-address", reason: "no-email"
+      status: "ok",
+      message: typed
+        ? ("已更新，但電郵格式不正確（" + typed.slice(0, 60) + "），請人手回覆")
+        : "已更新，但這張申請搵唔到電郵地址（請人手回覆）",
+      notified: false,
+      email: typed ? "invalid-address" : "no-address",
+      to: typed,
+      reason: why
     });
   }
+
+  // 用過的地址寫回「聯絡 Email」欄：下次喺 Sheet 或其他裝置都見到同一個地址
+  try { _writeApplyField(rowId, "聯絡 Email", to); } catch (e) { /* 寫唔到唔影響寄信 */ }
+
   var tpl = _replyApplyEmail(row, put, data.message);
   try {
     MailApp.sendEmail({ to: to, subject: _safeSubject(tpl.subject), body: tpl.body, name: "Scout Admin" });
-    _rememberEmail({ ok: true, key: "reply", to: to, status: put, subject: tpl.subject, at: new Date().toISOString() });
-    return _json({ status: "ok", message: "已更新並已通知申請人", notified: true, email: "sent", to: to });
+    var at = _nowText();
+    try { _writeApplyField(rowId, "通知時間", at); } catch (e2) { /* 只係記錄，唔影響寄信 */ }
+    _rememberEmail({ ok: true, key: "reply", to: to, status: put, subject: tpl.subject, at: at });
+    return _json({ status: "ok", message: "已更新並已通知申請人", notified: true,
+                   email: "sent", to: to, at: at, quota: _remainingQuota() });
   } catch (e) {
     _rememberEmail({ ok: false, key: "reply", to: to, status: put, error: String(e), at: new Date().toISOString() });
     return _json({ status: "ok", message: "已更新，但通知信寄不出：" + _s(e).slice(0, 120),
-                   notified: false, email: "failed", to: to, error: _s(e).slice(0, 300) });
+                   notified: false, email: "failed", to: to,
+                   error: _s(e).slice(0, 300), quota: _remainingQuota() });
   }
+}
+
+function _nowText() {
+  try { return new Date().toLocaleString("zh-HK"); } catch (e) { return new Date().toISOString(); }
+}
+
+// ---------- 寫／加一格（按欄名；欄唔存在就自動加在最後） ----------
+function _ensureHeader(sheet, header) {
+  var head = _normHeaders(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+  var idx  = head.indexOf(header);
+  if (idx >= 0) return idx + 1;
+  var col = head.length + 1;
+  sheet.getRange(1, col).setValue(header);
+  return col;
+}
+
+function _writeApplyField(id, header, value) {
+  var sheet = _sheet("apply");
+  if (sheet.getLastRow() < 2) return false;
+  var col  = _ensureHeader(sheet, header);
+  var vals = sheet.getDataRange().getValues();
+  var head = _normHeaders(vals[0]);
+  var idCol = head.indexOf("編號");
+  if (idCol === -1) return false;
+  for (var r = 1; r < vals.length; r++) {
+    if (String(vals[r][idCol] || "") === id) {
+      sheet.getRange(r + 1, col).setValue(value);
+      return true;
+    }
+  }
+  return false;
 }
 
 // ---------- 找一列申請（回傳 { 欄名: 值 }） ----------
@@ -1959,13 +2170,8 @@ function _findApplyRow(id) {
   return null;
 }
 
-// 聯絡 Email：優先獨立欄位，否則從備注／姓名欄文字抓
-function _applyEmailOf(row) {
-  if (!row) return "";
-  var direct = _s(row["聯絡 Email"]).trim();
-  if (direct) return _extractEmail(direct) || direct;
-  return _extractEmail(_s(row["備注"]) + " " + _s(row["備註"]));
-}
+// 聯絡 Email：優先「聯絡 Email」欄 → 常見欄位 → 掃全行任何一格（v2.6）
+function _applyEmailOf(row) { return _rowEmailOf(row); }
 
 // ---------- 回覆申請人的通知信（已接入／已拒絕／重設） ----------
 function _replyApplyEmail(row, status, extra) {
@@ -2110,7 +2316,10 @@ function doGet(e) {
       lastEmail: _lastEmail(),
       lastApplyEmail: _lastEmailApply(),
       remainingQuota: _remainingQuota(),
-      capabilities: { replyEmail: true, testEmail: true, applyContact: true, sourceOverride: true },
+      capabilities: {
+        replyEmail: true, replyEmailTo: true, notifyLog: true,
+        testEmail: true, applyContact: true, sourceOverride: true
+      },
       now: new Date().toLocaleString("zh-HK"),
       version: GS_VERSION
     });
@@ -2566,28 +2775,189 @@ function saveModal() {
 }
 
 // ============================================================
-// 回覆申請人 Email（v2.5）
+// 回覆申請人 Email（v2.6）
 //   狀態寫回 Sheet 之後，可一鍵寄「已接入／已拒絕」通知信。
-//   收件人：申請表填的聯絡 Email → 備注內抓到的 Email → 手動輸入。
+//   v2.6：所見即所寄 —— 卡片顯示／你輸入的地址會直接傳去 GS，
+//         唔再只靠 Sheet 某一欄；失敗一定講清楚原因，仲可以用電郵軟件即刻寄。
 // ============================================================
 const APPLY_STATUS_LABEL = { done:'已接入', rejected:'已拒絕', pending:'待處理' };
 
-function contactEmailOf(r) {
-  const direct = String((r && r.contact) || '').trim();
-  if (/@/.test(direct)) return direct;
-  const m = String((r && r.note) || '').match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
-  return m ? m[0] : direct;
+// 全形＠、前後空白、mailto: 一律執乾淨，抽第一個合法地址（同 GS 的 _normEmail 一致）
+function normEmail(v) {
+  const s = String(v ?? '')
+    .replace(/[\uFF01-\uFF5E]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/\u3000/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^mailto:/i, '')
+    .trim();
+  if (!s) return '';
+  const m = s.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+/);
+  return m ? m[0].replace(/[.,;:]+$/, '') : '';
 }
 
+// 收件人：聯絡 Email → 備注 → 其他欄位（任何一格有電郵都算）
+function contactEmailOf(r) {
+  if (!r) return '';
+  const direct = normEmail(r.contact);
+  if (direct) return direct;
+  for (const f of [r.note, r.remark, r.name, r.troopName]) {
+    const e = normEmail(f);
+    if (e) return e;
+  }
+  return '';
+}
+
+// 同 GS 的 _replyApplyEmail 一樣（mailto 後備寄信時用）
+function buildReplyLetter(r, status, extra) {
+  const name = String((r && r.troopName) || '').trim() ||
+    ('第 ' + String((r && r.troopId) || '').trim() + ' 旅');
+  const lines = [];
+  let subject = '';
+  if (status === '已接入') {
+    subject = '✅ [Scout Admin] 旅團接入已開通 — ' + name;
+    lines.push('你好，', '貴旅團（' + name + '）的接入申請已經開通 ✅', '', '現在可以開啟 APP，選擇你的旅團登入使用。');
+  } else if (status === '已拒絕') {
+    subject = '❌ [Scout Admin] 旅團接入申請結果 — ' + name;
+    lines.push('你好，', '貴旅團（' + name + '）的接入申請暫時未能開通。', '',
+      '如需了解原因或重新申請，請在 APP 內「🐛💬 回報 · 意見」聯絡我們。');
+  } else {
+    subject = '✉️ [Scout Admin] 旅團接入申請狀態更新 — ' + name;
+    lines.push('你好，', '貴旅團（' + name + '）的接入申請狀態已更新為「' + status + '」。');
+  }
+  const msg = String(extra || '').trim();
+  if (msg) lines.push('', '── 管理員訊息 ──', msg);
+  lines.push('', '（此信由 Scout Admin 自動發出，請勿直接回覆此地址；如需跟進請用 APP 內的回報功能。）');
+  return { subject: subject, body: lines.join('\n') };
+}
+
+// ---------- 回覆結果視窗（失敗一定有原因＋後備寄法） ----------
+let replyCtx = null;
+
+const REPLY_TITLE = {
+  'sent':            '✅ 通知信已寄出',
+  'send-failed':     '❌ Google 寄唔出通知信',
+  'no-address':      '⚠️ Google 收件端搵唔到電郵地址',
+  'invalid-address': '⚠️ 電郵格式唔正確',
+  'gs-old':          '⚠️ Apps Script 仲係舊版（未支援回覆信）',
+  'not-found':       '⚠️ Sheet 搵唔到這張申請',
+  'no-proxy':        '❌ 連唔到 /api/admin 代理'
+};
+
+const REPLY_HINT = {
+  'send-failed': 'Google 帳戶寄信失敗，最常見三個原因：<br>① <b>Gmail 每日寄信配額用完</b>（免費帳戶約 100 封）—— 等下一個鐘或明天再試；<br>② <b>Apps Script 授權過期</b> —— 開 Apps Script 執行一次 <code>setupApiKey</code> 重新授權；<br>③ 收件地址被 Google 拒絕。',
+  'no-address': 'Google 收件端喺 Sheet 搵唔到地址。可能係 Apps Script 仍然係舊版（v2.5 或之前<b>唔會用後台傳來嘅地址</b>）：去「📜 Apps Script」分頁複製 <b>v2.6</b> 代碼，貼上後「部署 → 管理部署 → 編輯 → 版本：新版本 → 部署」。',
+  'invalid-address': '地址格式唔啱（可能係全形字、多咗空格、或者打漏咗 .com）。按「✏️ 改地址」再試。',
+  'gs-old': '你嘅 Apps Script 仲係舊版（回應完全冇 <code>email</code> 欄位），所以根本冇寄信。<br>去「📜 Apps Script」分頁複製 <b>v2.6</b> 代碼貼上，再「部署 → 管理部署 → 編輯 → 版本：新版本 → 部署」。',
+  'not-found': 'Google Sheet「申請記錄」搵唔到這個編號（可能未同步，或嗰列已經被刪）。<br>先按「🔄 同步 Sheet」再試；趕住回覆就直接用「📧 用電郵軟件寄」。',
+  'no-proxy': '連唔到 <code>/api/admin</code>：請確認已部署到 Vercel，並強制重新整理一次。'
+};
+
+function showReplyModal(ctx) {
+  replyCtx = ctx || {};
+  const el = document.getElementById('replyModal');
+  if (!el) return;
+  document.getElementById('replyTitle').textContent = ctx.title || '✉️ 回覆申請人';
+  document.getElementById('replyBody').innerHTML = ctx.html || '';
+  const show = (id, on) => { const b = document.getElementById(id); if (b) b.style.display = on ? '' : 'none'; };
+  show('replyFixBtn', !!ctx.fixTo);
+  show('replyRetryBtn', !!ctx.retry);
+  show('replyCopyBtn', !!ctx.letter);
+  // mailto 一定要有合法地址（格式錯嗰陣就唔好開一個寄唔到的連結）
+  show('replyMailBtn', !!normEmail(ctx.to));
+  el.style.display = 'block';
+}
+
+function closeReplyModal() {
+  const el = document.getElementById('replyModal');
+  if (el) el.style.display = 'none';
+  replyCtx = null;
+}
+
+function openReplyResult(r, kind, info) {
+  const o = info || {};
+  const label = o.label || APPLY_STATUS_LABEL[r && r.status] || '狀態更新';
+  const letter = o.letter || buildReplyLetter(r, label, o.message || '');
+  const to = o.to || '';
+  const parts = [];
+  parts.push(`<div style="font-weight:700;font-size:.98rem;margin-bottom:8px">${escHtml(REPLY_TITLE[kind] || '✉️ 回覆結果')}</div>`);
+  if (to) parts.push(`<div><strong>收件人：</strong><code>${escHtml(to)}</code></div>`);
+  if (o.detail) parts.push(`<div style="margin-top:6px;color:#c62828;font-size:.82rem;word-break:break-all">${escHtml(o.detail)}</div>`);
+  if (REPLY_HINT[kind]) {
+    parts.push(`<div style="margin-top:12px;background:#fff8e1;border-left:4px solid #f0b429;padding:10px 12px;border-radius:6px;font-size:.82rem;line-height:1.7">${REPLY_HINT[kind]}</div>`);
+  }
+  parts.push(`<div style="margin-top:14px;font-weight:600;font-size:.8rem;color:#666;margin-bottom:6px">信件內容（可用「📧 用電郵軟件寄」直接寄出）</div>`);
+  parts.push(`<div style="background:#faf7f2;border:1px solid #eee;border-radius:8px;padding:12px;font-size:.8rem;white-space:pre-wrap;max-height:220px;overflow:auto">主旨：${escHtml(letter.subject)}
+
+${escHtml(letter.body)}</div>`);
+  showReplyModal({
+    title: '✉️ 回覆申請人',
+    html: parts.join(''),
+    to: to,
+    letter: letter,
+    fixTo: kind !== 'sent',
+    retry: o.retry || null
+  });
+}
+
+function replyMailtoUrl(ctx) {
+  const c = ctx || replyCtx;
+  const addr = normEmail(c && c.to);
+  if (!addr) return '';
+  const letter = (c && c.letter) || { subject: '', body: '' };
+  return 'mailto:' + encodeURIComponent(addr) +
+    '?subject=' + encodeURIComponent(letter.subject || '') +
+    '&body=' + encodeURIComponent(letter.body || '');
+}
+
+function openReplyMailto() {
+  const url = replyMailtoUrl();
+  if (!url) { toast('⚠️ 冇收件地址'); return; }
+  try { window.open(url, '_blank'); } catch (e) { /* 彈窗被擋就用「複製信件」 */ }
+  toast('📧 已叫電郵軟件（冇反應就用「📋 複製信件」）');
+}
+
+function copyReplyLetter() {
+  if (!replyCtx || !replyCtx.letter) return;
+  copyText('主旨：' + replyCtx.letter.subject + '\n\n' + replyCtx.letter.body);
+}
+
+function retryReply() {
+  if (!replyCtx || !replyCtx.retry) return;
+  const fn = replyCtx.retry;
+  closeReplyModal();
+  fn();
+}
+
+function fixReplyAddress() {
+  if (!replyCtx) return;
+  const typed = (prompt('請輸入正確的收件電郵：', replyCtx.to || '') || '').trim();
+  if (!typed) return;
+  const ok = normEmail(typed);
+  if (!ok) { toast('⚠️ 電郵格式仍然唔啱'); return; }
+  const retry = replyCtx.retry;
+  closeReplyModal();
+  if (retry) retry(ok); else toast('已更新地址：' + ok);
+}
+
+// 寄通知信：地址由後台直接傳去 GS（所見即所寄）
 async function notifyApplicant(id, opts) {
   const o = opts || {};
   const r = state.requests.find(x => x.id === id);
   if (!r) return false;
 
-  let to = contactEmailOf(r);
+  let to = normEmail(o.to) || contactEmailOf(r);
   if (!to) {
-    to = (prompt('這張申請沒有聯絡 Email。\n請輸入要通知的 Email（留空＝不寄）：', '') || '').trim();
-    if (!to) { toast('✉️ 已略過通知'); return false; }
+    const input = (prompt('這張申請搵唔到電郵地址。\n請輸入要通知的電郵（留空＝不寄）：', '') || '').trim();
+    if (!input) { toast('✉️ 已略過通知'); return false; }
+    to = normEmail(input);
+    if (!to) {
+      openReplyResult(r, 'invalid-address', {
+        to: input,
+        retry: (fixed) => notifyApplicant(id, Object.assign({}, o, { to: fixed || '' }))
+      });
+      return false;
+    }
     r.contact = to; save(); refreshAll();
   }
   if (typeof hasServerId === 'function' && !hasServerId(r.id)) {
@@ -2599,32 +2969,42 @@ async function notifyApplicant(id, opts) {
 
   const message = (o.message !== undefined)
     ? String(o.message || '')
-    : (prompt(`附加訊息（會加在通知信內，可留空）：`, '') || '');
+    : (prompt('附加訊息（會加在通知信內，可留空）：', '') || '');
+
+  const letter = buildReplyLetter(r, label, message);
+  const retry = (fixedTo) => notifyApplicant(id, { skipConfirm: true, to: fixedTo || to, message });
 
   toast('✉️ 寄出通知信…');
   const res = await viaProxy('POST', 'markReq', {
-    type: 'markReq', id: r.id, status: label, notify: true, message
+    type: 'markReq', id: r.id, status: label, notify: true, to, message
   });
   if (res.requireLogin) { gateAuthOn = true; showGate(); toast('⚠️ 請重新輸入 SUPER KEY 密碼'); return false; }
 
   const d = (res.ok && res.data) ? res.data : null;
-  if (!d) { toast('❌ 通知失敗：/api/admin 無回應'); return false; }
+  if (!d) { openReplyResult(r, 'no-proxy', { to, letter, retry, label, message }); return false; }
+  if (d.status === 'error') {
+    const notFound = /找不到/.test(d.message || '');
+    openReplyResult(r, notFound ? 'not-found' : 'send-failed',
+      { to, letter, retry, label, message, detail: d.message || '' });
+    return false;
+  }
+
   if (d.email === 'sent') {
-    r.notifiedAt = new Date().toLocaleString('zh-HK');
-    r.notifiedTo = d.to || to;
+    const sentTo = normEmail(d.to) || to;
+    r.notifiedAt = d.at || new Date().toLocaleString('zh-HK');
+    r.notifiedTo = sentTo;
+    r.contact = sentTo;
     save(); refreshAll();
-    toast(`✅ 已寄出通知信到 ${r.notifiedTo}`);
+    toast(`✅ 已寄出通知信到 ${sentTo}`);
     return true;
   }
-  if (d.email === 'no-address') {
-    toast('⚠️ 這張申請沒有聯絡 Email，請人手回覆');
-    return false;
-  }
-  if (d.email === 'failed') {
-    toast('⚠️ 通知信寄不出：' + (d.error || '請檢查 GS 寄信配額'));
-    return false;
-  }
-  toast('⚠️ ' + (d.message || '通知未確認送出'));
+
+  const kind = d.email === 'failed'          ? 'send-failed'
+             : d.email === 'invalid-address' ? 'invalid-address'
+             : d.email === 'no-address'      ? 'no-address'
+             : 'gs-old';
+  const detail = (kind === 'send-failed') ? (d.error || d.message || '') : (d.message || '');
+  openReplyResult(r, kind, { to: d.to || to, letter, retry, label, message, detail });
   return false;
 }
 
@@ -3436,18 +3816,30 @@ async function syncFromSheet() {
       // v2.5：旅團名稱空白也要收（roverbadge 舊版可能無名）→ 用旅團號補，唔好靜靜漏單
       const troopName = String(row['旅團名稱'] ?? '').trim() || (troopId ? `第 ${troopId} 旅` : '（未填旅團名稱）');
       const id = String(row['編號'] || '');
+      const sheetContact = String(row['聯絡 Email'] ?? '').trim();
+      // v2.6：寄信成功後 GS 會寫「通知時間」，同步返嚟就可以顯示「已通知」
+      const sheetNotified = String(row['通知時間'] ?? '').trim();
       const dupById   = id && state.requests.some(r => r.id === id);
       const dupByComp = !id && state.requests.some(r => r.troopName === troopName && r.troopId === troopId);
-      if (dupById || dupByComp) return;
+      if (dupById || dupByComp) {
+        // 已存在：只補回 Sheet 最新的聯絡 Email／通知時間（唔覆蓋本機狀態）
+        const ex = state.requests.find(r => (id && r.id === id) || (!id && r.troopName === troopName && r.troopId === troopId));
+        if (ex) {
+          if (sheetContact) ex.contact = sheetContact;
+          if (sheetNotified) ex.notifiedAt = sheetNotified;
+        }
+        return;
+      }
       const sheetStatus = String(row['狀態'] ?? '').trim();
       state.requests.unshift({
         id: id || newLocalId(),
         troopId, troopName,
         backendUrl: String(row['URL'] ?? row['Apps Script URL'] ?? ''),
         apiKey:     String(row['API Key'] ?? ''),
-        contact:    String(row['聯絡 Email'] ?? '').trim(),
+        contact:    sheetContact,
         note:       String(row['備注'] ?? ''),
         status:     REQ_STATUS_FROM_SHEET[sheetStatus] || 'pending',
+        notifiedAt: sheetNotified,
         createdAt:  sheetDate(row['提交時間'])
       });
       addA++;
