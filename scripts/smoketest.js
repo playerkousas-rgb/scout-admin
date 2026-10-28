@@ -41,12 +41,23 @@ const dom = new JSDOM(html, {
       const s = String(url);
       let payload = LIST_PAYLOAD;
       if (s.includes('action=diag')) payload = DIAG_PAYLOAD;
-      // POST markReq + notify → 模擬 GS 回覆結果
+      // POST markReq + notify → 模擬 GS 回覆結果（replyMode 由測試切換）
       if (s === '/api/admin' && opts && opts.body) {
         try {
           const body = JSON.parse(opts.body || '{}');
+          window.__lastPost = body;
           if (body.type === 'markReq' && body.notify) {
-            payload = { status: 'ok', message: '已更新並已通知申請人', notified: true, email: 'sent', to: 'leader82@example.com' };
+            const to = body.to || 'leader82@example.com';
+            if (window.__replyMode === 'failed') {
+              payload = { status: 'ok', notified: false, email: 'failed', to, error: 'Service invoked too many times: email' };
+            } else if (window.__replyMode === 'old') {
+              // v2.4／v2.5 舊 GS：回應冇 email 欄位
+              payload = { status: 'ok', message: '已更新', notified: false };
+            } else if (window.__replyMode === 'no-address') {
+              payload = { status: 'ok', notified: false, email: 'no-address', message: '已更新，但這張申請搵唔到電郵地址（請人手回覆）' };
+            } else {
+              payload = { status: 'ok', message: '已更新並已通知申請人', notified: true, email: 'sent', to };
+            }
           } else if (body.type === 'markReq') {
             payload = { status: 'ok', message: '已更新' };
           }
@@ -62,6 +73,8 @@ const dom = new JSDOM(html, {
       };
     };
     window.confirm = () => true;
+    window.prompt = () => '';
+    window.open = () => ({});
   }
 });
 
@@ -162,7 +175,7 @@ setTimeout(async () => {
     // ---- 版本標記（辨認 Vercel 有冇部署到新版）----
     check(d.getElementById('verTag') !== null, 'header 有版本標記 #verTag');
     check(d.getElementById('verTag').textContent.trim() === 'v' + w.eval('APP_VERSION'), '預設顯示前端版本');
-    w.setVerTag('2.5.0');
+    w.setVerTag('2.6.0');
     check(d.getElementById('verTag').classList.contains('ok') && d.getElementById('verTag').textContent.includes('✔'),
       '前後端版本一致 → 綠色 ✔');
     w.setVerTag('2.4.0');
@@ -170,7 +183,7 @@ setTimeout(async () => {
       '前後端版本不一致 → 紅色警示（Vercel 未重新部署）');
     w.setVerTag('');
     check(!d.getElementById('verTag').classList.contains('bad'), '未連到代理時不加警示');
-    check(w.eval('APP_VERSION') === '2.5.0', 'APP_VERSION = 2.5.0');
+    check(w.eval('APP_VERSION') === '2.6.0', 'APP_VERSION = 2.6.0');
 
     // ---- ✉️ 回覆申請人（v2.5）----
     w.eval(`state.requests = [
@@ -193,6 +206,58 @@ setTimeout(async () => {
     check(await w.notifyApplicant('local-only-id', { skipConfirm: true }) === false, '本機未同步的申請唔會硬寄（提示先同步）');
     w.renderRequests();
     check(d.getElementById('requestList').innerHTML.includes('✉️ 已通知'), '卡片顯示「已通知」標記');
+
+    // ---- v2.6：所見即所寄 ----
+    const post1 = w.__lastPost || {};
+    check(post1.type === 'markReq' && post1.notify === true, '✉️ 通知會發 markReq + notify');
+    check(post1.to === 'leader82@example.com', 'v2.6：卡片顯示嘅地址會一齊傳去 GS（所見即所寄）');
+
+    check(w.normEmail(' Leader＠Example.COM ') === 'Leader@Example.COM', 'normEmail：全形＠／空格自動執正');
+    check(w.normEmail('mailto:a@b.com.hk') === 'a@b.com.hk', 'normEmail：剝走 mailto:');
+    check(w.normEmail('冇電郵') === '', 'normEmail：唔合法回空字串');
+    check(w.contactEmailOf({ contact:'', note:'電話 9123 4567，電郵：abc@x.org.hk' }) === 'abc@x.org.hk',
+      'contactEmailOf：備注內嘅電郵都抽得到');
+
+    // 失敗 → 彈結果視窗，講原因＋提供後備寄法
+    w.eval("window.__replyMode = 'failed';");
+    const okFailed = await w.notifyApplicant('aaaaaaaa-1111-4111-8111-111111111111', { skipConfirm: true, message: '' });
+    check(okFailed === false, 'v2.6：寄唔出時唔會當成功');
+    check(d.getElementById('replyModal').style.display === 'block', 'v2.6：寄唔出會開結果視窗');
+    const failHtml = d.getElementById('replyBody').innerHTML;
+    check(/寄唔出/.test(d.getElementById('replyBody').textContent), 'v2.6：視窗講明「Google 寄唔出」');
+    check(failHtml.includes('Service invoked too many times'), 'v2.6：視窗顯示 Google 真正錯誤');
+    check(!/display:\s*none/.test(d.getElementById('replyMailBtn').getAttribute('style') || ''),
+      'v2.6：有「📧 用電郵軟件寄」後備');
+    const mailto = w.eval('replyMailtoUrl(replyCtx)');
+    check(mailto.startsWith('mailto:leader82%40example.com?subject='), 'v2.6：mailto 連結帶收件人同主旨');
+    w.closeReplyModal();
+
+    // 舊版 GS（回應冇 email 欄位）→ 直接叫你去更新 GS
+    w.eval("window.__replyMode = 'old';");
+    await w.notifyApplicant('aaaaaaaa-1111-4111-8111-111111111111', { skipConfirm: true, message: '' });
+    check(/舊版/.test(d.getElementById('replyBody').textContent), 'v2.6：舊版 GS 會講明「Apps Script 仲係舊版」');
+    check(/部署/.test(d.getElementById('replyBody').textContent), 'v2.6：舊版 GS 會教你點重新部署');
+    w.closeReplyModal();
+
+    // no-address → 提示 ＋ 後備
+    w.eval("window.__replyMode = 'no-address';");
+    await w.notifyApplicant('aaaaaaaa-1111-4111-8111-111111111111', { skipConfirm: true, message: '' });
+    check(/搵唔到電郵地址/.test(d.getElementById('replyBody').textContent), 'v2.6：no-address 會解釋原因');
+    w.closeReplyModal();
+
+    // 成功之後：Sheet 嘅「通知時間」同步返嚟 → 顯示已通知
+    w.eval("window.__replyMode = 'sent'; state.requests = [];");
+    LIST_PAYLOAD.applications = [{
+      '提交時間': '2026-10-20T10:00:00Z', '旅團號': '0082', '旅團名稱': '第82旅',
+      'URL': 'u', 'API Key': 'k', '備注': '', '狀態': '已接入',
+      '編號': 'cccccccc-3333-4333-8333-333333333333',
+      '聯絡 Email': 'leader82@example.com', '通知時間': '2026/10/20 15:04:05'
+    }];
+    await w.syncFromSheet();
+    check(w.eval("state.requests[0].notifiedAt") === '2026/10/20 15:04:05',
+      'v2.6：同步會讀取 Sheet 的「通知時間」（重開後仍見到已通知）');
+    check(w.eval("state.requests[0].contact") === 'leader82@example.com', 'v2.6：同步會讀取「聯絡 Email」');
+    LIST_PAYLOAD.applications = [];
 
     // ---- 🧪 連通測試 UI ----
     check(d.getElementById('diagModal') !== null, '連通測試 modal 存在');

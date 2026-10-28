@@ -229,13 +229,54 @@ const srcCol = state.feedback.headers.indexOf('來源APP');
 const srcs = state.feedback.rows.slice(-10).map(row=>row[srcCol]);
 check(srcs.every(x=>x==='專章系統'), '10 種 BADGE APP 寫法全部統一成「專章系統」（' + Array.from(new Set(srcs)).join('/') + '）');
 
+// ==== v2.6：所見即所寄（後台傳嚟嘅地址優先，唔再只靠 Sheet 一欄） ====
+global.__mailThrows = false;
+emails.length = 0;
+post({type:'apply',troopId:'0093',troopName:'第93旅',backendUrl:'u',apiKey:'k',note:'完全冇電郵'});
+const id93 = arow()[state.apply.headers.indexOf('編號')];
+r = post({type:'markReq', id:id93, status:'已接入', notify:true, to:'typed93@example.com'});
+check(r.status==='ok' && r.email==='sent' && r.to==='typed93@example.com',
+  'v2.6：後台傳入嘅 to 直接寄（Sheet 冇地址都寄得出）');
+const toApplicant = () => emails.filter(e => e.to !== ADMIN && e.to !== 'playerkousas@hotmail.com');
+check(toApplicant().length===1 && toApplicant()[0].to==='typed93@example.com', 'v2.6：真正寄出嘅收件人＝後台顯示嗰個');
+check(arow()[state.apply.headers.indexOf('聯絡 Email')]==='typed93@example.com',
+  'v2.6：寄出後地址寫回「聯絡 Email」欄');
+check(state.apply.headers.indexOf('通知時間')>=0, 'v2.6：成功寄出後自動加「通知時間」欄');
+check(String(arow()[state.apply.headers.indexOf('通知時間')]||'').length>4, 'v2.6：「通知時間」有寫入時間');
+check(state.apply.headers[7]==='編號', 'v2.6：原有「編號」仍在第 8 欄（新欄只加在最後）');
+
+// 全形＠／前後空格／mailto: 自動執正
+emails.length = 0;
+post({type:'apply',troopId:'0094',troopName:'第94旅',backendUrl:'u',apiKey:'k',note:'冇'});
+const id94 = arow()[state.apply.headers.indexOf('編號')];
+r = post({type:'markReq', id:id94, status:'已接入', notify:true, to:' mailto: Leader94＠Example.COM '});
+check(r.email==='sent' && toApplicant().length===1 && toApplicant()[0].to.toLowerCase()==='leader94@example.com',
+  'v2.6：全形＠／空格／mailto: 自動執正');
+
+// 後台打錯地址，但 Sheet 有正確地址 → 用 Sheet 嗰個，唔會亂寄
+emails.length = 0;
+post({type:'apply',troopId:'0095',troopName:'第95旅',backendUrl:'u',apiKey:'k',note:'聯絡：right95@example.com'});
+const id95 = arow()[state.apply.headers.indexOf('編號')];
+r = post({type:'markReq', id:id95, status:'已接入', notify:true, to:'打錯咗嘅地址'});
+check(r.email==='sent' && toApplicant().length===1 && toApplicant()[0].to==='right95@example.com',
+  'v2.6：後台地址打錯但 Sheet 有正確地址 → 用 Sheet 嗰個');
+
+// 兩邊都冇合法地址 → invalid-address（唔會假成功、亦唔會亂寄）
+emails.length = 0;
+post({type:'apply',troopId:'0096',troopName:'第96旅',backendUrl:'u',apiKey:'k',note:'冇'});
+const id96 = arow()[state.apply.headers.indexOf('編號')];
+r = post({type:'markReq', id:id96, status:'已接入', notify:true, to:'not-an-email'});
+check(r.status==='ok' && r.email==='invalid-address' && r.reason==='bad-email',
+  'v2.6：兩邊都冇合法地址 → invalid-address');
+check(toApplicant().length===0, 'v2.6：地址唔合法時一封都唔會寄出');
+
 // ==== v2.5：版本標記（用嚟分辨貼上的是新版還是舊版 v2.4）====
-check(/統一回報接收系統（v2\.5）/.test(code.split('\n')[1]), 'GS 第 2 行標明 v2.5');
-check(/var GS_VERSION = "2\.5"/.test(code), 'GS 有 GS_VERSION 常數（舊版 v2.4 冇）');
+check(/統一回報接收系統（v2\.6）/.test(code.split('\n')[1]), 'GS 第 2 行標明 v2.6');
+check(/var GS_VERSION = "2\.6"/.test(code), 'GS 有 GS_VERSION 常數（舊版 v2.4 冇）');
 g = JSON.parse(sandbox.doGet({parameter:{}}));
-check(g.version === '2.5', 'GS 健康檢查回 version 2.5');
+check(g.version === '2.6', 'GS 健康檢查回 version 2.6');
 g = JSON.parse(sandbox.doGet({parameter:{action:'diag',apikey:sandbox.PropertiesService.getScriptProperties().getProperty('API_KEY')}}));
-check(g.version === '2.5' && g.capabilities && g.capabilities.replyEmail === true, 'GS ?action=diag 回版本同回覆功能');
+check(g.version === '2.6' && g.capabilities && g.capabilities.replyEmail === true, 'GS ?action=diag 回版本同回覆功能');
 
 console.log(fails===0?'ALL GAS OK':(fails+' FAILURES'));
 process.exit(fails?1:0);

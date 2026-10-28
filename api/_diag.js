@@ -175,9 +175,9 @@ async function probeScoutAdmin(ctx) {
   const out = [];
 
   out.push(check('Scout Admin', 'admin-version', '後台代理版本',
-    ctx.adminVersion === '2.5.0' ? 'pass' : 'warn',
+    ctx.adminVersion === '2.6.0' ? 'pass' : 'warn',
     ctx.adminVersion ? `v${ctx.adminVersion}` : '未知（舊版代理冇回版本）',
-    ctx.adminVersion === '2.5.0' ? '' : 'Vercel 可能未重新部署；前端右上角版本標記亦會顯示前後端不一致。'));
+    ctx.adminVersion === '2.6.0' ? '' : 'Vercel 可能未重新部署；前端右上角版本標記亦會顯示前後端不一致。'));
   out.push(check('Scout Admin', 'admin-key', '後台 API KEY', ctx.hasAdminKey ? 'pass' : 'fail',
     ctx.hasAdminKey ? 'SCOUT_ADMIN_KEY 已設定' : '未設定 SCOUT_ADMIN_KEY',
     ctx.hasAdminKey ? '' : '後台讀取 Sheet 會失敗；在 Vercel 加 SCOUT_ADMIN_KEY（由 GS setupApiKey 產生）後重新部署。'));
@@ -251,13 +251,17 @@ async function probeGsEmail(ctx) {
 
   // 能力探測：舊版 GS 冇回覆 Email／測試 Email，要叫用戶更新
   const caps = body.capabilities || {};
-  if (caps.replyEmail === true) {
+  if (caps.replyEmail === true && caps.replyEmailTo === true) {
     out.push(check('Scout Admin', 'gs-reply', '回覆申請人 Email', 'pass',
-      'GS 支援 markReq + notify（審核後一鍵回覆申請人）', ''));
+      'GS 支援 markReq + notify，並會用後台傳來嘅收件地址（所見即所寄）', ''));
+  } else if (caps.replyEmail === true) {
+    out.push(check('Scout Admin', 'gs-reply', '回覆申請人 Email', 'warn',
+      'GS 係舊版（v2.5）：唔會用後台傳來嘅地址，遇到 Sheet 冇地址就會回 no-address',
+      '貼上最新版 GS（v2.6）並「新版本」重新部署；未更新前可先用後台的「📧 用電郵軟件寄」後備。'));
   } else {
     out.push(check('Scout Admin', 'gs-reply', '回覆申請人 Email', 'warn',
       'GS 未支援回覆功能（?action=diag 冇 capabilities.replyEmail）',
-      '貼上最新版 GS（v2.5）並「新版本」重新部署，後台的 ✉️ 通知才有作用。'));
+      '貼上最新版 GS（v2.6）並「新版本」重新部署，後台的 ✉️ 通知才有作用。'));
   }
 
   // 上一封「旅團接入申請」通知信：直接用來看「申請有冇 Email」
