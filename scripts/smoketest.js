@@ -188,14 +188,16 @@ setTimeout(async () => {
     // ---- ✉️ 回覆申請人（v2.5）----
     w.eval(`state.requests = [
       { id:'aaaaaaaa-1111-4111-8111-111111111111', troopId:'0082', troopName:'第82旅', backendUrl:'u', apiKey:'k',
-        contact:'leader82@example.com', note:'', status:'pending', createdAt:'2026/10/20 10:00' },
+        contact:'leader82@example.com', note:'', appType:'scoutbadge', status:'pending', createdAt:'2026/10/20 10:00' },
       { id:'bbbbbbbb-2222-4222-8222-222222222222', troopId:'0091', troopName:'第91旅', backendUrl:'u', apiKey:'k',
-        contact:'', note:'[roverbadge] 聯絡：leader91@example.com', status:'pending', createdAt:'2026/10/19 10:00' }
+        contact:'', note:'[roverbadge] 聯絡：leader91@example.com', appType:'roverbadge', status:'pending', createdAt:'2026/10/19 10:00' }
     ];`);
     w.renderRequests();
     const cardHtml = d.getElementById('requestList').innerHTML;
     check(cardHtml.includes('leader82@example.com'), '卡片顯示聯絡 Email');
     check(cardHtml.includes('✉️ 通知'), '卡片有「✉️ 通知」按鈕');
+    check(cardHtml.includes('（scoutbadge 未提供備註）'), '空備注會顯示「未提供備註」＋來源（scoutbadge）');
+    check(cardHtml.includes('[roverbadge] 聯絡：leader91@example.com'), '有備注時原樣顯示（roverbadge 標記）');
     check(w.eval("contactEmailOf(state.requests[1])") === 'leader91@example.com', '未填聯絡 Email 時由備注自動抽出');
     check(w.contactEmailOf({ note:'無電郵' }) === '', '完全冇 Email 時回空字串（唔會亂寄）');
 
