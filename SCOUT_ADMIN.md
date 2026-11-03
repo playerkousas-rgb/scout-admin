@@ -13,6 +13,7 @@
 > ⑨ **✉️ 回覆申請人 Email**：審核後一鍵通知旅團（見第十五節）
 > ⑩ **v2.6：回覆信「所見即所寄」**——後台見到／輸入的地址直接傳去 GS，唔再因為 Sheet 某一欄冇值而寄唔出；失敗會講原因，仲有「📧 用電郵軟件寄」後備（見第十五節）
 > 部署網址：https://scout-admin-blue.vercel.app/
+> 公開說明書（其他系統可直接讀取）：https://scout-admin-blue.vercel.app/SCOUT_ADMIN.md
 
 ---
 
@@ -202,6 +203,27 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 流程：旅團提交 → 寫入 Sheet「申請記錄」＋ Email → 後台「🔄 同步 Sheet」→ 審核（✅ 接入 / ❌ 拒絕）→ **展開卡片直接複製** vsbadge JSON／troops.ts／Vercel 環境變數片段。
 
 > **關於「備注」（F 欄，選填）**：cubsbadge／roverbadge／vsbadge 的 proxy 會自動加 `[cubsbadge]`／`[roverbadge]`／`[vsbadge]` 標記，所以即使申請人留空，後台卡片都有備注；**scoutbadge 的 proxy 只原樣轉發 `note`，沒有加 `[scoutbadge]`**，申請人留空時備注就是空字串。後台現在會在空備注時顯示「（scoutbadge 未提供備註）」，避免看起來像漏資料。要與其他 APP 完全一致，可在 scoutbadge 的 `handleRegistration()` 加同樣的 `[scoutbadge]` 標記。
+
+### 接入申請 payload（給其他系統）
+
+```json
+{
+  "type": "apply",
+  "troopId": "0082",
+  "troopName": "第82旅",
+  "backendUrl": "https://script.google.com/macros/s/…/exec",
+  "apiKey": "sc_…",
+  "contact": "leader@example.com",
+  "note": "[scoutbadge] 選填備註",
+  "appType": "scoutbadge"
+}
+```
+
+- `type` 固定 `apply`（`register`／`旅團登記` 也收）
+- `backendUrl` 只認 `backendUrl`／`url`，**唔認 `scriptUrl`**
+- `contact` 可選；GS 會由 `contact`／`email`／`note` 任何一格抽出 Email
+- `note` 可選；cubsbadge／roverbadge／vsbadge 會自動加 `[app]` 標記，scoutbadge 目前原樣轉發
+- `appType` 可選；GS 會自動加欄，後台空備注時用嚟顯示來源
 
 ---
 

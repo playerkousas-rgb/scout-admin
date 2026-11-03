@@ -59,6 +59,8 @@ function mdJsonKeys(type) {
 }
 check(sameSet(mdJsonKeys('issue'), ISSUE_KEYS), '說明書 issue 範例 JSON 欄位一致');
 check(sameSet(mdJsonKeys('feedback'), FEEDBACK_KEYS), '說明書 feedback 範例 JSON 欄位一致');
+check(md.includes('"type": "apply"') && md.includes('"backendUrl"') && md.includes('"appType"'),
+  '說明書有接入申請 payload 範例（type/backendUrl/appType）');
 
 // ---------- ② 來源系統登記表：後台 / widget / GS / 說明書 四邊一致 ----------
 function jsArrayLabels(src, marker) {
