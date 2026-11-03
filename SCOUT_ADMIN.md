@@ -201,6 +201,8 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 
 流程：旅團提交 → 寫入 Sheet「申請記錄」＋ Email → 後台「🔄 同步 Sheet」→ 審核（✅ 接入 / ❌ 拒絕）→ **展開卡片直接複製** vsbadge JSON／troops.ts／Vercel 環境變數片段。
 
+> **關於「備注」（F 欄，選填）**：cubsbadge／roverbadge／vsbadge 的 proxy 會自動加 `[cubsbadge]`／`[roverbadge]`／`[vsbadge]` 標記，所以即使申請人留空，後台卡片都有備注；**scoutbadge 的 proxy 只原樣轉發 `note`，沒有加 `[scoutbadge]`**，申請人留空時備注就是空字串。後台現在會在空備注時顯示「（scoutbadge 未提供備註）」，避免看起來像漏資料。要與其他 APP 完全一致，可在 scoutbadge 的 `handleRegistration()` 加同樣的 `[scoutbadge]` 標記。
+
 ---
 
 ## 五、問題回報 / 意見回饋（統一 TICK 看板）

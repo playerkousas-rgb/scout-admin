@@ -899,6 +899,8 @@ Scout Admin 是**純靜態後台**，部署在 Vercel，**本身沒有資料庫*
 
 流程：旅團提交 → 寫入 Sheet「申請記錄」＋ Email → 後台「🔄 同步 Sheet」→ 審核（✅ 接入 / ❌ 拒絕）→ **展開卡片直接複製** vsbadge JSON／troops.ts／Vercel 環境變數片段。
 
+> **關於「備注」（F 欄，選填）**：cubsbadge／roverbadge／vsbadge 的 proxy 會自動加 \`[cubsbadge]\`／\`[roverbadge]\`／\`[vsbadge]\` 標記，所以即使申請人留空，後台卡片都有備注；**scoutbadge 的 proxy 只原樣轉發 \`note\`，沒有加 \`[scoutbadge]\`**，申請人留空時備注就是空字串。後台現在會在空備注時顯示「（scoutbadge 未提供備註）」，避免看起來像漏資料。要與其他 APP 完全一致，可在 scoutbadge 的 \`handleRegistration()\` 加同樣的 \`[scoutbadge]\` 標記。
+
 ---
 
 ## 五、問題回報 / 意見回饋（統一 TICK 看板）
@@ -2533,6 +2535,13 @@ function buildAppCard(r) {
   const sentTag = r.notifiedAt
     ? `<span class="badge badge-muted" title="${escHtml(r.notifiedAt)}">✉️ 已通知</span>` : '';
 
+  // 備注是選填。cubsbadge／roverbadge／vsbadge 的 proxy 會自動加 [app] 標記，
+  // 但 scoutbadge 只會原樣轉發；申請人留空時就沒有備注。這裡明確顯示「未提供」，
+  // 有 appType 時順便標示來源，避免看起來像漏資料。
+  const noteText = r.note
+    ? escHtml(r.note)
+    : (r.appType ? `（${escHtml(r.appType)} 未提供備註）` : '（未提供備註）');
+
   // build JSON snippets inline
   const vsSnippet  = buildSingleVsbadge(r);
   const tsSnippet  = buildSingleTs(r);
@@ -2548,7 +2557,7 @@ function buildAppCard(r) {
         <strong>URL：</strong><span class="url-cell" style="max-width:none">${escHtml(r.backendUrl||'—')}</span><br>
         <strong>API Key：</strong><code>${escHtml(r.apiKey||'—')}</code><br>
         <strong>聯絡 Email：</strong>${contact?escHtml(contact):'<span style="color:#c62828">未填（可按 ✉️ 補輸入）</span>'}
-        ${r.note?`<br><strong>備注：</strong>${escHtml(r.note)}`:''}
+        <br><strong>備注：</strong><span${r.note?'':' style="color:var(--muted)"'}>${noteText}</span>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
@@ -3838,6 +3847,8 @@ async function syncFromSheet() {
         apiKey:     String(row['API Key'] ?? ''),
         contact:    sheetContact,
         note:       String(row['備注'] ?? ''),
+        // appType 由 4 個 BADGE APP 一併送出（GS 會自動加欄）；空備注時用嚟顯示來源
+        appType:    String(row['appType'] ?? ''),
         status:     REQ_STATUS_FROM_SHEET[sheetStatus] || 'pending',
         notifiedAt: sheetNotified,
         createdAt:  sheetDate(row['提交時間'])
